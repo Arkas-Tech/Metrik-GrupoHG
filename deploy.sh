@@ -156,8 +156,11 @@ sleep 3
 
 # Verify services are online
 log "Verifying services..."
-BACKEND_STATUS=$(pm2 jlist | grep -o '"name":"metrik-backend"[^}]*"status":"[^"]*"' | grep -o '"status":"[^"]*"' | cut -d'"' -f4 | head -1)
-FRONTEND_STATUS=$(pm2 jlist | grep -o '"name":"metrik-frontend"[^}]*"status":"[^"]*"' | grep -o '"status":"[^"]*"' | cut -d'"' -f4 | head -1)
+sleep 2  # Wait for services to stabilize
+
+# Get status directly from pm2
+BACKEND_STATUS=$(pm2 describe metrik-backend 2>/dev/null | grep 'status' | head -1 | awk '{print $3}' | tr -d '│')
+FRONTEND_STATUS=$(pm2 describe metrik-frontend 2>/dev/null | grep 'status' | head -1 | awk '{print $3}' | tr -d '│')
 
 if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
     log "✅ Deployment successful! All services online."
