@@ -1,148 +1,113 @@
 #!/bin/bash
 
-# Script de deployment para SGPME
-# Uso: ./deploy.sh
+# Deployment script for Metrik application
+# This script is called by the webhook server when a push to main is detected
 
-SERVER="root@72.62.161.61"
-REMOTE_PATH="/home/sgpme/app/backend"
+set -e  # Exit on any error
 
-echo "=== Deployment SGPME ==="
-echo "Servidor: $SERVER"
-echo ""
+# Configuration
+APP_DIR="/home/sgpme/app"
+BACKEND_DIR="$APP_DIR/backend"
+FRONTEND_DIR="$APP_DIR/frontend"
+LOG_FILE="$APP_DIR/logs/deploy.log"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Función para verificar conexión
-check_connection() {
-    ssh -o ConnectTimeout=5 $SERVER "echo 'Conexión OK'" 2>/dev/null
+# Function to log with timestamp
+log() {
+    echo "[$TIMESTAMP] $1" | tee -a "$LOG_FILE"
+}
+
+# Function to check if file changed in last commit
+file_changed() {
+    local file=$1
+    git diff HEAD@{1} HEAD --name-only | grep -q "$file"
     return $?
 }
 
-# Verificar conexión
-echo "Verificando conexión al servidor..."
-if ! check_connection; then
-    echo "❌ No se puede conectar al servidor"
-    echo "Por favor verifica:"
-    echo "  - Que el servidor esté encendido"
-    echo "  - Que tengas conectividad de red"
-    echo "  - Que el puerto SSH (22) esté abierto"
-    exit 1
+log "====== Starting deployment ======"
+log "Triggered by: ${GITHUB_ACTOR:-webhook}"
+
+cd "$APP_DIR" || { log "ERROR: Cannot cd to $APP_DIR"; exit 1; }
+
+# Stash any local changes (shouldn't be any, but just in case)
+log "Checking for local changes..."
+if [[ -n $(git status -s) ]]; then
+    log "Stashing local changes..."
+    git stash
 fi
-echo "✅ Conexión establecida"
-echo ""
 
-# Detener servicios actuales
-echo "Deteniendo servicios actuales..."
-ssh $SERVER << 'ENDSSH'
-pkill -f "uvicorn main:app" || true
-pkill -f "next start" || true
-echo "Servicios detenidos"
-ENDSSH
+# Fetch and pull latest changes from main
+log "Pulling latest changes from main..."
+BEFORE_COMMIT=$(git rev-parse HEAD)
+git fetch origin main
+git reset --hard origin/main
+AFTER_COMMIT=$(git rev-parse HEAD)
 
-# Sincronizar archivos del backend
-echo ""
-echo "Subiendo archivos del backend..."
-rsync -avz --progress \
-  --exclude '__pycache__' \
-  --exclude '*.pyc' \
-  --exclude 'venv' \
-  --exclude '*.db' \
-  --exclude 'backups' \
-  /Users/YOSMARCH/Desktop/sgpme/HGApp/*.py \
-  /Users/YOSMARCH/Desktop/sgpme/HGApp/routers/ \
-  $SERVER:$REMOTE_PATH/
+if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
+    log "No new changes detected. Deployment cancelled."
+    exit 0
+fi
 
-# Verificar y actualizar dependencias
-echo ""
-echo "Actualizando dependencias del backend..."
-ssh $SERVER << 'ENDSSH'
-cd /home/sgpme/app/backend
-source venv/bin/activate
-pip install -q -r requirements.txt
-echo "Dependencias actualizadas"
-ENDSSH
+log "Updated from $BEFORE_COMMIT to $AFTER_COMMIT"
 
-# Iniciar el backend
-echo ""
-echo "Iniciando backend..."
-ssh $SERVER << 'ENDSSH'
-cd /home/sgpme/app/backend
-nohup /home/sgpme/app/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
-BACKEND_PID=$!
-echo "Backend iniciado con PID: $BACKEND_PID"
+# Check if backend dependencies changed
+if file_changed "backend/requirements.txt"; then
+    log "Backend dependencies changed. Installing..."
+    cd "$BACKEND_DIR"
+    ./venv/bin/pip install -r requirements.txt >> "$LOG_FILE" 2>&1
+    log "Backend dependencies installed"
+    cd "$APP_DIR"
+fi
+
+# Check if frontend dependencies changed
+if file_changed "frontend/package.json" || file_changed "frontend/package-lock.json"; then
+    log "Frontend dependencies changed. Installing..."
+    cd "$FRONTEND_DIR"
+    npm ci >> "$LOG_FILE" 2>&1
+    log "Frontend dependencies installed"
+    
+    log "Rebuilding frontend..."
+    npm run build >> "$LOG_FILE" 2>&1
+    log "Frontend rebuilt"
+    cd "$APP_DIR"
+fi
+
+# Reload PM2 processes (zero-downtime reload)
+log "Reloading PM2 processes..."
+pm2 reload ecosystem.config.js >> "$LOG_FILE" 2>&1
+
+# Wait a moment for services to stabilize
 sleep 3
 
-# Verificar que está corriendo
-if ps -p $BACKEND_PID > /dev/null; then
-    echo "✅ Backend corriendo correctamente"
-    echo "Log:"
-    tail -10 backend.log
+# Verify services are online
+log "Verifying services..."
+PM2_STATUS=$(pm2 jlist)
+BACKEND_STATUS=$(echo "$PM2_STATUS" | grep -o '"name":"metrik-backend".*"status":"[^"]*"' | grep -o 'status":"[^"]*' | cut -d'"' -f3)
+FRONTEND_STATUS=$(echo "$PM2_STATUS" | grep -o '"name":"metrik-frontend".*"status":"[^"]*"' | grep -o 'status":"[^"]*' | cut -d'"' -f3)
+
+if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
+    log "✅ Deployment successful! All services online."
+    log "   Backend: $BACKEND_STATUS"
+    log "   Frontend: $FRONTEND_STATUS"
+    
+    # Test endpoints
+    BACKEND_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/docs || echo "000")
+    FRONTEND_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3030 || echo "000")
+    
+    log "   Backend HTTP: $BACKEND_HTTP"
+    log "   Frontend HTTP: $FRONTEND_HTTP"
+    
+    if [ "$BACKEND_HTTP" = "200" ] && [ "$FRONTEND_HTTP" = "200" ]; then
+        log "✅ Health checks passed"
+    else
+        log "⚠️  Warning: Some services not responding correctly"
+    fi
 else
-    echo "❌ Backend falló al iniciar"
-    echo "Últimas líneas del log:"
-    tail -20 backend.log
+    log "❌ ERROR: Deployment failed! Services not online."
+    log "   Backend: $BACKEND_STATUS"
+    log "   Frontend: $FRONTEND_STATUS"
     exit 1
 fi
-ENDSSH
 
-# Subir archivos del frontend
-echo ""
-echo "Subiendo archivos del frontend..."
-rsync -avz --progress \
-  --exclude 'node_modules' \
-  --exclude '.next' \
-  /Users/YOSMARCH/Desktop/sgpme/sgpme_app/src/ \
-  /Users/YOSMARCH/Desktop/sgpme/sgpme_app/package.json \
-  /Users/YOSMARCH/Desktop/sgpme/sgpme_app/.env.production \
-  $SERVER:/home/sgpme/app/frontend/
-
-# Iniciar el frontend
-echo ""
-echo "Iniciando frontend..."
-ssh $SERVER << 'ENDSSH'
-cd /home/sgpme/app/frontend
-
-# Verificar que .next existe
-if [ ! -d ".next" ]; then
-    echo "⚠️  Build de Next.js no encontrado, construyendo..."
-    npm run build
-fi
-
-# Iniciar frontend
-export NODE_ENV=production
-nohup npm start > frontend.log 2>&1 &
-FRONTEND_PID=$!
-echo "Frontend iniciado con PID: $FRONTEND_PID"
-sleep 3
-
-# Verificar que está corriendo
-if ps -p $FRONTEND_PID > /dev/null; then
-    echo "✅ Frontend corriendo correctamente"
-else
-    echo "❌ Frontend falló al iniciar"
-    echo "Últimas líneas del log:"
-    tail -20 frontend.log
-    exit 1
-fi
-ENDSSH
-
-# Verificar servicios
-echo ""
-echo "=== Verificación final ==="
-ssh $SERVER << 'ENDSSH'
-echo "Procesos corriendo:"
-ps aux | grep -E "(uvicorn|node.*next)" | grep -v grep
-
-echo ""
-echo "Puertos abiertos:"
-ss -tlnp | grep -E ":(3000|8000)"
-
-echo ""
-echo "✅ Deployment completado"
-echo ""
-echo "URLs de acceso:"
-echo "  Frontend: http://72.62.161.61:3000"
-echo "  Backend:  http://72.62.161.61:8000"
-echo "  API Docs: http://72.62.161.61:8000/docs"
-ENDSSH
-
-echo ""
-echo "=== Deployment finalizado exitosamente ==="
+log "====== Deployment completed ======"
+exit 0

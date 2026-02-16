@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Base de datos
+*.db
+sgpme.db
+
+# Backups
+backups/
+!backups/.gitkeep
+
+# Logs
+*.log
+nohup.out
+
+# Ambiente virtual
+venv/
+env/
+sgpme_env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Variables de entorno
+.env
+.env.local
+.env.production
