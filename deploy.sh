@@ -154,20 +154,24 @@ fi
 # Wait a moment for services to stabilize
 sleep 3
 
-# Verify services are online
+# Verify services are online (simple grep for "online" status)
 log "Verifying services..."
-sleep 3  # Wait for services to stabilize
+sleep 3
 
-# Simple verification: if pm2 reload didn't error, services should be online
-PM2_BACKEND_COUNT=$(pm2 list | grep -c "metrik-backend.*online")
-PM2_FRONTEND_COUNT=$(pm2 list | grep -c "metrik-frontend.*online")
+# Count processes with "online" in their status
+BACKEND_ONLINE=$(pm2 list | grep "metrik-backend" | grep -c "│ online")
+FRONTEND_ONLINE=$(pm2 list | grep "metrik-frontend" | grep -c "│ online")
 
-if [ "$PM2_BACKEND_COUNT" -gt "0" ] && [ "$PM2_FRONTEND_COUNT" -gt "0" ]; then
+if [ "$BACKEND_ONLINE" -gt "0" ]; then
     BACKEND_STATUS="online"
-    FRONTEND_STATUS="online"
 else
-    BACKEND_STATUS="checking..."
-    FRONTEND_STATUS="checking..."
+    BACKEND_STATUS="offline"
+fi
+
+if [ "$FRONTEND_ONLINE" -gt "0" ]; then
+    FRONTEND_STATUS="online"  
+else
+    FRONTEND_STATUS="offline"
 fi
 
 if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
