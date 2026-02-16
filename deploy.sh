@@ -50,6 +50,68 @@ fi
 
 log "Updated from $BEFORE_COMMIT to $AFTER_COMMIT"
 
+# Get list of changed files
+CHANGED_FILES=$(git diff --name-only $BEFORE_COMMIT $AFTER_COMMIT)
+log "Changed files: $(echo $CHANGED_FILES | tr '\n' ' ')"
+
+# Check if backend files changed
+if echo "$CHANGED_FILES" | grep -q "^backend/\|^HGApp/"; then
+    log "Backend files changed. Syncing..."
+    # Copy changed Python files
+    for file in $CHANGED_FILES; do
+        if [[ $file == backend/* ]] || [[ $file == HGApp/* ]]; then
+            # Extract path after backend/ or HGApp/
+            if [[ $file == backend/* ]]; then
+                target_path="$BACKEND_DIR/${file#backend/}"
+            else
+                target_path="$BACKEND_DIR/${file#HGApp/}"
+            fi
+            
+            # Create directory if it doesn't exist
+            mkdir -p "$(dirname "$target_path")"
+            
+            # Copy file
+            if [ -f "$file" ]; then
+                cp "$file" "$target_path"
+                log "  Copied: $file -> $target_path"
+            fi
+        fi
+    done
+fi
+
+# Check if frontend files changed
+if echo "$CHANGED_FILES" | grep -q "^frontend/\|^sgpme_app/"; then
+    log "Frontend files changed. Syncing..."
+    for file in $CHANGED_FILES; do
+        if [[ $file == frontend/* ]] || [[ $file == sgpme_app/* ]]; then
+            # Extract path
+            if [[ $file == frontend/* ]]; then
+                target_path="$FRONTEND_DIR/${file#frontend/}"
+            else
+                target_path="$FRONTEND_DIR/${file#sgpme_app/}"
+            fi
+            
+            # Create directory if it doesn't exist
+            mkdir -p "$(dirname "$target_path")"
+            
+            # Copy file
+            if [ -f "$file" ]; then
+                cp "$file" "$target_path"
+                log "  Copied: $file -> $target_path"
+            fi
+        fi
+    done
+    
+    # If package.json or important config changed, rebuild
+    if echo "$CHANGED_FILES" | grep -qE "package\.json|next\.config|tsconfig\.json"; then
+        log "Frontend config changed. Rebuilding..."
+        cd "$FRONTEND_DIR"
+        npm run build >> "$LOG_FILE" 2>&1
+        log "Frontend rebuilt"
+        cd "$APP_DIR"
+    fi
+fi
+
 # Check if backend dependencies changed
 if file_changed "backend/requirements.txt"; then
     log "Backend dependencies changed. Installing..."
@@ -73,17 +135,29 @@ if file_changed "frontend/package.json" || file_changed "frontend/package-lock.j
 fi
 
 # Reload PM2 processes (zero-downtime reload)
-log "Reloading PM2 processes..."
-pm2 reload ecosystem.config.js >> "$LOG_FILE" 2>&1
+log "Reloading PM2 processes with zero-downtime..."
+
+# Reload backend if it changed
+if echo "$CHANGED_FILES" | grep -qE "^backend/|^HGApp/"; then
+    log "Reloading backend..."
+    pm2 reload metrik-backend --update-env >> "$LOG_FILE" 2>&1
+    log "Backend reloaded"
+fi
+
+# Reload frontend if it changed
+if echo "$CHANGED_FILES" | grep -qE "^frontend/|^sgpme_app/"; then
+    log "Reloading frontend..."
+    pm2 reload metrik-frontend >> "$LOG_FILE" 2>&1
+    log "Frontend reloaded"
+fi
 
 # Wait a moment for services to stabilize
 sleep 3
 
 # Verify services are online
 log "Verifying services..."
-PM2_STATUS=$(pm2 jlist)
-BACKEND_STATUS=$(echo "$PM2_STATUS" | grep -o '"name":"metrik-backend".*"status":"[^"]*"' | grep -o 'status":"[^"]*' | cut -d'"' -f3)
-FRONTEND_STATUS=$(echo "$PM2_STATUS" | grep -o '"name":"metrik-frontend".*"status":"[^"]*"' | grep -o 'status":"[^"]*' | cut -d'"' -f3)
+BACKEND_STATUS=$(pm2 jlist | grep -o '"name":"metrik-backend"[^}]*"status":"[^"]*"' | grep -o '"status":"[^"]*"' | cut -d'"' -f4 | head -1)
+FRONTEND_STATUS=$(pm2 jlist | grep -o '"name":"metrik-frontend"[^}]*"status":"[^"]*"' | grep -o '"status":"[^"]*"' | cut -d'"' -f4 | head -1)
 
 if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
     log "✅ Deployment successful! All services online."
