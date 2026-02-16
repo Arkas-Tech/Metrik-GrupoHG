@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime, timezone
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from database import SessionLocal
 from sqlalchemy.orm import Session
@@ -306,6 +306,7 @@ async def change_password(
 @router.post("/forgot-password")
 async def forgot_password(
     request: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -337,11 +338,11 @@ async def forgot_password(
     db.add(reset_code)
     db.commit()
     
-    # Enviar el código por email
-    email_sent = send_password_reset_email(request.email, code)
+    # En desarrollo, mostrar el código en consola
+    print(f"🔑 Código de recuperación para {request.email}: {code}")
     
-    if not email_sent:
-        print(f"⚠️  No se pudo enviar el email. Código para {request.email}: {code}")
+    # Enviar el código por email en segundo plano (sin bloquear la respuesta)
+    background_tasks.add_task(send_password_reset_email, request.email, code)
     
     return {
         'message': 'Si el correo está registrado, recibirás un código de verificación',
