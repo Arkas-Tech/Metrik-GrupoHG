@@ -158,9 +158,20 @@ sleep 3
 log "Verifying services..."
 sleep 2  # Wait for services to stabilize
 
-# Get status directly from pm2
-BACKEND_STATUS=$(pm2 describe metrik-backend 2>/dev/null | grep 'status' | head -1 | awk '{print $3}' | tr -d '│')
-FRONTEND_STATUS=$(pm2 describe metrik-frontend 2>/dev/null | grep 'status' | head -1 | awk '{print $3}' | tr -d '│')
+# Get status from pm2 status output
+BACKEND_STATUS=$(pm2 status | grep metrik-backend | awk '{print $10}' | head -1)
+FRONTEND_STATUS=$(pm2 status | grep metrik-frontend | awk '{print $10}' | head -1)
+
+# Fallback: check if processes are running
+if [ -z "$BACKEND_STATUS" ]; then
+    BACKEND_STATUS=$(pm2 list | grep metrik-backend | grep -c "online")
+    [ "$BACKEND_STATUS" -gt "0" ] && BACKEND_STATUS="online" || BACKEND_STATUS="offline"
+fi
+
+if [ -z "$FRONTEND_STATUS" ]; then
+    FRONTEND_STATUS=$(pm2 list | grep metrik-frontend | grep -c "online")
+    [ "$FRONTEND_STATUS" -gt "0" ] && FRONTEND_STATUS="online" || FRONTEND_STATUS="offline"
+fi
 
 if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
     log "✅ Deployment successful! All services online."
