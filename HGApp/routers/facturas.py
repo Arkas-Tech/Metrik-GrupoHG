@@ -32,6 +32,11 @@ def can_authorize_facturas(user_role: str) -> bool:
     # Solo administradores pueden autorizar facturas
     return user_role in ['administrador', 'admin']
 
+def can_ingresar_facturas(user_role: str) -> bool:
+    """Determina si el usuario puede ingresar facturas según su rol"""
+    # Administradores y coordinadores pueden ingresar facturas
+    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+
 def can_mark_paid_facturas(user_role: str) -> bool:
     """Determina si el usuario puede marcar facturas como pagadas según su rol"""
     # Administradores y coordinadores pueden marcar como pagadas
@@ -106,6 +111,7 @@ class FacturaRequest(BaseModel):
     estado: str = Field(min_length=1, max_length=50)
     marca: str = Field(min_length=1, max_length=100)
     categoria: Optional[str] = Field(None, min_length=1, max_length=100)  # Hacerlo opcional
+    subcategoria: Optional[str] = Field(None, min_length=1, max_length=100)
     descripcion: Optional[str] = None
     autorizada: Optional[bool] = False
     fecha_pago: Optional[date] = None
@@ -133,6 +139,7 @@ class FacturaResponse(BaseModel):
     estado: str
     marca: str
     categoria: Optional[str]
+    subcategoria: Optional[str]
     descripcion: Optional[str]
     autorizada: bool
     fecha_pago: Optional[date]
@@ -297,6 +304,7 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
             estado=factura.estado,
             marca=factura.marca,
             categoria=factura.categoria,
+            subcategoria=factura.subcategoria,
             descripcion=factura.descripcion,
             autorizada=factura.autorizada,
             fecha_pago=factura.fecha_pago,
@@ -392,6 +400,7 @@ async def read_factura(user: user_dependency, db: db_dependency, factura_id: int
         estado=factura.estado,
         marca=factura.marca,
         categoria=factura.categoria,
+        subcategoria=factura.subcategoria,
         descripcion=factura.descripcion,
         autorizada=factura.autorizada,
         fecha_pago=factura.fecha_pago,
@@ -436,6 +445,7 @@ async def create_factura(user: user_dependency, db: db_dependency, factura_reque
         estado=factura_request.estado,
         marca=factura_request.marca,
         categoria=factura_request.categoria,
+        subcategoria=factura_request.subcategoria,
         descripcion=factura_request.descripcion,
         autorizada=factura_request.autorizada,
         fecha_pago=factura_request.fecha_pago,
@@ -607,6 +617,36 @@ async def descargar_archivo_factura(
         headers={"Content-Disposition": f"attachment; filename={archivo.nombre_archivo}"}
     )
 
+@router.delete("/{factura_id}/archivos/{archivo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_archivo_factura(
+    factura_id: int,
+    archivo_id: int,
+    user: user_dependency,
+    db: db_dependency
+):
+    """Eliminar archivo de factura"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    user_role = user.get('role', '')
+    if not can_modify_facturas(user_role):
+        raise HTTPException(status_code=403, detail='No tienes permisos para eliminar archivos')
+    
+    # Buscar el archivo
+    archivo = db.query(FacturaArchivos).filter(
+        FacturaArchivos.id == archivo_id,
+        FacturaArchivos.factura_id == factura_id
+    ).first()
+    
+    if not archivo:
+        raise HTTPException(status_code=404, detail='Archivo no encontrado')
+    
+    # Eliminar el archivo
+    db.delete(archivo)
+    db.commit()
+    
+    return None
+
 @router.get("/{factura_id}/cotizaciones/{cotizacion_id}/descargar")
 async def descargar_cotizacion_factura(
     factura_id: int,
@@ -665,9 +705,18 @@ async def update_factura(user: user_dependency, db: db_dependency,
     factura.monto = factura_request.monto
     factura.fecha_factura = factura_request.fecha_factura
     factura.fecha_vencimiento = factura_request.fecha_vencimiento
+    
+    # Si se revierte de "Ingresada" o "Pagada" a "Pendiente" o "Autorizada", borrar fecha_ingresada
+    if factura_request.estado in ["Pendiente", "Autorizada"] and factura.estado in ["Ingresada", "Pagada"]:
+        factura.fecha_ingresada = None
+    else:
+        # Actualizar fecha_ingresada con el valor del request (puede ser None o una fecha)
+        factura.fecha_ingresada = factura_request.fecha_ingresada
+    
     factura.estado = factura_request.estado
     factura.marca = factura_request.marca
     factura.categoria = factura_request.categoria
+    factura.subcategoria = factura_request.subcategoria
     factura.descripcion = factura_request.descripcion
     factura.autorizada = factura_request.autorizada
     factura.fecha_pago = factura_request.fecha_pago
@@ -752,28 +801,147 @@ async def autorizar_factura(user: user_dependency, db: db_dependency, factura_id
     if factura is None:
         raise HTTPException(status_code=404, detail='Factura no encontrada')
 
+    # Si venía de "Ingresada" o "Pagada", borrar fecha_ingresada
+    if factura.estado in ["Ingresada", "Pagada"]:
+        factura.fecha_ingresada = None
+
     factura.autorizada = True
     factura.estado = "Autorizada"  # Cambiar el estado además del booleano
-    # Marcar fecha de ingreso al autorizar
-    if not factura.fecha_ingresada:
-        from datetime import date as date_type
-        factura.fecha_ingresada = date_type.today()
     db.add(factura)
     db.commit()
     
     return {"mensaje": "Factura autorizada exitosamente"}
 
+@router.patch("/{factura_id}/ingresar", status_code=status.HTTP_200_OK)
+async def ingresar_factura(
+    user: user_dependency, 
+    db: db_dependency, 
+    factura_id: int = Path(gt=0),
+    fecha_ingreso: date = None
+):
+    """Marcar factura como ingresada con fecha de ingreso"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    user_role = user.get('role', '')
+    if not can_ingresar_facturas(user_role):
+        raise HTTPException(status_code=403, detail='No tienes permisos para ingresar facturas')
+
+    query = db.query(Facturas).filter(Facturas.id == factura_id)
+    query = get_facturas_query_for_user(query, user_role, user.get('id'))
+    factura = query.first()
+    
+    if factura is None:
+        raise HTTPException(status_code=404, detail='Factura no encontrada')
+    
+    # Permitir ingresar facturas que estén en Pendiente o Autorizada
+    if factura.estado not in ["Pendiente", "Autorizada"]:
+        raise HTTPException(status_code=400, detail='Solo se pueden ingresar facturas pendientes o autorizadas')
+    
+    # Establecer fecha de ingreso y cambiar estado
+    if fecha_ingreso:
+        factura.fecha_ingresada = fecha_ingreso
+    else:
+        from datetime import date as date_type
+        factura.fecha_ingresada = date_type.today()
+    
+    factura.estado = "Ingresada"
+    db.add(factura)
+    db.commit()
+    
+    # Si la factura tiene evento asociado, el gasto real se actualizará automáticamente
+    # cuando se consulte el endpoint /gasto-real-periodo
+    mensaje = "Factura ingresada exitosamente"
+    if factura.evento_id:
+        mensaje += ". El gasto real del evento se actualizará automáticamente."
+    
+    return {"mensaje": mensaje, "fecha_ingresada": factura.fecha_ingresada}
+
+@router.get("/gasto-real-periodo", status_code=status.HTTP_200_OK)
+async def obtener_gasto_real_periodo(
+    user: user_dependency,
+    db: db_dependency,
+    anio: int = Query(...),
+    mes: Optional[int] = Query(None),
+    trimestre: Optional[int] = Query(None),
+    categoria: str = Query("Relaciones Públicas"),
+    marca: Optional[str] = Query(None)
+):
+    """Obtener gasto real basado en facturas ingresadas con eventos del período"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    user_role = user.get('role', '')
+    if not can_access_facturas(user_role):
+        raise HTTPException(status_code=403, detail='No tienes permisos para acceder a facturas')
+    
+    from sqlalchemy import extract, and_
+    
+    # Base query para facturas ingresadas con evento asignado
+    # Join con Eventos para filtrar por fecha del evento
+    query = db.query(Facturas).join(
+        Eventos, Facturas.evento_id == Eventos.id
+    ).filter(
+        Facturas.fecha_ingreso.isnot(None),
+        Facturas.evento_id.isnot(None),
+        Facturas.categoria == categoria,
+        extract('year', Eventos.fecha_inicio) == anio
+    )
+    
+    # Filtrar por marca si se especifica
+    if marca:
+        query = query.filter(Facturas.marca == marca)
+    
+    # Filtrar por mes del evento si se especifica
+    if mes:
+        query = query.filter(extract('month', Eventos.fecha_inicio) == mes)
+    
+    # Filtrar por trimestre si se especifica (basado en mes del evento)
+    if trimestre:
+        mes_inicio = (trimestre - 1) * 3 + 1
+        mes_fin = trimestre * 3
+        query = query.filter(
+            and_(
+                extract('month', Eventos.fecha_inicio) >= mes_inicio,
+                extract('month', Eventos.fecha_inicio) <= mes_fin
+            )
+        )
+    
+    # Obtener facturas y calcular total
+    facturas = query.all()
+    gasto_total = sum(factura.monto for factura in facturas)
+    
+    return {
+        "gasto_real": gasto_total,
+        "cantidad_facturas": len(facturas),
+        "filtros": {
+            "anio": anio,
+            "mes": mes,
+            "trimestre": trimestre,
+            "categoria": categoria,
+            "marca": marca
+        }
+    }
+
 @router.patch("/{factura_id}/marcar-pagada", status_code=status.HTTP_200_OK)
-async def marcar_pagada(user: user_dependency, db: db_dependency, 
-                       factura_id: int = Path(gt=0),
-                       fecha_pago: date = None,
-                       metodo_pago: str = None):
+async def marcar_pagada(
+    user: user_dependency, 
+    db: db_dependency, 
+    factura_id: int = Path(gt=0),
+    fecha_pago: Optional[date] = Form(None),
+    metodo_pago: Optional[str] = Form(None),
+    comprobante: Optional[UploadFile] = File(None)
+):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
     if not can_mark_paid_facturas(user_role):
         raise HTTPException(status_code=403, detail='No tienes permisos para marcar facturas como pagadas')
+
+    # Validar que se haya subido un comprobante (obligatorio)
+    if not comprobante:
+        raise HTTPException(status_code=400, detail='El comprobante de pago es obligatorio')
 
     query = db.query(Facturas).filter(Facturas.id == factura_id)
     
@@ -794,6 +962,20 @@ async def marcar_pagada(user: user_dependency, db: db_dependency,
         factura.fecha_pago = fecha_pago
     if metodo_pago:
         factura.metodo_pago = metodo_pago
-        
+    
+    # Guardar el comprobante de pago
+    contenido = await comprobante.read()
+    
+    # Crear registro del archivo
+    archivo_db = FacturaArchivos(
+        factura_id=factura_id,
+        nombre_archivo=comprobante.filename,
+        tipo_archivo='Comprobante',
+        contenido_archivo=contenido,
+        tamaño_archivo=len(contenido),
+        subido_por=user.get('username', 'sistema')
+    )
+    db.add(archivo_db)
+    
     db.add(factura)
     db.commit()

@@ -6,8 +6,9 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from database import SessionLocal
-from models import PresupuestoMensual, Marcas
+from models import PresupuestoMensual, Marcas, Categorias
 from routers.auth import get_current_user
+import json
 
 router = APIRouter(
     prefix='/presupuesto',
@@ -24,16 +25,11 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-# Categorías disponibles en el sistema
-CATEGORIAS_DISPONIBLES = [
-    "Digital",
-    "General", 
-    "Local Advertising",
-    "Medios Tradicionales",
-    "Plataformas",
-    "Relaciones Publicas",
-    "Social Media"
-]
+# Función helper para obtener categorías activas de la base de datos
+def get_categorias_activas(db: Session) -> List[str]:
+    """Obtiene la lista de nombres de categorías activas desde la base de datos"""
+    categorias = db.query(Categorias).filter(Categorias.activo == True).order_by(Categorias.orden, Categorias.nombre).all()
+    return [cat.nombre for cat in categorias]
 
 # Modelos Pydantic
 class PresupuestoMensualRequest(BaseModel):
@@ -41,7 +37,8 @@ class PresupuestoMensualRequest(BaseModel):
     anio: int = Field(ge=2020, le=2050)
     categoria: str
     marca_id: int = Field(gt=0)
-    monto: float = Field(gt=0)
+    monto: float = Field(ge=0)  # Permitir 0 para poder vaciar presupuestos
+    monto_mensual_base: Optional[float] = Field(default=0.0, ge=0)  # Monto base para auto-rellenar
     
     class Config:
         populate_by_name = True
@@ -54,6 +51,7 @@ class PresupuestoMensualResponse(BaseModel):
     marca_id: int
     marca_nombre: Optional[str] = None
     monto: float
+    monto_mensual_base: Optional[float] = 0.0
     fecha_modificacion: datetime
     modificado_por: str
 
@@ -76,12 +74,12 @@ class PresupuestoMensualSumaResponse(BaseModel):
 # Endpoints
 
 @router.get("/categorias", response_model=List[str], status_code=status.HTTP_200_OK)
-async def get_categorias(user: user_dependency):
-    """Obtener lista de categorías disponibles"""
+async def get_categorias(user: user_dependency, db: db_dependency):
+    """Obtener lista de categorías disponibles desde la base de datos"""
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
-    return CATEGORIAS_DISPONIBLES
+    return get_categorias_activas(db)
 
 
 @router.get("/", response_model=List[PresupuestoMensualResponse], status_code=status.HTTP_200_OK)
@@ -130,6 +128,7 @@ async def get_presupuestos_mensuales(
             "marca_id": p.marca_id,
             "marca_nombre": marca.cuenta if marca else None,
             "monto": p.monto,
+            "monto_mensual_base": p.monto_mensual_base if hasattr(p, 'monto_mensual_base') else 0.0,
             "fecha_modificacion": p.fecha_modificacion,
             "modificado_por": p.modificado_por
         }
@@ -154,11 +153,14 @@ async def create_or_update_presupuesto_mensual(
     if user_role != 'administrador':
         raise HTTPException(status_code=403, detail='Solo los administradores pueden crear/modificar presupuestos')
     
+    # Obtener categorías activas de la base de datos
+    categorias_activas = get_categorias_activas(db)
+    
     # Validar que la categoría existe
-    if presupuesto_request.categoria not in CATEGORIAS_DISPONIBLES:
+    if presupuesto_request.categoria not in categorias_activas:
         raise HTTPException(
             status_code=400, 
-            detail=f'Categoría no válida. Use una de: {", ".join(CATEGORIAS_DISPONIBLES)}'
+            detail=f'Categoría no válida. Use una de: {", ".join(categorias_activas)}'
         )
     
     # Verificar que la marca existe
@@ -177,6 +179,7 @@ async def create_or_update_presupuesto_mensual(
     if presupuesto:
         # Actualizar existente
         presupuesto.monto = presupuesto_request.monto
+        presupuesto.monto_mensual_base = presupuesto_request.monto_mensual_base
         presupuesto.modificado_por = user.get('username')
         presupuesto.fecha_modificacion = datetime.now()
     else:
@@ -187,6 +190,7 @@ async def create_or_update_presupuesto_mensual(
             categoria=presupuesto_request.categoria,
             marca_id=presupuesto_request.marca_id,
             monto=presupuesto_request.monto,
+            monto_mensual_base=presupuesto_request.monto_mensual_base,
             modificado_por=user.get('username')
         )
         db.add(presupuesto)
@@ -203,6 +207,71 @@ async def create_or_update_presupuesto_mensual(
         marca_id=presupuesto.marca_id,
         marca_nombre=marca.cuenta,
         monto=presupuesto.monto,
+        monto_mensual_base=presupuesto.monto_mensual_base,
+        fecha_modificacion=presupuesto.fecha_modificacion,
+        modificado_por=presupuesto.modificado_por
+    )
+
+
+@router.put("/{presupuesto_id}", response_model=PresupuestoMensualResponse, status_code=status.HTTP_200_OK)
+async def update_presupuesto_mensual(
+    presupuesto_id: int,
+    user: user_dependency,
+    db: db_dependency,
+    presupuesto_request: PresupuestoMensualRequest
+):
+    """Actualizar un presupuesto mensual existente (solo administradores)"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    user_role = user.get('role', '')
+    if user_role != 'administrador':
+        raise HTTPException(status_code=403, detail='Solo los administradores pueden modificar presupuestos')
+    
+    # Obtener categorías activas de la base de datos
+    categorias_activas = get_categorias_activas(db)
+    
+    # Validar que la categoría existe
+    if presupuesto_request.categoria not in categorias_activas:
+        raise HTTPException(
+            status_code=400, 
+            detail=f'Categoría no válida. Use una de: {", ".join(categorias_activas)}'
+        )
+    
+    # Verificar que la marca existe
+    marca = db.query(Marcas).filter(Marcas.id == presupuesto_request.marca_id).first()
+    if not marca:
+        raise HTTPException(status_code=404, detail='Marca/Agencia no encontrada')
+    
+    # Buscar el presupuesto a actualizar
+    presupuesto = db.query(PresupuestoMensual).filter(PresupuestoMensual.id == presupuesto_id).first()
+    
+    if not presupuesto:
+        raise HTTPException(status_code=404, detail='Presupuesto no encontrado')
+    
+    # Actualizar campos
+    presupuesto.mes = presupuesto_request.mes
+    presupuesto.anio = presupuesto_request.anio
+    presupuesto.categoria = presupuesto_request.categoria
+    presupuesto.marca_id = presupuesto_request.marca_id
+    presupuesto.monto = presupuesto_request.monto
+    presupuesto.monto_mensual_base = presupuesto_request.monto_mensual_base
+    presupuesto.modificado_por = user.get('username')
+    presupuesto.fecha_modificacion = datetime.now()
+    
+    db.commit()
+    db.refresh(presupuesto)
+    
+    # Retornar con nombre de marca
+    return PresupuestoMensualResponse(
+        id=presupuesto.id,
+        mes=presupuesto.mes,
+        anio=presupuesto.anio,
+        categoria=presupuesto.categoria,
+        marca_id=presupuesto.marca_id,
+        marca_nombre=marca.cuenta,
+        monto=presupuesto.monto,
+        monto_mensual_base=presupuesto.monto_mensual_base,
         fecha_modificacion=presupuesto.fecha_modificacion,
         modificado_por=presupuesto.modificado_por
     )

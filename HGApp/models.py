@@ -62,6 +62,7 @@ class Facturas(Base):
     estado = Column(String)
     marca = Column(String)
     categoria = Column(String)
+    subcategoria = Column(String, nullable=True)
     descripcion = Column(Text)
     autorizada = Column(Boolean, default=False)
     fecha_pago = Column(Date, nullable=True)
@@ -121,8 +122,11 @@ class Proyecciones(Base):
     monto_proyectado = Column(Float)
     monto_real = Column(Float, nullable=True)
     descripcion = Column(Text)
-    estado = Column(String)
+    estado = Column(String, default='pendiente')  # 'pendiente' o 'aprobada'
     partidas_json = Column(Text)  # Campo para almacenar partidas como JSON
+    autorizada_por = Column(String, nullable=True)  # Usuario que aprobó
+    fecha_autorizacion = Column(DateTime, nullable=True)  # Fecha de aprobación
+    excede_presupuesto = Column(Boolean, default=False)  # Si excede el presupuesto mensual
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_actualizacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String)
@@ -134,6 +138,7 @@ class Proveedores(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String)
+    razon_social = Column(String, nullable=True)
     contacto = Column(String)
     email = Column(String)
     rfc = Column(String, unique=True, nullable=True)
@@ -209,6 +214,7 @@ class Campanas(Base):
     fecha_inicio = Column(Date)
     fecha_fin = Column(Date)
     presupuesto = Column(Float)
+    gasto_actual = Column(Float, default=0.0)
     auto_objetivo = Column(String)  # Modelo de auto
     conversion = Column(Float, default=0.0)
     cxc_porcentaje = Column(Float, default=0.0)
@@ -302,6 +308,7 @@ class PresupuestoMensual(Base):
     categoria = Column(String, nullable=False)
     marca_id = Column(Integer, ForeignKey('marcas.id'), nullable=False)
     monto = Column(Float, nullable=False)
+    monto_mensual_base = Column(Float, nullable=True, default=0.0)  # Monto base usado para auto-rellenar
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     modificado_por = Column(String)
@@ -317,3 +324,16 @@ class PasswordResetCodes(Base):
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, default=False)
     used_at = Column(DateTime, nullable=True)
+
+
+class Categorias(Base):
+    __tablename__ = 'categorias'
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False, unique=True)
+    subcategorias = Column(Text, nullable=True)  # JSON string con array de subcategorias
+    activo = Column(Boolean, default=True)
+    orden = Column(Integer, default=0)  # Para ordenar las categorías
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'))

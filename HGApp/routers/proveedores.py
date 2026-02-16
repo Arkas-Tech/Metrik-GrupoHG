@@ -24,6 +24,7 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 class ProveedorRequest(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
+    razon_social: Optional[str] = None
     contacto: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=1, max_length=100)
     rfc: Optional[str] = None
@@ -35,6 +36,7 @@ class ProveedorRequest(BaseModel):
 class ProveedorResponse(BaseModel):
     id: int
     nombre: str
+    razon_social: Optional[str]
     contacto: str
     email: str
     rfc: Optional[str]
@@ -96,6 +98,7 @@ async def create_proveedor(user: user_dependency, db: db_dependency, proveedor_r
 
     proveedor_model = Proveedores(
         nombre=proveedor_request.nombre,
+        razon_social=proveedor_request.razon_social,
         contacto=proveedor_request.contacto,
         email=proveedor_request.email,
         rfc=proveedor_request.rfc,
@@ -125,6 +128,7 @@ async def update_proveedor(user: user_dependency, db: db_dependency,
         raise HTTPException(status_code=404, detail='Proveedor no encontrado')
 
     proveedor.nombre = proveedor_request.nombre
+    proveedor.razon_social = proveedor_request.razon_social
     proveedor.contacto = proveedor_request.contacto
     proveedor.email = proveedor_request.email
     proveedor.rfc = proveedor_request.rfc
