@@ -195,6 +195,13 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     for envfile in "$FRONTEND_DIR"/.env*; do
         [ -f "$envfile" ] && cp "$envfile" "$STAGING_DIR/"
     done
+
+    # Asegurar .env.production con API_URL correcto
+    if [ ! -f "$STAGING_DIR/.env.production" ]; then
+        echo 'NEXT_PUBLIC_API_URL=/api' > "$STAGING_DIR/.env.production"
+        echo 'NEXT_PUBLIC_USE_BACKEND=true' >> "$STAGING_DIR/.env.production"
+        log "   📝 .env.production creado"
+    fi
     
     # ── 4b. Manejar node_modules ─────────────────────
     if [ "$FRONTEND_DEPS_CHANGED" = true ] || [ ! -d "$FRONTEND_DIR/node_modules" ]; then
