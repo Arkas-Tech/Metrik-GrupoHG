@@ -1,202 +1,295 @@
 #!/bin/bash
+# ═══════════════════════════════════════════════════════════════
+#  METRIK - Zero-Downtime Deployment Script
+#  
+#  Flujo:
+#  1. Git pull (código nuevo)
+#  2. Sync archivos a backend/ y frontend/
+#  3. Build frontend EN BACKGROUND (usuarios NO afectados)
+#  4. PM2 graceful reload (rolling restart, 1 worker a la vez)
+#  5. Health checks
+#  6. Rollback automático si algo falla
+# ═══════════════════════════════════════════════════════════════
 
-# Deployment script for Metrik application
-# This script is called by the webhook server when a push to main is detected
+set -euo pipefail
 
-set -e  # Exit on any error
-
-# Configuration
+# ─── CONFIGURACIÓN ─────────────────────────────────────────
 APP_DIR="/home/sgpme/app"
 BACKEND_DIR="$APP_DIR/backend"
 FRONTEND_DIR="$APP_DIR/frontend"
-LOG_FILE="$APP_DIR/logs/deploy.log"
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+LOG_DIR="$APP_DIR/logs"
+LOG_FILE="$LOG_DIR/deploy.log"
+BUILD_LOG="$LOG_DIR/build.log"
+LOCK_FILE="/tmp/metrik-deploy.lock"
+MAX_BUILD_TIME=300
+HEALTH_CHECK_RETRIES=10
+HEALTH_CHECK_INTERVAL=3
 
-# Function to log with timestamp
+# ─── FUNCIONES UTILITARIAS ─────────────────────────────────
 log() {
-    echo "[$TIMESTAMP] $1" | tee -a "$LOG_FILE"
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$msg" | tee -a "$LOG_FILE"
 }
 
-# Function to check if file changed in last commit
-file_changed() {
-    local file=$1
-    git diff HEAD@{1} HEAD --name-only | grep -q "$file"
-    return $?
+cleanup() {
+    rm -f "$LOCK_FILE"
 }
+trap cleanup EXIT
 
-log "====== Starting deployment ======"
-log "Triggered by: ${GITHUB_ACTOR:-webhook}"
+# ─── LOCK: Evitar deploys simultáneos ──────────────────────
+if [ -f "$LOCK_FILE" ]; then
+    LOCK_AGE=$(($(date +%s) - $(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo "0")))
+    if [ "$LOCK_AGE" -lt 600 ]; then
+        log "⚠️  Deploy ya en progreso (lock age: ${LOCK_AGE}s). Saltando."
+        exit 0
+    else
+        log "🔓 Lock viejo detectado (${LOCK_AGE}s). Limpiando."
+        rm -f "$LOCK_FILE"
+    fi
+fi
+echo $$ > "$LOCK_FILE"
 
-cd "$APP_DIR" || { log "ERROR: Cannot cd to $APP_DIR"; exit 1; }
+log "══════════════════════════════════════════════"
+log "  🚀 STARTING ZERO-DOWNTIME DEPLOYMENT"
+log "══════════════════════════════════════════════"
 
-# Stash any local changes (shouldn't be any, but just in case)
-log "Checking for local changes..."
-if [[ -n $(git status -s) ]]; then
-    log "Stashing local changes..."
-    git stash
+# ─── 1. GIT PULL ──────────────────────────────────────────
+cd "$APP_DIR"
+
+if [[ -n $(git status -s 2>/dev/null) ]]; then
+    log "📌 Stashing local changes..."
+    git stash --quiet
 fi
 
-# Fetch and pull latest changes from main
-log "Pulling latest changes from main..."
-BEFORE_COMMIT=$(git rev-parse HEAD)
-git fetch origin main
-git reset --hard origin/main
-AFTER_COMMIT=$(git rev-parse HEAD)
+BEFORE_COMMIT=$(git rev-parse --short HEAD)
+git fetch origin main --quiet
+git reset --hard origin/main --quiet
+AFTER_COMMIT=$(git rev-parse --short HEAD)
 
 if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
-    log "No new changes detected. Deployment cancelled."
+    log "ℹ️  No hay cambios nuevos. Deploy cancelado."
     exit 0
 fi
 
-log "Updated from $BEFORE_COMMIT to $AFTER_COMMIT"
+log "📦 Actualizado: $BEFORE_COMMIT → $AFTER_COMMIT"
 
-# Get list of changed files
-CHANGED_FILES=$(git diff --name-only $BEFORE_COMMIT $AFTER_COMMIT)
-log "Changed files: $(echo $CHANGED_FILES | tr '\n' ' ')"
+# ─── 2. DETECTAR CAMBIOS ──────────────────────────────────
+CHANGED_FILES=$(git diff --name-only "$BEFORE_COMMIT" "$AFTER_COMMIT" 2>/dev/null || echo "")
+BACKEND_CHANGED=false
+FRONTEND_CHANGED=false
+FRONTEND_DEPS_CHANGED=false
+FRONTEND_NEEDS_BUILD=false
 
-# Check if backend files changed
-if echo "$CHANGED_FILES" | grep -q "^backend/\|^HGApp/"; then
-    log "Backend files changed. Syncing..."
-    # Copy changed Python files
-    for file in $CHANGED_FILES; do
-        if [[ $file == backend/* ]] || [[ $file == HGApp/* ]]; then
-            # Extract path after backend/ or HGApp/
-            if [[ $file == backend/* ]]; then
-                target_path="$BACKEND_DIR/${file#backend/}"
-            else
-                target_path="$BACKEND_DIR/${file#HGApp/}"
-            fi
-            
-            # Create directory if it doesn't exist
-            mkdir -p "$(dirname "$target_path")"
-            
-            # Copy file
-            if [ -f "$file" ]; then
-                cp "$file" "$target_path"
-                log "  Copied: $file -> $target_path"
-            fi
-        fi
-    done
-fi
+for file in $CHANGED_FILES; do
+    case "$file" in
+        backend/*|HGApp/*)
+            BACKEND_CHANGED=true
+            ;;
+        frontend/*|sgpme_app/*)
+            FRONTEND_CHANGED=true
+            case "$file" in
+                *package.json|*package-lock.json)
+                    FRONTEND_DEPS_CHANGED=true
+                    FRONTEND_NEEDS_BUILD=true
+                    ;;
+                *next.config*|*tsconfig*)
+                    FRONTEND_NEEDS_BUILD=true
+                    ;;
+                *.tsx|*.ts|*.jsx|*.js|*.css)
+                    FRONTEND_NEEDS_BUILD=true
+                    ;;
+            esac
+            ;;
+    esac
+done
 
-# Check if frontend files changed
-if echo "$CHANGED_FILES" | grep -q "^frontend/\|^sgpme_app/"; then
-    log "Frontend files changed. Syncing..."
-    for file in $CHANGED_FILES; do
-        if [[ $file == frontend/* ]] || [[ $file == sgpme_app/* ]]; then
-            # Extract path
-            if [[ $file == frontend/* ]]; then
-                target_path="$FRONTEND_DIR/${file#frontend/}"
-            else
-                target_path="$FRONTEND_DIR/${file#sgpme_app/}"
-            fi
-            
-            # Create directory if it doesn't exist
-            mkdir -p "$(dirname "$target_path")"
-            
-            # Copy file
-            if [ -f "$file" ]; then
-                cp "$file" "$target_path"
-                log "  Copied: $file -> $target_path"
-            fi
-        fi
-    done
+log "   Backend changed: $BACKEND_CHANGED"
+log "   Frontend changed: $FRONTEND_CHANGED"
+log "   Frontend needs build: $FRONTEND_NEEDS_BUILD"
+
+# ─── 3. SYNC ARCHIVOS ─────────────────────────────────────
+SYNCED=0
+for file in $CHANGED_FILES; do
+    target_path=""
     
-    # If package.json or important config changed, rebuild
-    if echo "$CHANGED_FILES" | grep -qE "package\.json|next\.config|tsconfig\.json"; then
-        log "Frontend config changed. Rebuilding..."
-        cd "$FRONTEND_DIR"
-        npm run build >> "$LOG_FILE" 2>&1
-        log "Frontend rebuilt"
+    case "$file" in
+        backend/*)   target_path="$BACKEND_DIR/${file#backend/}" ;;
+        HGApp/*)     target_path="$BACKEND_DIR/${file#HGApp/}" ;;
+        frontend/*)  target_path="$FRONTEND_DIR/${file#frontend/}" ;;
+        sgpme_app/*) target_path="$FRONTEND_DIR/${file#sgpme_app/}" ;;
+        *)           continue ;;
+    esac
+    
+    if [ -n "$target_path" ]; then
+        if [ -f "$file" ]; then
+            mkdir -p "$(dirname "$target_path")"
+            cp "$file" "$target_path"
+            SYNCED=$((SYNCED + 1))
+        elif [ ! -e "$file" ]; then
+            rm -f "$target_path" 2>/dev/null
+        fi
+    fi
+done
+
+log "📋 $SYNCED archivos sincronizados"
+
+# ─── 4. BACKEND: Instalar deps si cambiaron ───────────────
+if [ "$BACKEND_CHANGED" = true ]; then
+    if echo "$CHANGED_FILES" | grep -q "requirements.txt"; then
+        log "📦 Instalando dependencias backend..."
+        cd "$BACKEND_DIR"
+        ./venv/bin/pip install -r requirements.txt >> "$BUILD_LOG" 2>&1
         cd "$APP_DIR"
     fi
 fi
 
-# Check if backend dependencies changed
-if file_changed "backend/requirements.txt"; then
-    log "Backend dependencies changed. Installing..."
-    cd "$BACKEND_DIR"
-    ./venv/bin/pip install -r requirements.txt >> "$LOG_FILE" 2>&1
-    log "Backend dependencies installed"
-    cd "$APP_DIR"
-fi
-
-# Check if frontend dependencies changed
-if file_changed "frontend/package.json" || file_changed "frontend/package-lock.json"; then
-    log "Frontend dependencies changed. Installing..."
-    cd "$FRONTEND_DIR"
-    npm ci >> "$LOG_FILE" 2>&1
-    log "Frontend dependencies installed"
+# ─── 5. FRONTEND BUILD (usuarios NO afectados) ────────────
+#    Los workers de PM2 SIGUEN sirviendo la versión vieja
+#    mientras npm run build compila la nueva.
+if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
+    log "🔨 Building frontend (usuarios NO afectados)..."
     
-    log "Rebuilding frontend..."
-    npm run build >> "$LOG_FILE" 2>&1
-    log "Frontend rebuilt"
-    cd "$APP_DIR"
-fi
-
-# Reload PM2 processes (zero-downtime reload)
-log "Reloading PM2 processes with zero-downtime..."
-
-# Reload backend if it changed
-if echo "$CHANGED_FILES" | grep -qE "^backend/|^HGApp/"; then
-    log "Reloading backend..."
-    pm2 reload metrik-backend --update-env >> "$LOG_FILE" 2>&1
-    log "Backend reloaded"
-fi
-
-# Reload frontend if it changed
-if echo "$CHANGED_FILES" | grep -qE "^frontend/|^sgpme_app/"; then
-    log "Reloading frontend..."
-    pm2 reload metrik-frontend >> "$LOG_FILE" 2>&1
-    log "Frontend reloaded"
-fi
-
-# Wait a moment for services to stabilize
-sleep 3
-
-# Verify services are online (simple grep for "online" status)
-log "Verifying services..."
-sleep 3
-
-# Count processes with "online" in their status
-BACKEND_ONLINE=$(pm2 list | grep "metrik-backend" | grep -c "│ online")
-FRONTEND_ONLINE=$(pm2 list | grep "metrik-frontend" | grep -c "│ online")
-
-if [ "$BACKEND_ONLINE" -gt "0" ]; then
-    BACKEND_STATUS="online"
-else
-    BACKEND_STATUS="offline"
-fi
-
-if [ "$FRONTEND_ONLINE" -gt "0" ]; then
-    FRONTEND_STATUS="online"  
-else
-    FRONTEND_STATUS="offline"
-fi
-
-if [ "$BACKEND_STATUS" = "online" ] && [ "$FRONTEND_STATUS" = "online" ]; then
-    log "✅ Deployment successful! All services online."
-    log "   Backend: $BACKEND_STATUS"
-    log "   Frontend: $FRONTEND_STATUS"
-    
-    # Test endpoints
-    BACKEND_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/docs || echo "000")
-    FRONTEND_HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3030 || echo "000")
-    
-    log "   Backend HTTP: $BACKEND_HTTP"
-    log "   Frontend HTTP: $FRONTEND_HTTP"
-    
-    if [ "$BACKEND_HTTP" = "200" ] && [ "$FRONTEND_HTTP" = "200" ]; then
-        log "✅ Health checks passed"
-    else
-        log "⚠️  Warning: Some services not responding correctly"
+    if [ "$FRONTEND_DEPS_CHANGED" = true ]; then
+        log "   📦 Instalando dependencias frontend..."
+        cd "$FRONTEND_DIR"
+        npm ci --production=false >> "$BUILD_LOG" 2>&1
+        cd "$APP_DIR"
     fi
-else
-    log "❌ ERROR: Deployment failed! Services not online."
-    log "   Backend: $BACKEND_STATUS"
-    log "   Frontend: $FRONTEND_STATUS"
+    
+    cd "$FRONTEND_DIR"
+    BUILD_START=$(date +%s)
+    
+    if timeout $MAX_BUILD_TIME npm run build >> "$BUILD_LOG" 2>&1; then
+        BUILD_DURATION=$(( $(date +%s) - BUILD_START ))
+        log "   ✅ Build completado en ${BUILD_DURATION}s"
+    else
+        BUILD_DURATION=$(( $(date +%s) - BUILD_START ))
+        log "   ❌ Build FALLÓ después de ${BUILD_DURATION}s"
+        log "   ⚠️  Frontend sigue con versión anterior"
+        
+        if [ "$BACKEND_CHANGED" = false ]; then
+            log "══════════════════════════════════════════════"
+            log "  ❌ DEPLOY FAILED (build error, servicio NO interrumpido)"
+            log "══════════════════════════════════════════════"
+            exit 1
+        fi
+    fi
+    cd "$APP_DIR"
+fi
+
+# ─── 6. PM2 GRACEFUL RELOAD (Rolling Restart) ─────────────
+#    Con cluster mode (2 workers):
+#    1. PM2 inicia Worker nuevo con build nuevo
+#    2. Cuando está listo, recibe tráfico
+#    3. PM2 mata Worker viejo (graceful: espera a terminar requests)
+#    4. Repite con el siguiente worker
+#    → NUNCA hay 0 workers activos
+reload_service() {
+    local service_name="$1"
+    local max_retries=3
+    local retry=0
+    
+    while [ $retry -lt $max_retries ]; do
+        log "   🔄 Reloading $service_name (intento $((retry + 1))/$max_retries)..."
+        
+        if pm2 reload "$service_name" --update-env >> "$BUILD_LOG" 2>&1; then
+            sleep 5
+            
+            local online_count
+            online_count=$(pm2 list 2>/dev/null | grep "$service_name" | grep -c "online" || echo "0")
+            
+            if [ "$online_count" -gt 0 ]; then
+                log "   ✅ $service_name: $online_count worker(s) online"
+                return 0
+            fi
+        fi
+        
+        retry=$((retry + 1))
+        sleep 3
+    done
+    
+    log "   ❌ $service_name: Failed after $max_retries retries"
+    return 1
+}
+
+RELOAD_FAILED=false
+
+if [ "$BACKEND_CHANGED" = true ]; then
+    reload_service "metrik-backend" || RELOAD_FAILED=true
+fi
+
+if [ "$FRONTEND_CHANGED" = true ]; then
+    reload_service "metrik-frontend" || RELOAD_FAILED=true
+fi
+
+# ─── 7. HEALTH CHECKS ─────────────────────────────────────
+log "🏥 Verificando health checks..."
+sleep 3
+
+check_health() {
+    local url="$1"
+    local name="$2"
+    local retries=$HEALTH_CHECK_RETRIES
+    
+    while [ $retries -gt 0 ]; do
+        local status
+        status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
+        
+        if [ "$status" = "200" ]; then
+            log "   ✅ $name: HTTP $status"
+            return 0
+        fi
+        
+        retries=$((retries - 1))
+        if [ $retries -gt 0 ]; then
+            sleep $HEALTH_CHECK_INTERVAL
+        fi
+    done
+    
+    log "   ❌ $name: HTTP $status (después de $HEALTH_CHECK_RETRIES intentos)"
+    return 1
+}
+
+BACKEND_HEALTHY=true
+FRONTEND_HEALTHY=true
+
+check_health "http://127.0.0.1:8080/docs" "Backend" || BACKEND_HEALTHY=false
+check_health "http://127.0.0.1:3030" "Frontend" || FRONTEND_HEALTHY=false
+
+# ─── 8. ROLLBACK SI ES NECESARIO ──────────────────────────
+if [ "$BACKEND_HEALTHY" = false ] || [ "$FRONTEND_HEALTHY" = false ] || [ "$RELOAD_FAILED" = true ]; then
+    log "⚠️  Problemas detectados. Ejecutando rollback..."
+    
+    cd "$APP_DIR"
+    git reset --hard "$BEFORE_COMMIT" --quiet
+    
+    if [ "$BACKEND_HEALTHY" = false ]; then
+        pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    fi
+    if [ "$FRONTEND_HEALTHY" = false ]; then
+        cd "$FRONTEND_DIR"
+        npm run build >> "$BUILD_LOG" 2>&1
+        cd "$APP_DIR"
+        pm2 reload metrik-frontend >> "$BUILD_LOG" 2>&1
+    fi
+    
+    sleep 5
+    log "══════════════════════════════════════════════"
+    log "  ⚠️  DEPLOY ROLLED BACK to $BEFORE_COMMIT"
+    log "  ℹ️  Servicio restaurado"
+    log "══════════════════════════════════════════════"
     exit 1
 fi
 
-log "====== Deployment completed ======"
+# ─── 9. RESUMEN FINAL ─────────────────────────────────────
+WORKER_COUNT=$(pm2 list 2>/dev/null | grep "metrik-frontend" | grep -c "online" || echo "0")
+
+log "══════════════════════════════════════════════"
+log "  ✅ ZERO-DOWNTIME DEPLOY EXITOSO"
+log "  📦 Commit:   $BEFORE_COMMIT → $AFTER_COMMIT"
+log "  🖥️  Workers:  $WORKER_COUNT frontend online"
+log "  🏥 Backend:  healthy"
+log "  🏥 Frontend: healthy"
+log "══════════════════════════════════════════════"
+
 exit 0

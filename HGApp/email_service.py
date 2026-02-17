@@ -132,11 +132,18 @@ Equipo SGPME
         message.attach(part1)
         message.attach(part2)
 
-        # Conectar y enviar
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(message)
+        # Conectar y enviar dependiendo del puerto
+        if SMTP_PORT == 465:
+            # Puerto 465 requiere SSL directo
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(message)
+        else:
+            # Puerto 587 usa STARTTLS
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(message)
         
         print(f"✓ Email enviado exitosamente a {to_email}")
         return True
@@ -159,10 +166,16 @@ def send_test_email(to_email: str) -> bool:
         body = "Este es un correo de prueba del sistema SGPME. La configuración funciona correctamente."
         message.attach(MIMEText(body, 'plain'))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(message)
+        # Conectar dependiendo del puerto
+        if SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(message)
         
         print(f"✓ Email de prueba enviado a {to_email}")
         return True
