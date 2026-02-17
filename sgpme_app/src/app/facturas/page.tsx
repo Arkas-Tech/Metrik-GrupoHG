@@ -1,0 +1,1209 @@
+"use client";
+
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
+import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
+import { useEventos } from "@/hooks/useEventos";
+import {
+  useAuth,
+  obtenerNombreRol,
+  obtenerColorRol,
+} from "@/hooks/useAuthUnified";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import {
+  Factura,
+  Proveedor,
+  FiltrosFactura,
+  Archivo,
+  Cotizacion,
+  MESES,
+} from "@/types";
+import FormularioFactura from "@/components/FormularioFactura";
+import FormularioProveedor from "@/components/FormularioProveedor";
+import ListaFacturas from "@/components/ListaFacturas";
+import ListaProveedores from "@/components/ListaProveedores";
+import FiltrosFacturas from "@/components/FiltrosFacturas";
+import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import GraficaProyeccionVsGasto from "@/components/GraficaProyeccionVsGasto";
+import { Bars3Icon } from "@heroicons/react/24/outline";
+import ConfigSidebar from "@/components/ConfigSidebar";
+import PopupConfiguracion from "@/components/PopupConfiguracion";
+import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
+import GestionAccesos from "@/components/GestionAccesos";
+import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
+import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
+
+function FacturasPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const {
+    usuario,
+    tienePermiso,
+    cerrarSesion: cerrarSesionAuth,
+    loading: authLoading,
+  } = useAuth();
+  const { marcaSeleccionada } = useMarcaGlobal();
+  // Función para obtener la vista inicial basada en parámetros de URL
+  const getInitialView = () => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get("action");
+
+      if (action === "nuevo-proveedor") {
+        return "nuevo-proveedor";
+      }
+    }
+    return "dashboard";
+  };
+
+  const [vistaActual, setVistaActual] = useState<
+    | "dashboard"
+    | "nueva"
+    | "editar"
+    | "proveedores"
+    | "nuevo-proveedor"
+    | "editar-proveedor"
+  >(getInitialView());
+  const [facturaEditando, setFacturaEditando] = useState<Factura | null>(null);
+  const [proveedorEditando, setProveedorEditando] = useState<Proveedor | null>(
+    null,
+  );
+
+  const mesActual = MESES[new Date().getMonth()];
+  const añoActual = new Date().getFullYear();
+
+  const [filtros, setFiltros] = useState<FiltrosFactura>({
+    estado: "Todas",
+    busqueda: "",
+    mes: mesActual,
+    año: añoActual,
+  });
+  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
+  const [activeConfigView, setActiveConfigView] = useState("");
+  const [graficaKey, setGraficaKey] = useState(0);
+
+  // Estados para popup de comprobante de pago
+  const [mostrarPopupComprobante, setMostrarPopupComprobante] = useState(false);
+  const [facturaIdParaPagar, setFacturaIdParaPagar] = useState<string | null>(
+    null,
+  );
+  const [archivoComprobante, setArchivoComprobante] = useState<File | null>(
+    null,
+  );
+  const [arrastrando, setArrastrando] = useState(false);
+
+  // Estados para popup de confirmación de cambio de estado desde Pagada
+  const [mostrarPopupConfirmacionEstado, setMostrarPopupConfirmacionEstado] =
+    useState(false);
+  const [facturaParaCambiarEstado, setFacturaParaCambiarEstado] = useState<{
+    id: string;
+    nuevoEstado: Factura["estado"];
+  } | null>(null);
+  const [comprobanteParaEliminar, setComprobanteParaEliminar] =
+    useState<Archivo | null>(null);
+
+  const isAdmin = usuario?.tipo === "administrador";
+  const isCoordinador = usuario?.tipo === "coordinador";
+  const mostrarMenu = isAdmin || isCoordinador;
+
+  console.log("User info:", {
+    usuario: usuario?.tipo,
+    isAdmin,
+    isCoordinador,
+    mostrarMenu,
+  });
+
+  const handleMenuClick = useCallback((item: string) => {
+    setActiveConfigView(item);
+    setConfigSidebarOpen(false);
+  }, []);
+
+  const {
+    facturas,
+    loading,
+    error,
+    cargarFacturas,
+    guardarFactura,
+    eliminarFactura,
+    marcarComoPagada,
+    autorizar,
+    rechazar,
+    ingresarFactura,
+    obtenerFacturasPorFiltros,
+    exportarExcel,
+    descargarArchivo,
+    descargarCotizacion,
+    eliminarArchivo,
+  } = useFacturas();
+
+  const { eventos } = useEventos();
+
+  const {
+    proveedores,
+    loading: loadingProveedores,
+    error: errorProveedores,
+    cargarProveedores,
+    crearProveedor,
+    actualizarProveedor,
+    eliminarProveedor,
+    reactivarProveedor,
+  } = useProveedores();
+
+  useEffect(() => {
+    if (!authLoading && !usuario) {
+      router.push("/login");
+    }
+  }, [usuario, authLoading, router]);
+
+  // Detectar cambios en los parámetros de URL
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (action === "nuevo-proveedor") {
+      setVistaActual("nuevo-proveedor");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (usuario) {
+      if (
+        vistaActual === "proveedores" ||
+        vistaActual === "editar-proveedor" ||
+        vistaActual === "nuevo-proveedor"
+      ) {
+        cargarProveedores();
+      } else {
+        cargarFacturas();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario, vistaActual, filtros]);
+
+  const facturasFiltradasMemo = obtenerFacturasPorFiltros(filtros).filter(
+    (factura) => !marcaSeleccionada || factura.marca === marcaSeleccionada,
+  );
+
+  // Filtrar facturas con eventos que han sido ingresadas
+  const facturasConEventosIngresadas = useMemo(() => {
+    return facturas
+      .filter(
+        (factura) =>
+          factura.eventoId &&
+          factura.fechaIngresada &&
+          factura.fechaIngresada.trim() !== "",
+      )
+      .filter(
+        (factura) => !marcaSeleccionada || factura.marca === marcaSeleccionada,
+      )
+      .map((factura) => {
+        const evento = eventos.find((e) => e.id === factura.eventoId);
+        return {
+          ...factura,
+          eventoData: evento,
+        };
+      });
+  }, [facturas, eventos, marcaSeleccionada]);
+
+  // Filtrar facturas con eventos por mes y año del evento
+  const facturasEventosPorPeriodo = useMemo(() => {
+    return facturasConEventosIngresadas.filter((factura) => {
+      if (!factura.eventoData?.fechaInicio) return false;
+      const [añoEvento, mesEvento] = factura.eventoData.fechaInicio.split("-");
+
+      const matchAño =
+        !filtros.año || parseInt(añoEvento) === Number(filtros.año);
+
+      // Convertir mes del filtro a número si es necesario
+      let mesNumeroFiltro: number | null = null;
+      if (filtros.mes) {
+        if (typeof filtros.mes === "string" && isNaN(Number(filtros.mes))) {
+          // Es un nombre de mes, convertir a número
+          mesNumeroFiltro = MESES.indexOf(filtros.mes) + 1;
+        } else {
+          mesNumeroFiltro = Number(filtros.mes);
+        }
+      }
+
+      const matchMes =
+        !mesNumeroFiltro || parseInt(mesEvento) === mesNumeroFiltro;
+
+      return matchAño && matchMes;
+    });
+  }, [facturasConEventosIngresadas, filtros.mes, filtros.año]);
+
+  // Obtener presupuesto de Relaciones Públicas para el periodo
+  const [presupuestoRP, setPresupuestoRP] = useState(0);
+
+  useEffect(() => {
+    const obtenerPresupuestoRP = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+        const token = localStorage.getItem("token");
+
+        // Construir params: si no hay filtros, traer TODOS los presupuestos RP
+        const params = new URLSearchParams({
+          categoria: "Relaciones Públicas",
+        });
+
+        if (filtros.año) {
+          params.append("anio", filtros.año.toString());
+        }
+        if (filtros.mes) {
+          // Convertir nombre de mes a número si es necesario
+          let mesNumero: number;
+          if (typeof filtros.mes === "string" && isNaN(Number(filtros.mes))) {
+            // Es un nombre de mes, convertir a número
+            mesNumero = MESES.indexOf(filtros.mes) + 1;
+          } else {
+            // Ya es un número o se puede convertir
+            mesNumero = Number(filtros.mes);
+          }
+          params.append("mes", mesNumero.toString());
+        }
+
+        const response = await fetch(`${API_URL}/presupuesto?${params}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+
+        // Verificar si data es un array, si no, convertirlo
+        const presupuestos = Array.isArray(data) ? data : [data];
+
+        const total = presupuestos.reduce(
+          (sum: number, p: { monto?: number }) => sum + (p.monto || 0),
+          0,
+        );
+        setPresupuestoRP(total);
+        console.log(
+          "Presupuesto RP cargado:",
+          total,
+          "para mes:",
+          filtros.mes || "todos",
+          "año:",
+          filtros.año || "todos",
+        );
+      } catch (error) {
+        console.error("Error obteniendo presupuesto RP:", error);
+        setPresupuestoRP(0);
+      }
+    };
+
+    obtenerPresupuestoRP();
+  }, [filtros.mes, filtros.año]);
+
+  if (authLoading || !usuario) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando acceso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const manejarCrearFactura = async (
+    datos: Omit<Factura, "id" | "fechaCreacion">,
+  ) => {
+    try {
+      const nuevaFactura: Factura = {
+        ...datos,
+        id: "temp",
+        fechaCreacion: new Date().toISOString().split("T")[0],
+      };
+      const resultado = await guardarFactura(nuevaFactura);
+      if (resultado.success) {
+        setVistaActual("dashboard");
+        return resultado.facturaId;
+      }
+    } catch (error) {
+      console.error("Error al crear factura:", error);
+    }
+  };
+
+  const manejarEditarFactura = (factura: Factura) => {
+    setFacturaEditando(factura);
+    setVistaActual("editar");
+  };
+
+  const manejarActualizarFactura = async (datos: Partial<Factura>) => {
+    if (facturaEditando) {
+      try {
+        const facturaActualizada: Factura = {
+          ...facturaEditando,
+          ...datos,
+          fechaModificacion: new Date().toISOString(),
+        };
+        const resultado = await guardarFactura(facturaActualizada);
+        if (resultado.success) {
+          setVistaActual("dashboard");
+          setFacturaEditando(null);
+        }
+      } catch (error) {
+        console.error("Error al actualizar factura:", error);
+      }
+    }
+  };
+
+  const manejarEliminarFactura = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar esta factura?")) {
+      try {
+        await eliminarFactura(id);
+      } catch (error) {
+        console.error("Error al eliminar factura:", error);
+      }
+    }
+  };
+
+  const manejarCambiarEstado = async (
+    id: string,
+    nuevoEstado: Factura["estado"],
+  ) => {
+    console.log("🔵 Cambiando estado de factura", id, "a", nuevoEstado);
+
+    // Verificar si la factura está en estado "Pagada" y se está cambiando a otro estado
+    const factura = facturas.find((f) => f.id === id);
+    if (factura && factura.estado === "Pagada" && nuevoEstado !== "Pagada") {
+      // Buscar si hay un comprobante de pago
+      const comprobante = factura.archivos.find(
+        (a) => a.tipo === "Comprobante",
+      );
+
+      if (comprobante) {
+        // Mostrar popup de confirmación
+        setFacturaParaCambiarEstado({ id, nuevoEstado });
+        setComprobanteParaEliminar(comprobante);
+        setMostrarPopupConfirmacionEstado(true);
+        return; // Detener aquí, se continuará después de la confirmación
+      }
+    }
+
+    // Continuar con el cambio de estado normal
+    await ejecutarCambioEstado(id, nuevoEstado);
+  };
+
+  const ejecutarCambioEstado = async (
+    id: string,
+    nuevoEstado: Factura["estado"],
+  ) => {
+    console.log(
+      "🔵 Ejecutando cambio de estado de factura",
+      id,
+      "a",
+      nuevoEstado,
+    );
+    try {
+      switch (nuevoEstado) {
+        case "Pagada":
+          console.log("📝 Abriendo popup para comprobante de pago...");
+          setFacturaIdParaPagar(id);
+          setMostrarPopupComprobante(true);
+          break;
+        case "Autorizada":
+          console.log("📝 Autorizando factura...");
+          const resultado = await autorizar(id);
+          console.log("📝 Resultado de autorizar:", resultado);
+          break;
+        case "Rechazada":
+          console.log("📝 Rechazando factura...");
+          await rechazar(id);
+          break;
+        default:
+          console.log("📝 Cambiando estado default...");
+          const factura = facturas.find((f) => f.id === id);
+          if (factura) {
+            const facturaActualizada = {
+              ...factura,
+              estado: nuevoEstado,
+              fechaModificacion: new Date().toISOString(),
+            };
+
+            // Si se revierte de "Ingresada" o "Pagada" a "Pendiente" o "Autorizada", borrar fecha_ingresada
+            const estadosAnteriores: Factura["estado"][] = [
+              "Ingresada",
+              "Pagada",
+            ];
+            const estadosNuevos: Factura["estado"][] = [
+              "Pendiente",
+              "Autorizada",
+            ];
+
+            if (
+              estadosNuevos.includes(nuevoEstado) &&
+              estadosAnteriores.includes(factura.estado)
+            ) {
+              facturaActualizada.fechaIngresada = undefined;
+            }
+
+            await guardarFactura(facturaActualizada);
+          }
+      }
+      // Forzar recarga de la gráfica en cualquier cambio de estado (excepto Pagada que se hace en el popup)
+      if (nuevoEstado !== "Pagada") {
+        setGraficaKey((prev) => prev + 1);
+      }
+      console.log("✅ Estado cambiado exitosamente");
+    } catch (error) {
+      console.error("❌ Error al cambiar estado:", error);
+    }
+  };
+
+  const manejarIngresarFactura = async (id: string, fechaIngreso: string) => {
+    console.log("🔵 Ingresando factura", id, "con fecha", fechaIngreso);
+    try {
+      await ingresarFactura(id, fechaIngreso);
+      // Forzar recarga de la gráfica
+      setGraficaKey((prev) => prev + 1);
+      console.log("✅ Factura ingresada exitosamente");
+    } catch (error) {
+      console.error("❌ Error al ingresar factura:", error);
+    }
+  };
+
+  const confirmarPagoConComprobante = async () => {
+    if (!facturaIdParaPagar) return;
+
+    // Validar que haya un archivo seleccionado
+    if (!archivoComprobante) {
+      alert(
+        "Debes subir un comprobante de pago para marcar la factura como pagada",
+      );
+      return;
+    }
+
+    console.log("📝 Marcando como pagada con comprobante...");
+    try {
+      await marcarComoPagada(facturaIdParaPagar, archivoComprobante);
+      setMostrarPopupComprobante(false);
+      setFacturaIdParaPagar(null);
+      setArchivoComprobante(null);
+      setGraficaKey((prev) => prev + 1);
+      console.log("✅ Factura marcada como pagada exitosamente");
+    } catch (error) {
+      console.error("❌ Error al marcar factura como pagada:", error);
+    }
+  };
+
+  const cerrarPopupComprobante = () => {
+    setMostrarPopupComprobante(false);
+    setFacturaIdParaPagar(null);
+    setArchivoComprobante(null);
+  };
+
+  const confirmarCambioEstadoConEliminacion = async () => {
+    if (!facturaParaCambiarEstado) return;
+
+    try {
+      // Si hay comprobante, eliminarlo primero
+      if (comprobanteParaEliminar) {
+        console.log("🗑️ Eliminando comprobante de pago...");
+        await eliminarArchivo(
+          facturaParaCambiarEstado.id,
+          comprobanteParaEliminar.id,
+        );
+      }
+
+      // Luego ejecutar el cambio de estado
+      await ejecutarCambioEstado(
+        facturaParaCambiarEstado.id,
+        facturaParaCambiarEstado.nuevoEstado,
+      );
+
+      // Cerrar popup y limpiar estados
+      setMostrarPopupConfirmacionEstado(false);
+      setFacturaParaCambiarEstado(null);
+      setComprobanteParaEliminar(null);
+    } catch (error) {
+      console.error(
+        "❌ Error al cambiar estado y eliminar comprobante:",
+        error,
+      );
+    }
+  };
+
+  const cerrarPopupConfirmacionEstado = () => {
+    setMostrarPopupConfirmacionEstado(false);
+    setFacturaParaCambiarEstado(null);
+    setComprobanteParaEliminar(null);
+  };
+
+  const descargarComprobanteAntesDeCerrar = () => {
+    if (comprobanteParaEliminar && facturaParaCambiarEstado) {
+      descargarArchivo(
+        facturaParaCambiarEstado.id,
+        comprobanteParaEliminar.id,
+        comprobanteParaEliminar.nombre,
+      );
+    }
+  };
+
+  const handleArchivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setArchivoComprobante(e.target.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setArrastrando(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setArrastrando(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setArrastrando(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setArchivoComprobante(e.dataTransfer.files[0]);
+    }
+  };
+
+  const subirArchivo = (
+    facturaId: string,
+    archivo: Omit<Archivo, "id" | "fechaSubida">,
+  ) => {
+    console.log("Subir archivo no implementado aún:", facturaId, archivo);
+  };
+
+  const agregarCotizacion = (
+    facturaId: string,
+    cotizacion: Omit<Cotizacion, "id">,
+  ) => {
+    console.log(
+      "Agregar cotización no implementado aún:",
+      facturaId,
+      cotizacion,
+    );
+  };
+
+  const manejarCrearProveedor = async (
+    datos: Omit<Proveedor, "id" | "fechaCreacion">,
+  ) => {
+    try {
+      await crearProveedor(datos);
+      setVistaActual("proveedores");
+    } catch (error) {
+      console.error("Error al crear proveedor:", error);
+    }
+  };
+
+  const manejarEditarProveedor = (proveedor: Proveedor) => {
+    setProveedorEditando(proveedor);
+    setVistaActual("editar-proveedor");
+  };
+
+  const manejarActualizarProveedor = async (
+    datos: Omit<Proveedor, "id" | "fechaCreacion">,
+  ) => {
+    if (proveedorEditando) {
+      try {
+        await actualizarProveedor(proveedorEditando.id, datos);
+        setVistaActual("proveedores");
+        setProveedorEditando(null);
+      } catch (error) {
+        console.error("Error al actualizar proveedor:", error);
+      }
+    }
+  };
+
+  const manejarEliminarProveedor = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas desactivar este proveedor?")) {
+      try {
+        await eliminarProveedor(id);
+      } catch (error) {
+        console.error("Error al eliminar proveedor:", error);
+      }
+    }
+  };
+
+  const manejarReactivarProveedor = async (id: string) => {
+    try {
+      await reactivarProveedor(id);
+    } catch (error) {
+      console.error("Error al reactivar proveedor:", error);
+    }
+  };
+
+  const handleCerrarSesion = () => {
+    if (confirm("¿Deseas cerrar sesión?")) {
+      cerrarSesionAuth();
+      router.push("/login");
+    }
+  };
+
+  if (loading && facturas.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando sistema...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              {mostrarMenu && (
+                <button
+                  onClick={() => {
+                    console.log("Hamburger button clicked, opening sidebar");
+                    setConfigSidebarOpen(true);
+                  }}
+                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  title="Configuración del Sistema"
+                >
+                  <Bars3Icon className="h-6 w-6" />
+                </button>
+              )}
+
+              <div className="shrink-0">
+                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                  HG
+                </div>
+              </div>
+              <div className="ml-4">
+                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <p className="text-sm text-gray-600 font-medium">
+                  {usuario.grupo}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <FiltroMarcaGlobal />
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {usuario.nombre}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
+                        usuario.tipo,
+                      )}`}
+                    >
+                      {obtenerNombreRol(usuario.tipo)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCerrarSesion}
+                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
+                  title="Cerrar Sesión"
+                >
+                  ↗
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8 h-14">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              📊 Dashboard
+            </button>
+            <button
+              onClick={() => router.push("/estrategia")}
+              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              🎯 Estrategia
+            </button>
+            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
+              📋 Facturas
+            </button>
+            <button
+              onClick={() => router.push("/eventos")}
+              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              🎉 Eventos
+            </button>
+            <button
+              onClick={() => router.push("/metricas")}
+              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              📈 Métricas
+            </button>
+          </div>
+        </div>
+      </nav>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {vistaActual === "dashboard" && (
+          <>
+            <div className="mb-8">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Facturas y Pagos
+                  </h2>
+                  <p className="text-gray-600">
+                    {usuario?.tipo === "auditor"
+                      ? "Consulta y auditoría de facturas y pagos"
+                      : "Gestión de facturas, proveedores y control de pagos"}
+                  </p>
+                </div>
+                {(tienePermiso("facturas", "crear") ||
+                  tienePermiso("facturas", "marcarPagada") ||
+                  tienePermiso("facturas", "exportar")) && (
+                  <div className="flex flex-wrap gap-3">
+                    {tienePermiso("facturas", "crear") && (
+                      <>
+                        <button
+                          onClick={() => setVistaActual("nueva")}
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          📄 Cargar Factura (PDF/XML)
+                        </button>
+                        <button
+                          onClick={() => setVistaActual("proveedores")}
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          🏢 Gestionar Proveedores
+                        </button>
+                      </>
+                    )}
+                    {tienePermiso("facturas", "exportar") && (
+                      <button
+                        onClick={() => exportarExcel()}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        📊 Exportar CSV
+                      </button>
+                    )}
+                    {usuario?.tipo === "auditor" && (
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          👁️ Modo Auditor
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-6">
+              {/* Filtros primero */}
+              <div className="w-full">
+                <FiltrosFacturas
+                  filtros={filtros}
+                  onFiltrosChange={setFiltros}
+                  facturas={facturas}
+                />
+              </div>
+
+              {/* Gráfica de proyección vs gasto */}
+              <div className="w-full">
+                <GraficaProyeccionVsGasto
+                  refreshTrigger={graficaKey}
+                  año={filtros.año}
+                  mes={filtros.mes}
+                />
+              </div>
+
+              {/* Lista de facturas */}
+              <div className="w-full">
+                <ListaFacturas
+                  facturas={facturasFiltradasMemo}
+                  onEditar={manejarEditarFactura}
+                  onEliminar={manejarEliminarFactura}
+                  onCambiarEstado={manejarCambiarEstado}
+                  onIngresarFactura={manejarIngresarFactura}
+                  onSubirArchivo={subirArchivo}
+                  onAgregarCotizacion={agregarCotizacion}
+                  onDescargarArchivo={descargarArchivo}
+                  onDescargarCotizacion={descargarCotizacion}
+                  loading={loading}
+                  permisos={{
+                    editar: tienePermiso("facturas", "editar"),
+                    eliminar: tienePermiso("facturas", "eliminar"),
+                    autorizar: tienePermiso("facturas", "autorizar"),
+                    marcarPagada: tienePermiso("facturas", "marcarPagada"),
+                    ingresar:
+                      tienePermiso("facturas", "autorizar") ||
+                      usuario?.tipo === "coordinador",
+                  }}
+                  esAdministrador={usuario?.tipo === "administrador"}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {vistaActual === "nueva" && (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setVistaActual("dashboard")}
+                className="text-blue-600 hover:text-blue-800 mb-4"
+              >
+                ← Volver al Dashboard
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Registrar Nueva Factura
+              </h2>
+            </div>
+            <FormularioFactura
+              onSubmit={manejarCrearFactura}
+              onCancel={() => setVistaActual("dashboard")}
+              loading={loading}
+            />
+          </div>
+        )}
+
+        {vistaActual === "editar" && facturaEditando && (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setVistaActual("dashboard")}
+                className="text-blue-600 hover:text-blue-800 mb-4"
+              >
+                ← Volver al Dashboard
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Editar Factura
+              </h2>
+            </div>
+            <FormularioFactura
+              facturaInicial={facturaEditando}
+              onSubmit={manejarActualizarFactura}
+              onCancel={() => setVistaActual("dashboard")}
+              loading={loading}
+            />
+          </div>
+        )}
+
+        {vistaActual === "proveedores" && (
+          <>
+            <div className="mb-8">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <button
+                    onClick={() => setVistaActual("dashboard")}
+                    className="text-blue-600 hover:text-blue-800 mb-4"
+                  >
+                    ← Volver al Dashboard de Facturas
+                  </button>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Gestión de Proveedores
+                  </h2>
+                  <p className="text-gray-600">
+                    Administra la información de contacto y detalles de tus
+                    proveedores
+                  </p>
+                </div>
+
+                {tienePermiso("facturas", "crear") && (
+                  <button
+                    onClick={() => setVistaActual("nuevo-proveedor")}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    ➕ Nuevo Proveedor
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <ListaProveedores
+              proveedores={proveedores}
+              onEditar={manejarEditarProveedor}
+              onEliminar={manejarEliminarProveedor}
+              onReactivar={manejarReactivarProveedor}
+              loading={loadingProveedores}
+            />
+          </>
+        )}
+
+        {vistaActual === "nuevo-proveedor" && (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setVistaActual("proveedores")}
+                className="text-blue-600 hover:text-blue-800 mb-4"
+              >
+                ← Volver a Proveedores
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Registrar Nuevo Proveedor
+              </h2>
+            </div>
+            <FormularioProveedor
+              onSubmit={manejarCrearProveedor}
+              onCancelar={() => setVistaActual("proveedores")}
+              loading={loadingProveedores}
+            />
+          </div>
+        )}
+
+        {vistaActual === "editar-proveedor" && proveedorEditando && (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <button
+                onClick={() => setVistaActual("proveedores")}
+                className="text-blue-600 hover:text-blue-800 mb-4"
+              >
+                ← Volver a Proveedores
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Editar Proveedor
+              </h2>
+            </div>
+            <FormularioProveedor
+              proveedor={proveedorEditando}
+              onSubmit={manejarActualizarProveedor}
+              onCancelar={() => {
+                setVistaActual("proveedores");
+                setProveedorEditando(null);
+              }}
+              loading={loadingProveedores}
+            />
+          </div>
+        )}
+
+        {(error || errorProveedores) && (
+          <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error || errorProveedores}
+          </div>
+        )}
+      </main>
+
+      {/* Sidebar para Administradores */}
+      {isAdmin && (
+        <>
+          <ConfigSidebar
+            isOpen={configSidebarOpen}
+            onClose={() => setConfigSidebarOpen(false)}
+            onNavigate={(item: string) => {
+              setActiveConfigView(item);
+              setConfigSidebarOpen(false);
+            }}
+          />
+          {activeConfigView === "accesos" && (
+            <GestionAccesos onClose={() => setActiveConfigView("")} />
+          )}
+          {activeConfigView === "mi-perfil" && (
+            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
+          )}
+          {activeConfigView === "cambiar-contrasena" && (
+            <CambiarContrasenaCoordinador
+              onClose={() => setActiveConfigView("")}
+            />
+          )}
+          {activeConfigView === "configuracion" && (
+            <PopupConfiguracion
+              isOpen={true}
+              onClose={() => setActiveConfigView("")}
+              onRefresh={() => window.location.reload()}
+            />
+          )}
+        </>
+      )}
+
+      {/* Sidebar para Coordinadores */}
+      {isCoordinador && (
+        <>
+          <ConfigSidebarCoordinador
+            isOpen={configSidebarOpen}
+            onClose={() => setConfigSidebarOpen(false)}
+            onNavigate={handleMenuClick}
+          />
+          {activeConfigView === "mi-perfil" && (
+            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
+          )}
+          {activeConfigView === "cambiar-contrasena" && (
+            <CambiarContrasenaCoordinador
+              onClose={() => setActiveConfigView("")}
+            />
+          )}
+        </>
+      )}
+
+      {/* Popup para comprobante de pago */}
+      {mostrarPopupComprobante && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Comprobante de Pago
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Sube el comprobante de pago para marcar esta factura como pagada.
+              <span className="text-red-600 font-medium">
+                {" "}
+                El comprobante es obligatorio.
+              </span>
+            </p>
+
+            {/* Zona de drag & drop */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-6 text-center mb-4 transition-colors ${
+                arrastrando
+                  ? "border-blue-500 bg-blue-50"
+                  : archivoComprobante
+                    ? "border-green-300 bg-gray-50"
+                    : "border-gray-300 bg-gray-50"
+              }`}
+            >
+              {archivoComprobante ? (
+                <div className="space-y-2">
+                  <div className="text-green-600 text-4xl">✓</div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {archivoComprobante.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {(archivoComprobante.size / 1024).toFixed(2)} KB
+                  </p>
+                  <button
+                    onClick={() => setArchivoComprobante(null)}
+                    className="text-sm text-red-600 hover:text-red-700 underline"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-gray-400 text-4xl">📄</div>
+                  <p className="text-sm text-gray-600">
+                    Arrastra el archivo aquí o
+                  </p>
+                  <label className="inline-block cursor-pointer">
+                    <span className="text-blue-600 hover:text-blue-700 underline text-sm">
+                      selecciona un archivo
+                    </span>
+                    <input
+                      type="file"
+                      onChange={handleArchivoChange}
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">
+                    PDF, JPG o PNG (máx. 10MB)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={confirmarPagoConComprobante}
+                disabled={!archivoComprobante}
+                className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+                  archivoComprobante
+                    ? "bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                Marcar como Pagada
+              </button>
+              <button
+                onClick={cerrarPopupComprobante}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup de confirmación para cambio de estado desde Pagada */}
+      {mostrarPopupConfirmacionEstado &&
+        comprobanteParaEliminar &&
+        facturaParaCambiarEstado && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                ⚠️ Confirmar Cambio de Estado
+              </h3>
+              <p className="text-sm text-gray-700 mb-4">
+                Esta factura está marcada como{" "}
+                <span className="font-semibold text-green-600">Pagada</span> y
+                tiene un comprobante de pago adjunto.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <div className="flex items-start space-x-2">
+                  <span className="text-amber-600 text-xl">📄</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {comprobanteParaEliminar.nombre}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Subido el{" "}
+                      {new Date(
+                        comprobanteParaEliminar.fechaSubida,
+                      ).toLocaleDateString("es-MX")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-red-600 font-medium mb-4">
+                Si continúas, el comprobante de pago será eliminado
+                permanentemente.
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                ¿Deseas descargar el comprobante antes de continuar?
+              </p>
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={() => {
+                    descargarComprobanteAntesDeCerrar();
+                    setTimeout(() => {
+                      confirmarCambioEstadoConEliminacion();
+                    }, 500);
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                  Descargar y Continuar
+                </button>
+                <button
+                  onClick={confirmarCambioEstadoConEliminacion}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium"
+                >
+                  Continuar sin Descargar
+                </button>
+                <button
+                  onClick={cerrarPopupConfirmacionEstado}
+                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md font-medium"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+    </div>
+  );
+}
+
+export default function FacturasPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center h-screen">
+          Cargando...
+        </div>
+      }
+    >
+      <FacturasPageContent />
+    </Suspense>
+  );
+}

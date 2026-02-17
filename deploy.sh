@@ -1,14 +1,15 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  METRIK - Zero-Downtime Deployment Script
+#  METRIK - Zero-Downtime Deployment Script v2
 #  
-#  Flujo:
-#  1. Git pull (código nuevo)
-#  2. Sync archivos a backend/ y frontend/
-#  3. Build frontend EN BACKGROUND (usuarios NO afectados)
-#  4. PM2 graceful reload (rolling restart, 1 worker a la vez)
-#  5. Health checks
-#  6. Rollback automático si algo falla
+#  Flujo REAL zero-downtime:
+#  1. Git pull (código nuevo — sgpme_app/ es directorio regular)
+#  2. Detectar cambios (backend, frontend)
+#  3. Frontend: BUILD EN STAGING (directorio separado)
+#     → PM2 sigue sirviendo versión vieja SIN INTERRUPCIÓN
+#  4. Swap atómico: .next/ nuevo → directorio live
+#  5. PM2 graceful reload (rolling restart)
+#  6. Health checks + rollback automático si falla
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -16,12 +17,14 @@ set -euo pipefail
 # ─── CONFIGURACIÓN ─────────────────────────────────────────
 APP_DIR="/home/sgpme/app"
 BACKEND_DIR="$APP_DIR/backend"
-FRONTEND_DIR="$APP_DIR/frontend"
+FRONTEND_DIR="$APP_DIR/frontend"          # Directorio LIVE (PM2 sirve desde aquí)
+STAGING_DIR="$APP_DIR/frontend-staging"   # Directorio de BUILD (temporal)
+SOURCE_DIR="$APP_DIR/sgpme_app"           # Fuente del código frontend (del repo)
 LOG_DIR="$APP_DIR/logs"
 LOG_FILE="$LOG_DIR/deploy.log"
 BUILD_LOG="$LOG_DIR/build.log"
 LOCK_FILE="/tmp/metrik-deploy.lock"
-MAX_BUILD_TIME=300
+MAX_BUILD_TIME=600                        # 10 min timeout para build
 HEALTH_CHECK_RETRIES=10
 HEALTH_CHECK_INTERVAL=3
 
@@ -49,8 +52,11 @@ if [ -f "$LOCK_FILE" ]; then
 fi
 echo $$ > "$LOCK_FILE"
 
+mkdir -p "$LOG_DIR"
+echo "" > "$BUILD_LOG"
+
 log "══════════════════════════════════════════════"
-log "  🚀 STARTING ZERO-DOWNTIME DEPLOYMENT"
+log "  🚀 STARTING ZERO-DOWNTIME DEPLOYMENT v2"
 log "══════════════════════════════════════════════"
 
 # ─── 1. GIT PULL ──────────────────────────────────────────
@@ -58,16 +64,12 @@ cd "$APP_DIR"
 
 if [[ -n $(git status -s 2>/dev/null) ]]; then
     log "📌 Stashing local changes..."
-    git stash --quiet
+    git stash --quiet 2>/dev/null || true
 fi
 
 BEFORE_COMMIT=$(git rev-parse --short HEAD)
 git fetch origin main --quiet
 git reset --hard origin/main --quiet
-
-# Actualizar submodules (sgpme_app es submodule de frontend)
-git submodule update --init --recursive --quiet 2>/dev/null || true
-
 AFTER_COMMIT=$(git rev-parse --short HEAD)
 
 if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
@@ -83,119 +85,135 @@ BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 FRONTEND_DEPS_CHANGED=false
 FRONTEND_NEEDS_BUILD=false
-SUBMODULE_CHANGED=false
+DEPLOY_SCRIPT_CHANGED=false
 
 for file in $CHANGED_FILES; do
     case "$file" in
         backend/*|HGApp/*)
             BACKEND_CHANGED=true
             ;;
-        sgpme_app)
-            # sgpme_app es un submodule — cuando cambia su commit pointer,
-            # necesitamos sincronizar TODO el submodule al directorio frontend/
-            SUBMODULE_CHANGED=true
+        sgpme_app/package.json|sgpme_app/package-lock.json)
+            FRONTEND_CHANGED=true
+            FRONTEND_DEPS_CHANGED=true
+            FRONTEND_NEEDS_BUILD=true
+            ;;
+        sgpme_app/next.config*|sgpme_app/tsconfig*)
             FRONTEND_CHANGED=true
             FRONTEND_NEEDS_BUILD=true
             ;;
-        frontend/*|sgpme_app/*)
+        sgpme_app/src/*|sgpme_app/public/*)
             FRONTEND_CHANGED=true
-            case "$file" in
-                *package.json|*package-lock.json)
-                    FRONTEND_DEPS_CHANGED=true
-                    FRONTEND_NEEDS_BUILD=true
-                    ;;
-                *next.config*|*tsconfig*)
-                    FRONTEND_NEEDS_BUILD=true
-                    ;;
-                *.tsx|*.ts|*.jsx|*.js|*.css)
-                    FRONTEND_NEEDS_BUILD=true
-                    ;;
-            esac
+            FRONTEND_NEEDS_BUILD=true
+            ;;
+        sgpme_app/*)
+            FRONTEND_CHANGED=true
+            ;;
+        deploy.sh|ecosystem.config.js|webhook-server.js)
+            DEPLOY_SCRIPT_CHANGED=true
             ;;
     esac
 done
 
-log "   Backend changed: $BACKEND_CHANGED"
+log "   Backend changed:  $BACKEND_CHANGED"
 log "   Frontend changed: $FRONTEND_CHANGED"
-log "   Submodule changed: $SUBMODULE_CHANGED"
-log "   Frontend needs build: $FRONTEND_NEEDS_BUILD"
+log "   Frontend deps:    $FRONTEND_DEPS_CHANGED"
+log "   Needs build:      $FRONTEND_NEEDS_BUILD"
+log "   Deploy scripts:   $DEPLOY_SCRIPT_CHANGED"
 
-# ─── 3. SYNC ARCHIVOS ─────────────────────────────────────
-SYNCED=0
-
-# Si el submodule sgpme_app cambió, sincronizar TODO con rsync
-if [ "$SUBMODULE_CHANGED" = true ] && [ -d "$APP_DIR/sgpme_app" ]; then
-    log "📂 Sincronizando submodule sgpme_app → frontend/..."
+# ─── 3. BACKEND ───────────────────────────────────────────
+if [ "$BACKEND_CHANGED" = true ]; then
+    log "🔧 Procesando cambios de backend..."
     
-    # Detectar si deps cambiaron comparando package.json
-    if ! diff -q "$APP_DIR/sgpme_app/package.json" "$FRONTEND_DIR/package.json" > /dev/null 2>&1; then
-        FRONTEND_DEPS_CHANGED=true
-        log "   📦 package.json cambió — se instalarán dependencias"
-    fi
-    
-    # rsync: sincronizar todo excepto node_modules, .next, .git
-    rsync -a --delete \
-        --exclude 'node_modules' \
-        --exclude '.next' \
-        --exclude '.git' \
-        "$APP_DIR/sgpme_app/" "$FRONTEND_DIR/"
-    
-    SYNCED=$(find "$APP_DIR/sgpme_app" -type f \
-        ! -path '*/node_modules/*' \
-        ! -path '*/.next/*' \
-        ! -path '*/.git/*' | wc -l)
-    log "   ✅ $SYNCED archivos sincronizados via rsync"
-else
-    # Sync individual de archivos (cuando los cambios no son del submodule)
+    SYNCED=0
     for file in $CHANGED_FILES; do
         target_path=""
-        
         case "$file" in
-            backend/*)   target_path="$BACKEND_DIR/${file#backend/}" ;;
-            HGApp/*)     target_path="$BACKEND_DIR/${file#HGApp/}" ;;
-            frontend/*)  target_path="$FRONTEND_DIR/${file#frontend/}" ;;
-            sgpme_app/*) target_path="$FRONTEND_DIR/${file#sgpme_app/}" ;;
-            *)           continue ;;
+            backend/*)  target_path="$BACKEND_DIR/${file#backend/}" ;;
+            HGApp/*)    target_path="$BACKEND_DIR/${file#HGApp/}" ;;
+            *)          continue ;;
         esac
         
-        if [ -n "$target_path" ]; then
-            if [ -f "$file" ]; then
-                mkdir -p "$(dirname "$target_path")"
-                cp "$file" "$target_path"
-                SYNCED=$((SYNCED + 1))
-            elif [ ! -e "$file" ]; then
-                rm -f "$target_path" 2>/dev/null
-            fi
+        if [ -n "$target_path" ] && [ -f "$file" ]; then
+            mkdir -p "$(dirname "$target_path")"
+            cp "$file" "$target_path"
+            SYNCED=$((SYNCED + 1))
         fi
     done
-    log "📋 $SYNCED archivos sincronizados"
-fi
-
-# ─── 4. BACKEND: Instalar deps si cambiaron ───────────────
-if [ "$BACKEND_CHANGED" = true ]; then
+    log "   📋 $SYNCED archivos backend sincronizados"
+    
     if echo "$CHANGED_FILES" | grep -q "requirements.txt"; then
-        log "📦 Instalando dependencias backend..."
+        log "   📦 Instalando dependencias backend..."
         cd "$BACKEND_DIR"
         ./venv/bin/pip install -r requirements.txt >> "$BUILD_LOG" 2>&1
         cd "$APP_DIR"
     fi
+    
+    log "   🔄 Reloading backend..."
+    pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    sleep 3
+    log "   ✅ Backend actualizado"
 fi
 
-# ─── 5. FRONTEND BUILD (usuarios NO afectados) ────────────
-#    Los workers de PM2 SIGUEN sirviendo la versión vieja
-#    mientras npm run build compila la nueva.
+# ─── 4. FRONTEND: BUILD EN STAGING (ZERO-DOWNTIME) ────────
+#
+#  ┌─────────────────────────────────────────────────┐
+#  │  PM2 sigue sirviendo desde frontend/ (LIVE)     │
+#  │  mientras el build se ejecuta en staging/        │
+#  │                                                  │
+#  │  frontend/          frontend-staging/            │
+#  │  ├─ .next/ ← LIVE   ├─ src/ (código nuevo)      │
+#  │  ├─ node_modules/   ├─ node_modules/ (hardlink)  │
+#  │  ├─ src/ (viejo)    ├─ .next/ ← BUILD AQUÍ      │
+#  │  └─ .env.local      └─ .env.local (copia)       │
+#  │                                                  │
+#  │  Cuando el build termina exitosamente:           │
+#  │  1. Swap .next/ (staging → live)                 │
+#  │  2. Sync source files (staging → live)           │
+#  │  3. PM2 reload (rolling restart)                 │
+#  └─────────────────────────────────────────────────┘
+#
 if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
-    log "🔨 Building frontend (usuarios NO afectados)..."
+    log "🔨 FRONTEND BUILD (zero-downtime staging)..."
+    BUILD_START=$(date +%s)
     
-    if [ "$FRONTEND_DEPS_CHANGED" = true ]; then
-        log "   📦 Instalando dependencias frontend..."
-        cd "$FRONTEND_DIR"
+    # ── 4a. Preparar staging ─────────────────────────
+    log "   📂 Preparando directorio staging..."
+    rm -rf "$STAGING_DIR"
+    mkdir -p "$STAGING_DIR"
+    
+    # Copiar código nuevo desde sgpme_app/ (fuente del repo)
+    rsync -a \
+        --exclude '.git' \
+        --exclude '.git_backup' \
+        --exclude 'node_modules' \
+        --exclude '.next' \
+        "$SOURCE_DIR/" "$STAGING_DIR/"
+    
+    log "   ✅ Source sincronizado a staging"
+    
+    # Copiar .env files del directorio live
+    for envfile in "$FRONTEND_DIR"/.env*; do
+        [ -f "$envfile" ] && cp "$envfile" "$STAGING_DIR/"
+    done
+    
+    # ── 4b. Manejar node_modules ─────────────────────
+    if [ "$FRONTEND_DEPS_CHANGED" = true ] || [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+        log "   📦 Instalando dependencias (deps cambiaron)..."
+        cd "$STAGING_DIR"
         npm ci --production=false >> "$BUILD_LOG" 2>&1
-        cd "$APP_DIR"
+        log "   ✅ Dependencias instaladas"
+    else
+        log "   🔗 Reusando node_modules (hardlink copy)..."
+        cp -al "$FRONTEND_DIR/node_modules" "$STAGING_DIR/node_modules" 2>/dev/null || {
+            log "   ⚠️  Hardlink falló, instalando deps..."
+            cd "$STAGING_DIR"
+            npm ci --production=false >> "$BUILD_LOG" 2>&1
+        }
     fi
     
-    cd "$FRONTEND_DIR"
-    BUILD_START=$(date +%s)
+    # ── 4c. Build en staging ─────────────────────────
+    log "   🏗️  Ejecutando next build en staging..."
+    cd "$STAGING_DIR"
     
     if timeout $MAX_BUILD_TIME npm run build >> "$BUILD_LOG" 2>&1; then
         BUILD_DURATION=$(( $(date +%s) - BUILD_START ))
@@ -203,64 +221,70 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     else
         BUILD_DURATION=$(( $(date +%s) - BUILD_START ))
         log "   ❌ Build FALLÓ después de ${BUILD_DURATION}s"
-        log "   ⚠️  Frontend sigue con versión anterior"
+        log "   ⚠️  Frontend sigue con versión anterior (sin interrupción)"
+        rm -rf "$STAGING_DIR"
         
         if [ "$BACKEND_CHANGED" = false ]; then
             log "══════════════════════════════════════════════"
-            log "  ❌ DEPLOY FAILED (build error, servicio NO interrumpido)"
+            log "  ❌ DEPLOY FAILED (build error)"
+            log "  ℹ️  Servicio NO fue interrumpido"
             log "══════════════════════════════════════════════"
             exit 1
+        else
+            log "   ℹ️  Backend actualizado, frontend sin cambios"
+            FRONTEND_NEEDS_BUILD=false
         fi
     fi
     cd "$APP_DIR"
 fi
 
-# ─── 6. PM2 GRACEFUL RELOAD (Rolling Restart) ─────────────
-#    Con cluster mode (2 workers):
-#    1. PM2 inicia Worker nuevo con build nuevo
-#    2. Cuando está listo, recibe tráfico
-#    3. PM2 mata Worker viejo (graceful: espera a terminar requests)
-#    4. Repite con el siguiente worker
-#    → NUNCA hay 0 workers activos
-reload_service() {
-    local service_name="$1"
-    local max_retries=3
-    local retry=0
+# ─── 5. SWAP ATÓMICO + PM2 RELOAD ─────────────────────────
+if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
+    log "🔄 Swap atómico: staging → live..."
     
-    while [ $retry -lt $max_retries ]; do
-        log "   🔄 Reloading $service_name (intento $((retry + 1))/$max_retries)..."
-        
-        if pm2 reload "$service_name" --update-env >> "$BUILD_LOG" 2>&1; then
-            sleep 5
-            
-            local online_count
-            online_count=$(pm2 list 2>/dev/null | grep "$service_name" | grep -c "online" || echo "0")
-            
-            if [ "$online_count" -gt 0 ]; then
-                log "   ✅ $service_name: $online_count worker(s) online"
-                return 0
-            fi
-        fi
-        
-        retry=$((retry + 1))
-        sleep 3
-    done
+    # Backup del .next actual (para rollback)
+    if [ -d "$FRONTEND_DIR/.next" ]; then
+        rm -rf "$FRONTEND_DIR/.next.rollback"
+        mv "$FRONTEND_DIR/.next" "$FRONTEND_DIR/.next.rollback"
+    fi
     
-    log "   ❌ $service_name: Failed after $max_retries retries"
-    return 1
-}
-
-RELOAD_FAILED=false
-
-if [ "$BACKEND_CHANGED" = true ]; then
-    reload_service "metrik-backend" || RELOAD_FAILED=true
+    # Mover .next del staging al live
+    mv "$STAGING_DIR/.next" "$FRONTEND_DIR/.next"
+    
+    # Sincronizar source files y node_modules al live
+    rsync -a --delete \
+        --exclude '.next' \
+        --exclude '.next.rollback' \
+        --exclude '.git' \
+        --exclude '.env*' \
+        "$STAGING_DIR/" "$FRONTEND_DIR/"
+    
+    log "   ✅ Archivos swapped a live"
+    
+    # PM2 graceful reload (rolling restart)
+    log "   🔄 PM2 reload (rolling restart)..."
+    pm2 reload metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
+    sleep 5
+    
+    ONLINE_COUNT=$(pm2 list 2>/dev/null | grep "metrik-frontend" | grep -c "online" || echo "0")
+    log "   ✅ PM2: $ONLINE_COUNT worker(s) online"
+    
+    # Limpiar staging
+    rm -rf "$STAGING_DIR"
+    
+elif [ "$FRONTEND_CHANGED" = true ] && [ "$FRONTEND_NEEDS_BUILD" = false ]; then
+    log "📋 Sincronizando archivos frontend (sin rebuild)..."
+    rsync -a \
+        --exclude '.git' \
+        --exclude '.git_backup' \
+        --exclude 'node_modules' \
+        --exclude '.next' \
+        --exclude '.env*' \
+        "$SOURCE_DIR/" "$FRONTEND_DIR/"
+    log "   ✅ Archivos sincronizados"
 fi
 
-if [ "$FRONTEND_CHANGED" = true ]; then
-    reload_service "metrik-frontend" || RELOAD_FAILED=true
-fi
-
-# ─── 7. HEALTH CHECKS ─────────────────────────────────────
+# ─── 6. HEALTH CHECKS ─────────────────────────────────────
 log "🏥 Verificando health checks..."
 sleep 3
 
@@ -291,33 +315,50 @@ check_health() {
 BACKEND_HEALTHY=true
 FRONTEND_HEALTHY=true
 
-check_health "http://127.0.0.1:8080/docs" "Backend" || BACKEND_HEALTHY=false
+if [ "$BACKEND_CHANGED" = true ]; then
+    check_health "http://127.0.0.1:8080/docs" "Backend" || BACKEND_HEALTHY=false
+fi
+
 check_health "http://127.0.0.1:3030" "Frontend" || FRONTEND_HEALTHY=false
 
-# ─── 8. ROLLBACK SI ES NECESARIO ──────────────────────────
-if [ "$BACKEND_HEALTHY" = false ] || [ "$FRONTEND_HEALTHY" = false ] || [ "$RELOAD_FAILED" = true ]; then
-    log "⚠️  Problemas detectados. Ejecutando rollback..."
+# ─── 7. ROLLBACK SI ES NECESARIO ──────────────────────────
+if [ "$FRONTEND_HEALTHY" = false ]; then
+    log "⚠️  Frontend unhealthy! Intentando rollback..."
     
-    cd "$APP_DIR"
-    git reset --hard "$BEFORE_COMMIT" --quiet
-    
-    if [ "$BACKEND_HEALTHY" = false ]; then
-        pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    if [ -d "$FRONTEND_DIR/.next.rollback" ]; then
+        mv "$FRONTEND_DIR/.next" "$FRONTEND_DIR/.next.failed" 2>/dev/null || true
+        mv "$FRONTEND_DIR/.next.rollback" "$FRONTEND_DIR/.next"
+        pm2 reload metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
+        sleep 5
+        
+        if check_health "http://127.0.0.1:3030" "Frontend (rollback)"; then
+            log "   ✅ Rollback exitoso — versión anterior restaurada"
+            rm -rf "$FRONTEND_DIR/.next.failed"
+        else
+            log "   ❌ Rollback también falló"
+        fi
     fi
-    if [ "$FRONTEND_HEALTHY" = false ]; then
-        cd "$FRONTEND_DIR"
-        npm run build >> "$BUILD_LOG" 2>&1
-        cd "$APP_DIR"
-        pm2 reload metrik-frontend >> "$BUILD_LOG" 2>&1
-    fi
     
-    sleep 5
     log "══════════════════════════════════════════════"
-    log "  ⚠️  DEPLOY ROLLED BACK to $BEFORE_COMMIT"
-    log "  ℹ️  Servicio restaurado"
+    log "  ⚠️  DEPLOY ROLLED BACK"
+    log "══════════════════════════════════════════════"
+    rm -rf "$STAGING_DIR"
+    exit 1
+fi
+
+if [ "$BACKEND_HEALTHY" = false ]; then
+    log "⚠️  Backend unhealthy, haciendo rollback..."
+    cd "$APP_DIR"
+    git checkout "$BEFORE_COMMIT" -- backend/ HGApp/ 2>/dev/null || true
+    pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    log "══════════════════════════════════════════════"
+    log "  ⚠️  BACKEND ROLLED BACK to $BEFORE_COMMIT"
     log "══════════════════════════════════════════════"
     exit 1
 fi
+
+# ─── 8. LIMPIEZA ──────────────────────────────────────────
+rm -rf "$FRONTEND_DIR/.next.rollback" "$STAGING_DIR"
 
 # ─── 9. RESUMEN FINAL ─────────────────────────────────────
 WORKER_COUNT=$(pm2 list 2>/dev/null | grep "metrik-frontend" | grep -c "online" || echo "0")
@@ -326,8 +367,12 @@ log "═════════════════════════
 log "  ✅ ZERO-DOWNTIME DEPLOY EXITOSO"
 log "  📦 Commit:   $BEFORE_COMMIT → $AFTER_COMMIT"
 log "  🖥️  Workers:  $WORKER_COUNT frontend online"
-log "  🏥 Backend:  healthy"
-log "  🏥 Frontend: healthy"
+if [ "$BACKEND_CHANGED" = true ]; then
+    log "  🔧 Backend:  actualizado"
+fi
+if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
+    log "  🏗️  Frontend: rebuild completado"
+fi
 log "══════════════════════════════════════════════"
 
 exit 0
