@@ -24,7 +24,7 @@ LOG_DIR="$APP_DIR/logs"
 LOG_FILE="$LOG_DIR/deploy.log"
 BUILD_LOG="$LOG_DIR/build.log"
 LOCK_FILE="/tmp/metrik-deploy.lock"
-MAX_BUILD_TIME=900                        # 15 min timeout para build
+MAX_BUILD_TIME=1200                       # 20 min timeout para build
 HEALTH_CHECK_RETRIES=10
 HEALTH_CHECK_INTERVAL=3
 
