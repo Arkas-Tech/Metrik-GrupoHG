@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { BriefEvento, Evento } from "@/types";
-import ImageUpload from "./ImageUpload";
+import ImageUploadMultiple from "./ImageUploadMultiple";
+import ImageModal from "./ImageModal";
 
 interface FormularioBriefProps {
   evento: Evento;
@@ -170,6 +171,27 @@ export default function FormularioBrief({
 
   const [errores, setErrores] = useState<{ [key: string]: string }>({});
 
+  // Estado para el modal de imagen
+  const [imagenModal, setImagenModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    nombre: string;
+    descripcion: string;
+  }>({ isOpen: false, url: "", nombre: "", descripcion: "" });
+
+  const abrirImagenModal = (imagen: Imagen) => {
+    setImagenModal({
+      isOpen: true,
+      url: imagen.url,
+      nombre: imagen.nombre,
+      descripcion: imagen.descripcion,
+    });
+  };
+
+  const cerrarImagenModal = () => {
+    setImagenModal({ isOpen: false, url: "", nombre: "", descripcion: "" });
+  };
+
   const agregarAreaMejora = () => {
     if (nuevaAreaMejora.trim()) {
       setAreasDeMejora((prev) => [...prev, nuevaAreaMejora.trim()]);
@@ -181,12 +203,31 @@ export default function FormularioBrief({
     setAreasDeMejora((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleImageAdd = (imageData: Imagen) => {
-    setImagenes((prev) => [...prev, imageData]);
+  const handleImagesAdd = (imagesData: Imagen[]) => {
+    setImagenes((prev) => [...prev, ...imagesData]);
   };
 
   const removerImagen = (id: string) => {
     setImagenes((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const actualizarNombreImagen = (id: string, nuevoNombre: string) => {
+    setImagenes((prev) =>
+      prev.map((img) =>
+        img.id === id ? { ...img, nombre: nuevoNombre } : img,
+      ),
+    );
+  };
+
+  const actualizarDescripcionImagen = (
+    id: string,
+    nuevaDescripcion: string,
+  ) => {
+    setImagenes((prev) =>
+      prev.map((img) =>
+        img.id === id ? { ...img, descripcion: nuevaDescripcion } : img,
+      ),
+    );
   };
 
   const validarFormulario = () => {
@@ -484,60 +525,118 @@ export default function FormularioBrief({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-4">
-              Imágenes del Evento
+              Imágenes del Evento{" "}
+              {imagenes.length > 0 && `(${imagenes.length})`}
             </label>
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               <h4 className="font-medium text-gray-900 mb-3">
-                📸 Agregar Imagen del Evento
+                📸 Agregar Imágenes del Evento
               </h4>
-              <ImageUpload onImageAdd={handleImageAdd} disabled={loading} />
+              <ImageUploadMultiple
+                onImagesAdd={handleImagesAdd}
+                disabled={loading}
+              />
             </div>
             {imagenes.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {imagenes.map((imagen) => (
-                  <div
-                    key={imagen.id}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h5 className="font-medium text-gray-900">
-                        {imagen.nombre}
-                      </h5>
-                      <button
-                        type="button"
-                        onClick={() => removerImagen(imagen.id)}
-                        className="text-red-600 hover:text-red-800"
-                        disabled={loading}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    {imagen.url && (
-                      <div className="w-full h-32 relative rounded mb-2 bg-gray-100">
-                        <Image
-                          src={imagen.url}
-                          alt={imagen.nombre}
-                          fill
-                          className="object-cover rounded"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                        {imagen.file && (
-                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                            📁 Archivo Local
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  💡 Edita el nombre y descripción de cada imagen:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {imagenes.map((imagen) => (
+                    <div
+                      key={imagen.id}
+                      className="border border-gray-200 rounded-lg p-4 bg-white"
+                    >
+                      {/* Imagen preview */}
+                      {imagen.url && (
+                        <div
+                          className="w-full h-48 relative rounded mb-3 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity group"
+                          onClick={() => abrirImagenModal(imagen)}
+                        >
+                          <Image
+                            src={imagen.url}
+                            alt={imagen.nombre}
+                            fill
+                            className="object-cover rounded"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                          />
+                          {imagen.file && (
+                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                              📁 Archivo Local
+                            </div>
+                          )}
+                          {/* Indicador de que es clickeable */}
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-2">
+                              <svg
+                                className="w-6 h-6 text-gray-800"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                />
+                              </svg>
+                            </div>
                           </div>
-                        )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removerImagen(imagen.id);
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors z-10"
+                            disabled={loading}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Campo nombre editable */}
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Nombre de la imagen
+                        </label>
+                        <input
+                          type="text"
+                          value={imagen.nombre}
+                          onChange={(e) =>
+                            actualizarNombreImagen(imagen.id, e.target.value)
+                          }
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                          placeholder="Nombre de la imagen"
+                          disabled={loading}
+                        />
                       </div>
-                    )}
-                    <div className="text-gray-700 text-sm font-medium">
-                      📷 {imagen.nombre}
+
+                      {/* Campo descripción editable */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Descripción (opcional)
+                        </label>
+                        <textarea
+                          value={imagen.descripcion}
+                          onChange={(e) =>
+                            actualizarDescripcionImagen(
+                              imagen.id,
+                              e.target.value,
+                            )
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
+                          placeholder="Describe qué se ve en esta imagen..."
+                          disabled={loading}
+                        />
+                      </div>
                     </div>
-                    {imagen.descripcion && (
-                      <p className="text-gray-600 text-sm mt-2">
-                        {imagen.descripcion}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -675,6 +774,15 @@ export default function FormularioBrief({
           </div>
         </form>
       </div>
+
+      {/* Modal para ver imagen en tamaño completo */}
+      <ImageModal
+        isOpen={imagenModal.isOpen}
+        imageUrl={imagenModal.url}
+        imageName={imagenModal.nombre}
+        imageDescription={imagenModal.descripcion}
+        onClose={cerrarImagenModal}
+      />
     </div>
   );
 }

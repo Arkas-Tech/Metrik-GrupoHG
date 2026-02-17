@@ -99,7 +99,7 @@ export function useEventos() {
 
           try {
             const briefResponse = await fetchConToken(
-              `${API_URL}/eventos/${evento.id}/brief`
+              `${API_URL}/eventos/${evento.id}/brief`,
             );
             if (briefResponse.ok) {
               const briefData = await briefResponse.json();
@@ -117,7 +117,7 @@ export function useEventos() {
                     duracion: act.duracion,
                     responsable: act.responsable,
                     recursos: act.recursos,
-                  })
+                  }),
                 ),
                 cronograma: briefData.cronograma.map(
                   (cron: CronogramaBriefBackend) => ({
@@ -127,7 +127,7 @@ export function useEventos() {
                     fechaFin: cron.fecha_fin,
                     responsable: cron.responsable,
                     estado: cron.estado,
-                  })
+                  }),
                 ),
                 requerimientos: briefData.requerimientos || "",
                 proveedores: briefData.proveedores || "",
@@ -144,7 +144,7 @@ export function useEventos() {
             }
           } catch {
             console.log(
-              `No hay brief para evento ${evento.id} o error al cargarlo`
+              `No hay brief para evento ${evento.id} o error al cargarlo`,
             );
           }
 
@@ -170,7 +170,7 @@ export function useEventos() {
             fechaModificacion: evento.fecha_modificacion,
             creadoPor: evento.creado_por,
           };
-        })
+        }),
       );
       setEventos(eventosMapeados);
       setError(null);
@@ -217,8 +217,8 @@ export function useEventos() {
           console.error("Error al crear evento:", response.status, errorData);
           throw new Error(
             `Error al crear evento: ${response.status} - ${JSON.stringify(
-              errorData
-            )}`
+              errorData,
+            )}`,
           );
         }
 
@@ -252,7 +252,7 @@ export function useEventos() {
         throw err;
       }
     },
-    []
+    [],
   );
 
   const actualizarEvento = useCallback(
@@ -296,18 +296,18 @@ export function useEventos() {
         };
 
         setEventos((prev) =>
-          prev.map((e) => (e.id === id ? eventoActualizado : e))
+          prev.map((e) => (e.id === id ? eventoActualizado : e)),
         );
 
         return true;
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Error al actualizar evento"
+          err instanceof Error ? err.message : "Error al actualizar evento",
         );
         return false;
       }
     },
-    [eventos]
+    [eventos],
   );
 
   const eliminarEvento = useCallback(async (id: string): Promise<boolean> => {
@@ -343,19 +343,19 @@ export function useEventos() {
       };
 
       setEventos((prev) =>
-        prev.map((e) => (e.id === eventoId ? eventoActualizado : e))
+        prev.map((e) => (e.id === eventoId ? eventoActualizado : e)),
       );
 
       return true;
     },
-    [eventos]
+    [eventos],
   );
 
   const actualizarGastoEvento = useCallback(
     async (
       eventoId: string,
       gastoId: string,
-      gastoActualizado: Partial<GastoEvento>
+      gastoActualizado: Partial<GastoEvento>,
     ) => {
       const evento = eventos.find((e) => e.id === eventoId);
       if (!evento) return false;
@@ -363,24 +363,24 @@ export function useEventos() {
       const eventoActualizadoLocal: Evento = {
         ...evento,
         gastosProyectados: (evento.gastosProyectados || []).map((gasto) =>
-          gasto.id === gastoId ? { ...gasto, ...gastoActualizado } : gasto
+          gasto.id === gastoId ? { ...gasto, ...gastoActualizado } : gasto,
         ),
         fechaModificacion: new Date().toISOString(),
       };
 
       setEventos((prev) =>
-        prev.map((e) => (e.id === eventoId ? eventoActualizadoLocal : e))
+        prev.map((e) => (e.id === eventoId ? eventoActualizadoLocal : e)),
       );
 
       return true;
     },
-    [eventos]
+    [eventos],
   );
 
   const guardarBrief = useCallback(
     async (
       eventoId: string,
-      brief: Omit<BriefEvento, "id" | "eventoId" | "fechaCreacion">
+      brief: Omit<BriefEvento, "id" | "eventoId" | "fechaCreacion">,
     ) => {
       try {
         const evento = eventos.find((e) => e.id === eventoId);
@@ -426,12 +426,12 @@ export function useEventos() {
             method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(briefParaBackend),
-          }
+          },
         );
 
         if (!response.ok) {
           throw new Error(
-            `Error al ${esActualizacion ? "actualizar" : "crear"} brief`
+            `Error al ${esActualizacion ? "actualizar" : "crear"} brief`,
           );
         }
 
@@ -451,7 +451,7 @@ export function useEventos() {
               duracion: act.duracion,
               responsable: act.responsable,
               recursos: act.recursos,
-            })
+            }),
           ),
           cronograma: briefCreado.cronograma.map(
             (cron: CronogramaBriefBackend) => ({
@@ -461,7 +461,7 @@ export function useEventos() {
               fechaFin: cron.fecha_fin,
               responsable: cron.responsable,
               estado: cron.estado,
-            })
+            }),
           ),
           requerimientos: briefCreado.requerimientos || "",
           proveedores: briefCreado.proveedores || "",
@@ -482,7 +482,7 @@ export function useEventos() {
         };
 
         setEventos((prev) =>
-          prev.map((e) => (e.id === eventoId ? eventoActualizado : e))
+          prev.map((e) => (e.id === eventoId ? eventoActualizado : e)),
         );
 
         return briefMapeado;
@@ -492,7 +492,7 @@ export function useEventos() {
         return null;
       }
     },
-    [eventos]
+    [eventos],
   );
 
   const [estadisticas, setEstadisticas] = useState<EstadisticasEvento>({
@@ -535,6 +535,42 @@ export function useEventos() {
     }
   }, [eventos.length, cargarEstadisticas]);
 
+  const eliminarBrief = useCallback(
+    async (eventoId: string): Promise<boolean> => {
+      try {
+        const evento = eventos.find((e) => e.id === eventoId);
+        if (!evento || !evento.brief) {
+          throw new Error("No se encontró el brief para este evento");
+        }
+
+        const response = await fetchConToken(
+          `${API_URL}/eventos/${eventoId}/brief`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al eliminar brief");
+        }
+
+        // Actualizar el evento en el estado local eliminando el brief
+        setEventos((prev) =>
+          prev.map((e) => (e.id === eventoId ? { ...e, brief: undefined } : e)),
+        );
+
+        return true;
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Error al eliminar brief",
+        );
+        console.error("Error eliminando brief:", err);
+        return false;
+      }
+    },
+    [eventos],
+  );
+
   const exportarBriefPDF = useCallback(
     async (eventoId: string): Promise<boolean> => {
       try {
@@ -548,7 +584,7 @@ export function useEventos() {
         const jsPDF = (await import("jspdf")).jsPDF;
 
         const briefElement = document.querySelector(
-          "[data-brief-template]"
+          "[data-brief-template]",
         ) as HTMLElement;
 
         if (!briefElement) {
@@ -571,7 +607,7 @@ export function useEventos() {
           const pdf = new jsPDF("p", "mm", "a4");
 
           const evidencia = JSON.parse(
-            evento.brief.observacionesEspeciales || "{}"
+            evento.brief.observacionesEspeciales || "{}",
           );
 
           let yPos = 20;
@@ -583,7 +619,7 @@ export function useEventos() {
           const addText = (
             text: string,
             fontSize: number = 12,
-            isBold: boolean = false
+            isBold: boolean = false,
           ) => {
             if (yPos > pageHeight - 30) {
               pdf.addPage();
@@ -624,9 +660,9 @@ export function useEventos() {
           pdf.setFontSize(11);
           pdf.setFont("helvetica", "normal");
           const fechaTexto = `${new Date(evento.fechaInicio).toLocaleDateString(
-            "es-ES"
+            "es-ES",
           )} - ${new Date(
-            evento.fechaFin || evento.fechaInicio
+            evento.fechaFin || evento.fechaInicio,
           ).toLocaleDateString("es-ES")}`;
           pdf.text(fechaTexto, margin, 28);
 
@@ -651,38 +687,38 @@ export function useEventos() {
 
           addText(
             `• Asistentes Totales: ${new Intl.NumberFormat("es-MX").format(
-              asistentes
+              asistentes,
             )}`,
-            12
+            12,
           );
           addText(
             `• Leads Generados: ${new Intl.NumberFormat("es-MX").format(
-              leads
+              leads,
             )}`,
-            12
+            12,
           );
           addText(`• Tasa de Conversión: ${conversion}%`, 12);
           addText(
             `• Pruebas de Manejo: ${new Intl.NumberFormat("es-MX").format(
-              pruebasManejo
+              pruebasManejo,
             )}`,
-            12
+            12,
           );
           addText(
             `• Cotizaciones: ${new Intl.NumberFormat("es-MX").format(
-              cotizaciones
+              cotizaciones,
             )}`,
-            12
+            12,
           );
           addText(
             `• Solicitudes de Crédito: ${new Intl.NumberFormat("es-MX").format(
-              solicitudesCredito
+              solicitudesCredito,
             )}`,
-            12
+            12,
           );
           addText(
             `• Ventas: ${new Intl.NumberFormat("es-MX").format(ventas)}`,
-            12
+            12,
           );
           addSpace(10);
 
@@ -696,7 +732,7 @@ export function useEventos() {
               style: "currency",
               currency: "MXN",
             }).format(evento.presupuestoEstimado)}`,
-            12
+            12,
           );
           if (evento.presupuestoReal) {
             addText(
@@ -704,7 +740,7 @@ export function useEventos() {
                 style: "currency",
                 currency: "MXN",
               }).format(evento.presupuestoReal)}`,
-              12
+              12,
             );
           }
           addSpace(10);
@@ -777,7 +813,7 @@ export function useEventos() {
                         margin,
                         yPos,
                         imgWidth,
-                        imgHeight
+                        imgHeight,
                       );
                       yPos += imgHeight + 10;
                       resolve();
@@ -785,7 +821,7 @@ export function useEventos() {
 
                     img.onerror = () => {
                       console.warn(
-                        `No se pudo cargar la imagen ${imagen.nombre}`
+                        `No se pudo cargar la imagen ${imagen.nombre}`,
                       );
                       resolve();
                     };
@@ -794,7 +830,7 @@ export function useEventos() {
               } catch (imgError) {
                 console.warn(
                   `No se pudo agregar la imagen ${imagen.nombre}:`,
-                  imgError
+                  imgError,
                 );
                 addText(`   (Imagen no disponible)`, 10);
               }
@@ -829,7 +865,7 @@ export function useEventos() {
         return false;
       }
     },
-    [eventos]
+    [eventos],
   );
 
   return {
@@ -845,6 +881,7 @@ export function useEventos() {
     agregarGastoEvento,
     actualizarGastoEvento,
     guardarBrief,
+    eliminarBrief,
     exportarBriefPDF,
   };
 }

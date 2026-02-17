@@ -43,6 +43,7 @@ export default function EventosPage() {
     actualizarEvento,
     eliminarEvento,
     guardarBrief,
+    eliminarBrief,
     exportarBriefPDF,
   } = useEventos();
   const { facturas } = useFacturas();
@@ -288,6 +289,29 @@ export default function EventosPage() {
       } catch (error) {
         console.error("Error al exportar PDF:", error);
       }
+    }
+  };
+
+  const manejarEliminarBrief = async (evento: Evento) => {
+    if (!evento.brief) return;
+
+    const confirmacion = window.confirm(
+      `¿Estás seguro de que deseas eliminar el brief del evento "${evento.nombre}"?\n\nEsta acción no se puede deshacer.`,
+    );
+
+    if (!confirmacion) return;
+
+    try {
+      const exito = await eliminarBrief(evento.id);
+      if (exito) {
+        alert("Brief eliminado correctamente");
+        await cargarEventos();
+      } else {
+        alert("Error al eliminar el brief");
+      }
+    } catch (error) {
+      console.error("Error al eliminar brief:", error);
+      alert("Error al eliminar el brief");
     }
   };
 
@@ -1145,7 +1169,7 @@ export default function EventosPage() {
                                                 📋 Ver Brief Completo
                                               </button>
                                             ) : (
-                                              <div className="flex gap-2">
+                                              <div className="flex gap-2 flex-wrap">
                                                 <button
                                                   onClick={(e) => {
                                                     e.stopPropagation();
@@ -1164,6 +1188,17 @@ export default function EventosPage() {
                                                   className="px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
                                                 >
                                                   👁️ Preview
+                                                </button>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    manejarEliminarBrief(
+                                                      evento,
+                                                    );
+                                                  }}
+                                                  className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors"
+                                                >
+                                                  🗑️ Borrar
                                                 </button>
                                               </div>
                                             )}
@@ -1397,6 +1432,15 @@ export default function EventosPage() {
                                       className="px-3 py-2 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200 transition-colors"
                                     >
                                       ✏️
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        manejarEliminarBrief(evento)
+                                      }
+                                      className="px-3 py-2 bg-red-100 text-red-700 text-xs rounded-md hover:bg-red-200 transition-colors"
+                                      title="Borrar Brief"
+                                    >
+                                      🗑️
                                     </button>
                                   </>
                                 )}
