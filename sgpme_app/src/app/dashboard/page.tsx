@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   useAuth,
   obtenerNombreRol,
@@ -11,13 +12,23 @@ import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
 import DashboardGeneral from "@/components/DashboardGeneral";
 import { Bars3Icon } from "@heroicons/react/24/outline";
-import ConfigSidebar from "@/components/ConfigSidebar";
-import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
-import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
-import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
-import ProveedoresPage from "./proveedores/page";
+
+// Lazy-load components that are only shown on specific user actions
+const ConfigSidebar = dynamic(() => import("@/components/ConfigSidebar"));
+const ConfigSidebarCoordinador = dynamic(
+  () => import("@/components/ConfigSidebarCoordinador"),
+);
+const GestionAccesos = dynamic(() => import("@/components/GestionAccesos"));
+const GestionPerfilCoordinador = dynamic(
+  () => import("@/components/GestionPerfilCoordinador"),
+);
+const CambiarContrasenaCoordinador = dynamic(
+  () => import("@/components/CambiarContrasenaCoordinador"),
+);
+const PopupConfiguracion = dynamic(
+  () => import("@/components/PopupConfiguracion"),
+);
+const ProveedoresPage = dynamic(() => import("./proveedores/page"));
 
 export default function Dashboard() {
   const router = useRouter();

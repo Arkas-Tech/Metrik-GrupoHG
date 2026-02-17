@@ -18,16 +18,16 @@ module.exports = {
     },
 
     // ═══════════════════════════════════════════
-    //  METRIK FRONTEND (Next.js - Cluster Mode)
-    //  2 workers = Zero Downtime Deployments
+    //  METRIK FRONTEND (Next.js - Fork Mode)
+    //  1 worker on 1-CPU server (nginx cache handles concurrency)
     // ═══════════════════════════════════════════
     {
       name: "metrik-frontend",
       script: "node_modules/next/dist/bin/next",
       args: "start -p 3030",
       cwd: "/home/sgpme/app/frontend",
-      exec_mode: "cluster",
-      instances: 2,
+      exec_mode: "fork",
+      instances: 1,
       // Graceful shutdown: espera a que peticiones activas terminen
       kill_timeout: 8000,
       // Tiempo máximo para considerar el worker como listo

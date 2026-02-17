@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Proyeccion, SUBCATEGORIAS_POR_CATEGORIA } from "@/types";
 import { useCategorias } from "@/hooks/useCategorias";
-import jsPDF from "jspdf";
+// jsPDF is dynamically imported when generating PDF (~300KB saved from initial bundle)
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -54,11 +54,12 @@ interface ListaProyeccionesProps {
 }
 
 // Función para generar PDF de una proyección
-const generarPDFProyeccion = (
+const generarPDFProyeccion = async (
   proyeccion: Proyeccion,
   presupuestosMensuales: PresupuestoMensual[],
   nombresCategorias: string[],
 ) => {
+  const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF();
 
   // Función auxiliar para obtener presupuesto de categoría

@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import ClientProviders from "@/components/ClientProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -35,19 +30,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const useBackend = true;
-  console.log("Layout: useBackend =", useBackend);
-  console.log(
-    "Layout: NEXT_PUBLIC_USE_BACKEND =",
-    process.env.NEXT_PUBLIC_USE_BACKEND,
-  );
-
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ClientProviders useBackend={useBackend}>{children}</ClientProviders>
+      <body className={`${geistSans.variable} antialiased`}>
+        <ClientProviders useBackend={true}>{children}</ClientProviders>
       </body>
     </html>
   );

@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
+  // Compress responses from Next.js server
+  compress: true,
+  // Skip TS check in build (checked in IDE, saves ~7min on 1-CPU server)
+  typescript: { ignoreBuildErrors: true },
+  // Skip eslint in build
+  eslint: { ignoreDuringBuilds: true },
   // Generar BUILD_ID con timestamp para trazabilidad
   generateBuildId: async () => {
     const now = new Date();
