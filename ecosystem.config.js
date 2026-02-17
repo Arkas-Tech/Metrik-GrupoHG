@@ -35,8 +35,8 @@ module.exports = {
       // Evitar restart loops
       max_restarts: 10,
       min_uptime: "5s",
-      // Memoria máxima por worker
-      max_memory_restart: "250M",
+      // Memoria máxima por worker (aumentado para evitar reinicios)
+      max_memory_restart: "512M",
       env: {
         PORT: 3030,
         NODE_ENV: "production",
