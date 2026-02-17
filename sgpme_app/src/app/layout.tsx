@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientProviders from "@/components/ClientProviders";
-import VersionChecker from "@/components/VersionChecker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,11 +44,9 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      {/* Deploy v2 - staging build pipeline verified */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <VersionChecker />
         <ClientProviders useBackend={useBackend}>{children}</ClientProviders>
       </body>
     </html>
