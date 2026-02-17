@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
 import { useCampanas } from "@/hooks/useCampanas";
 import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
+import { useEventos } from "@/hooks/useEventos";
 import FormularioPresencia from "@/components/FormularioPresencia";
-import { AÑOS } from "@/types";
+import { AÑOS, Evento } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
 
 const MESES_ORDEN = [
@@ -65,6 +66,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   CreditCardIcon,
@@ -140,12 +144,19 @@ export default function DashboardGeneral({
   const { presencias, cargarPresencias, crearPresencia, actualizarPresencia } =
     usePresencias();
   const { proveedores } = useProveedores();
+  const { eventos } = useEventos();
 
   const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
     new Date().getFullYear(),
   );
   const [cuartoSeleccionado, setCuartoSeleccionado] = useState<string>(
     obtenerCuartoActual(),
+  );
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<
+    "YTD" | "Mes" | "Q"
+  >("Q");
+  const [mesSeleccionado, setMesSeleccionado] = useState<number>(
+    new Date().getMonth() + 1,
   );
   const [espectacularIndex, setEspectacularIndex] = useState(0);
   const [revistaIndex, setRevistaIndex] = useState(0);
@@ -158,6 +169,304 @@ export default function DashboardGeneral({
   );
   const [modalPresencia, setModalPresencia] = useState<Presencia | null>(null);
   const [presupuestos, setPresupuestos] = useState<PresupuestoMensual[]>([]);
+  const [proyecciones, setProyecciones] = useState<any[]>([]);
+  const [marcas, setMarcas] = useState<any[]>([]);
+  const [totalReembolsos, setTotalReembolsos] = useState<number>(0);
+
+  // Estados para la sección de Desplazamiento - organizados por mes
+  const [mesDesplazamiento, setMesDesplazamiento] = useState<number>(
+    new Date().getMonth() + 1,
+  );
+  const [agenciaDesplazamiento, setAgenciaDesplazamiento] = useState<
+    string | null
+  >(null);
+  const [modoEdicionDesplazamiento, setModoEdicionDesplazamiento] =
+    useState(false);
+
+  // Estado para filtro de mes en la sección de Eventos
+  const [mesEventos, setMesEventos] = useState<number>(
+    new Date().getMonth() + 1,
+  );
+
+  // Datos organizados por mes: { [mes: number]: Array<datos> }
+  const [desplazamientoPorMes, setDesplazamientoPorMes] = useState<{
+    [mes: number]: {
+      mayorExistencia: Array<{
+        unidad: string;
+        porcentaje: string;
+        oc: string;
+        pdf?: string;
+        pdfNombre?: string;
+      }>;
+      mas90Dias: Array<{
+        unidad: string;
+        porcentaje: string;
+        oc: string;
+        pdf?: string;
+        pdfNombre?: string;
+      }>;
+      demos: Array<{
+        unidad: string;
+        porcentaje: string;
+        oc: string;
+        pdf?: string;
+        pdfNombre?: string;
+      }>;
+      otros: Array<{
+        unidad: string;
+        porcentaje: string;
+        oc: string;
+        pdf?: string;
+        pdfNombre?: string;
+      }>;
+    };
+  }>({});
+
+  // Obtener datos del mes actual
+  const datosDesplazamientoActual = desplazamientoPorMes[mesDesplazamiento] || {
+    mayorExistencia: [],
+    mas90Dias: [],
+    demos: [],
+    otros: [],
+  };
+
+  // Funciones para actualizar datos del mes actual
+  const actualizarDatosDesplazamiento = async (
+    categoria: "mayorExistencia" | "mas90Dias" | "demos" | "otros",
+    nuevosDatos: Array<{
+      unidad: string;
+      porcentaje: string;
+      oc: string;
+      pdf?: string;
+      pdfNombre?: string;
+    }>,
+  ) => {
+    const nuevoDatosMes = {
+      ...datosDesplazamientoActual,
+      [categoria]: nuevosDatos,
+    };
+
+    setDesplazamientoPorMes((prev) => ({
+      ...prev,
+      [mesDesplazamiento]: nuevoDatosMes,
+    }));
+
+    // Guardar en la base de datos automáticamente
+    await guardarDesplazamientoEnDB(nuevoDatosMes);
+  };
+
+  // Función para guardar datos en la base de datos
+  const guardarDesplazamientoEnDB = async (datos: {
+    mayorExistencia: Array<any>;
+    mas90Dias: Array<any>;
+    demos: Array<any>;
+    otros: Array<any>;
+  }) => {
+    try {
+      console.log("[DEBUG-GUARDAR] Iniciando guardado...");
+      console.log("[DEBUG-GUARDAR] Datos a guardar:", datos);
+
+      if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
+        console.log(
+          "[DEBUG-GUARDAR] ❌ No hay agencia seleccionada o está en 'todas'",
+        );
+        return;
+      }
+
+      // Obtener marca_id de la agencia seleccionada
+      const marca = marcas.find((m) => m.cuenta === agenciaDesplazamiento);
+      if (!marca) {
+        console.log(
+          "[DEBUG-GUARDAR] ❌ No se encontró marca para:",
+          agenciaDesplazamiento,
+        );
+        console.log(
+          "[DEBUG-GUARDAR] Marcas disponibles:",
+          marcas.map((m) => m.cuenta),
+        );
+        return;
+      }
+
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const payload = {
+        mes: mesDesplazamiento,
+        anio: añoSeleccionado,
+        marca_id: marca.id,
+        mayorExistencia: datos.mayorExistencia,
+        mas90Dias: datos.mas90Dias,
+        demos: datos.demos,
+        otros: datos.otros,
+      };
+
+      console.log("[DEBUG-GUARDAR] 📤 Enviando payload:", payload);
+      console.log(
+        "[DEBUG-GUARDAR] 📡 URL:",
+        `${API_URL}/desplazamiento/guardar`,
+      );
+
+      const response = await fetchConToken(
+        `${API_URL}/desplazamiento/guardar`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(
+          "[DEBUG-GUARDAR] ✅ Desplazamiento guardado exitosamente:",
+          result,
+        );
+      } else {
+        console.error(
+          "[DEBUG-GUARDAR] ❌ Error guardando desplazamiento:",
+          response.status,
+        );
+        const errorData = await response.text();
+        console.error("[DEBUG-GUARDAR] Error data:", errorData);
+      }
+    } catch (error) {
+      console.error(
+        "[DEBUG-GUARDAR] ❌ Exception guardando desplazamiento:",
+        error,
+      );
+    }
+  };
+
+  // Función para cargar datos de desplazamiento desde la base de datos
+  const cargarDesplazamientoDesdeDB = useCallback(async () => {
+    try {
+      console.log("[DEBUG-CARGAR] Iniciando carga de desplazamiento...");
+      console.log(
+        "[DEBUG-CARGAR] agenciaDesplazamiento:",
+        agenciaDesplazamiento,
+      );
+      console.log("[DEBUG-CARGAR] marcas.length:", marcas.length);
+      console.log("[DEBUG-CARGAR] mes:", mesDesplazamiento);
+      console.log("[DEBUG-CARGAR] año:", añoSeleccionado);
+
+      if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
+        console.log(
+          "[DEBUG-CARGAR] ℹ️ No hay agencia seleccionada o está en 'todas', mostrando vacío",
+        );
+        // Limpiar datos cuando no hay agencia o está en "todas"
+        setDesplazamientoPorMes((prev) => ({
+          ...prev,
+          [mesDesplazamiento]: {
+            mayorExistencia: [],
+            mas90Dias: [],
+            demos: [],
+            otros: [],
+          },
+        }));
+        return;
+      }
+
+      // Obtener marca_id de la agencia seleccionada
+      const marca = marcas.find((m) => m.cuenta === agenciaDesplazamiento);
+      if (!marca) {
+        console.log(
+          "[DEBUG-CARGAR] ❌ No se encontró marca para cargar:",
+          agenciaDesplazamiento,
+        );
+        console.log(
+          "[DEBUG-CARGAR] Marcas disponibles:",
+          marcas.map((m) => m.cuenta),
+        );
+        return;
+      }
+
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const url = `${API_URL}/desplazamiento/obtener/${mesDesplazamiento}/${añoSeleccionado}/${marca.id}`;
+      console.log("[DEBUG-CARGAR] 📡 Cargando desplazamiento desde:", url);
+
+      const response = await fetchConToken(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("[DEBUG-CARGAR] ✅ Datos cargados exitosamente:", data);
+        setDesplazamientoPorMes((prev) => ({
+          ...prev,
+          [mesDesplazamiento]: {
+            mayorExistencia: data.mayorExistencia || [],
+            mas90Dias: data.mas90Dias || [],
+            demos: data.demos || [],
+            otros: data.otros || [],
+          },
+        }));
+      } else {
+        console.log(
+          "[DEBUG-CARGAR] ℹ️ No se encontraron datos (404 es normal si es la primera vez)",
+        );
+      }
+    } catch (error) {
+      console.error("[DEBUG-CARGAR] ❌ Error cargando desplazamiento:", error);
+    }
+  }, [agenciaDesplazamiento, marcas, mesDesplazamiento, añoSeleccionado]);
+
+  // Función para manejar la carga de PDF
+  const handlePdfUpload = (
+    file: File,
+    categoria: "mayorExistencia" | "mas90Dias" | "demos" | "otros",
+    index: number,
+  ) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const datos = [...datosDesplazamientoActual[categoria]];
+      datos[index] = {
+        ...datos[index],
+        pdf: base64String,
+        pdfNombre: file.name,
+      };
+      actualizarDatosDesplazamiento(categoria, datos);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Función para descargar PDF
+  const handlePdfDownload = (pdfBase64: string, nombreArchivo: string) => {
+    const link = document.createElement("a");
+    link.href = pdfBase64;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Cargar proyecciones
+  useEffect(() => {
+    const cargarProyecciones = async () => {
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const params = new URLSearchParams();
+        if (agenciaSeleccionada) params.append("marca", agenciaSeleccionada);
+
+        const response = await fetchConToken(
+          `${API_URL}/proyecciones?${params.toString()}`,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setProyecciones(Array.isArray(data) ? data : []);
+        } else {
+          setProyecciones([]);
+        }
+      } catch (error) {
+        console.error("Error cargando proyecciones:", error);
+        setProyecciones([]);
+      }
+    };
+
+    cargarProyecciones();
+  }, [agenciaSeleccionada]);
 
   // Cargar presupuestos mensuales
   useEffect(() => {
@@ -192,6 +501,69 @@ export default function DashboardGeneral({
     cargarCampanas(agenciaSeleccionada || undefined);
     cargarPresencias();
   }, [agenciaSeleccionada, cargarCampanas, cargarPresencias]);
+
+  // Cargar marcas al inicio
+  useEffect(() => {
+    const cargarMarcas = async () => {
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        console.log(
+          "[DEBUG-MARCAS] 📡 Cargando marcas desde:",
+          `${API_URL}/marcas`,
+        );
+        const response = await fetchConToken(`${API_URL}/marcas`);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(
+            "[DEBUG-MARCAS] ✅ Marcas cargadas:",
+            data.length,
+            "marcas",
+          );
+          console.log(
+            "[DEBUG-MARCAS] Lista:",
+            data.map((m: any) => m.cuenta),
+          );
+          setMarcas(data);
+        } else {
+          console.error(
+            "[DEBUG-MARCAS] ❌ Error cargando marcas:",
+            response.status,
+          );
+        }
+      } catch (error) {
+        console.error("[DEBUG-MARCAS] ❌ Exception cargando marcas:", error);
+      }
+    };
+
+    cargarMarcas();
+  }, []);
+
+  // Cargar datos de desplazamiento cuando cambie el mes, año o agencia
+  useEffect(() => {
+    console.log("[DEBUG-EFFECT] useEffect de desplazamiento ejecutado");
+    console.log("[DEBUG-EFFECT] Condiciones:", {
+      "marcas.length > 0": marcas.length > 0,
+      agenciaDesplazamiento: agenciaDesplazamiento,
+      "marcas.length": marcas.length,
+    });
+
+    if (marcas.length > 0) {
+      console.log(
+        "[DEBUG-EFFECT] ✅ Condiciones cumplidas, ejecutando carga de desplazamiento",
+      );
+      cargarDesplazamientoDesdeDB();
+    } else {
+      console.log("[DEBUG-EFFECT] ⏸️ Esperando que se carguen las marcas");
+    }
+  }, [
+    mesDesplazamiento,
+    añoSeleccionado,
+    agenciaDesplazamiento,
+    marcas.length,
+    cargarDesplazamientoDesdeDB,
+  ]);
 
   // Resetear índices cuando cambia la marca
   if (marcaActual !== agenciaSeleccionada) {
@@ -291,6 +663,180 @@ export default function DashboardGeneral({
       };
     });
   }, [presupuestosFiltrados, facturasFiltradas, cuartoSeleccionado]);
+
+  // Calcular meses permitidos según el período seleccionado
+  const mesesPeriodo = useMemo(() => {
+    if (periodoSeleccionado === "YTD") {
+      // Año hasta la fecha
+      const mesActual = new Date().getMonth() + 1;
+      return Array.from({ length: mesActual }, (_, i) => i + 1);
+    } else if (periodoSeleccionado === "Mes") {
+      // Solo el mes seleccionado
+      return [mesSeleccionado];
+    } else {
+      // Q (Quarter)
+      return MESES_POR_CUARTO[cuartoSeleccionado];
+    }
+  }, [periodoSeleccionado, mesSeleccionado, cuartoSeleccionado]);
+
+  // Filtrar proyecciones según período
+  const proyeccionesFiltradas = useMemo(() => {
+    return proyecciones.filter((proy) => {
+      return (
+        proy.año === añoSeleccionado &&
+        mesesPeriodo.includes(proy.mes) &&
+        (!agenciaSeleccionada || proy.marca === agenciaSeleccionada)
+      );
+    });
+  }, [proyecciones, añoSeleccionado, mesesPeriodo, agenciaSeleccionada]);
+
+  // Calcular datos para barra de progreso (proyección, presupuesto, gasto)
+  const datosBarraProgreso = useMemo(() => {
+    const presupuestoTotal = presupuestos
+      .filter((p) => {
+        return (
+          p.anio === añoSeleccionado &&
+          mesesPeriodo.includes(p.mes) &&
+          (!agenciaSeleccionada || p.marca_nombre === agenciaSeleccionada)
+        );
+      })
+      .reduce((sum, p) => sum + p.monto, 0);
+
+    const proyeccionTotal = proyeccionesFiltradas.reduce((sum, proy) => {
+      let partidas = proy.partidas;
+      if (!partidas && proy.partidas_json) {
+        try {
+          partidas = JSON.parse(proy.partidas_json);
+        } catch (error) {
+          console.error("Error parseando partidas_json:", error);
+        }
+      }
+      if (partidas) {
+        return (
+          sum +
+          partidas
+            .filter((p: any) => !p.esReembolso)
+            .reduce((s: number, p: any) => s + (p.monto || 0), 0)
+        );
+      }
+      return sum;
+    }, 0);
+
+    const gastoTotal = facturas
+      .filter((f) => {
+        const fechaEmision = new Date(f.fechaEmision);
+        const mesFactura = fechaEmision.getMonth() + 1;
+        return (
+          fechaEmision.getFullYear() === añoSeleccionado &&
+          mesesPeriodo.includes(mesFactura) &&
+          (f.estado === "Pagada" || f.estado === "Ingresada") &&
+          (!agenciaSeleccionada || f.marca === agenciaSeleccionada)
+        );
+      })
+      .reduce((sum, f) => sum + f.total, 0);
+
+    return {
+      proyeccion: proyeccionTotal,
+      presupuesto: presupuestoTotal,
+      gasto: gastoTotal,
+    };
+  }, [
+    presupuestos,
+    proyeccionesFiltradas,
+    facturas,
+    añoSeleccionado,
+    mesesPeriodo,
+    agenciaSeleccionada,
+  ]);
+
+  // Calcular total de reembolsos
+  const reembolsosData = useMemo(() => {
+    const total = proyeccionesFiltradas.reduce((sum, proy) => {
+      let partidas = proy.partidas;
+      if (!partidas && proy.partidas_json) {
+        try {
+          partidas = JSON.parse(proy.partidas_json);
+        } catch (error) {
+          console.error("Error parseando partidas_json:", error);
+        }
+      }
+      if (partidas) {
+        return (
+          sum +
+          partidas
+            .filter((p: any) => p.esReembolso)
+            .reduce((s: number, p: any) => s + (p.monto || 0), 0)
+        );
+      }
+      return sum;
+    }, 0);
+
+    return total;
+  }, [proyeccionesFiltradas]);
+
+  // Calcular datos para gráfica de pie (proyecciones por categoría)
+  const datosGraficaPie = useMemo(() => {
+    const categorias: { [key: string]: number } = {};
+
+    proyeccionesFiltradas.forEach((proy) => {
+      let partidas = proy.partidas;
+      if (!partidas && proy.partidas_json) {
+        try {
+          partidas = JSON.parse(proy.partidas_json);
+        } catch (error) {
+          console.error("Error parseando partidas_json:", error);
+        }
+      }
+      if (partidas) {
+        partidas
+          .filter((p: any) => !p.esReembolso)
+          .forEach((partida: any) => {
+            const cat = partida.categoria;
+            if (!categorias[cat]) {
+              categorias[cat] = 0;
+            }
+            categorias[cat] += partida.monto || 0;
+          });
+      }
+    });
+
+    return Object.entries(categorias)
+      .map(([categoria, valor]) => ({
+        nombre: categoria,
+        valor,
+      }))
+      .filter((item) => item.valor > 0)
+      .sort((a, b) => b.valor - a.valor);
+  }, [proyeccionesFiltradas]);
+
+  // Colores para la gráfica de pie
+  const COLORES_PIE = [
+    "#6366f1", // indigo
+    "#8b5cf6", // violet
+    "#ec4899", // pink
+    "#f59e0b", // amber
+    "#10b981", // emerald
+    "#3b82f6", // blue
+    "#ef4444", // red
+    "#06b6d4", // cyan
+    "#84cc16", // lime
+    "#f97316", // orange
+  ];
+
+  // Filtrar eventos por mes y agencia seleccionada del header
+  const eventosFiltrados = useMemo(() => {
+    return eventos.filter((evento) => {
+      // Filtrar por agencia (del header)
+      if (agenciaSeleccionada && evento.marca !== agenciaSeleccionada) {
+        return false;
+      }
+
+      // Filtrar por mes
+      const fechaEvento = new Date(evento.fechaInicio);
+      const mesEvento = fechaEvento.getMonth() + 1;
+      return mesEvento === mesEventos;
+    });
+  }, [eventos, agenciaSeleccionada, mesEventos]);
 
   const formatearMiles = (valor: number) => {
     if (valor >= 1000000) {
@@ -588,6 +1134,1386 @@ export default function DashboardGeneral({
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      {/* Nueva sección: Filtro de período + Barras de progreso y gráfica de pie */}
+      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Análisis Detallado de Proyecciones
+          </h3>
+          <div className="flex gap-3">
+            <div>
+              <label
+                htmlFor="periodo-selector"
+                className="block text-sm font-medium text-gray-900 mb-2"
+              >
+                Período:
+              </label>
+              <select
+                id="periodo-selector"
+                value={periodoSeleccionado}
+                onChange={(e) =>
+                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes" | "Q")
+                }
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+              >
+                <option value="YTD">YTD (Year to Date)</option>
+                <option value="Mes">Mes</option>
+                <option value="Q">Quarter</option>
+              </select>
+            </div>
+            {periodoSeleccionado === "Mes" && (
+              <div>
+                <label
+                  htmlFor="mes-selector"
+                  className="block text-sm font-medium text-gray-900 mb-2"
+                >
+                  Mes:
+                </label>
+                <select
+                  id="mes-selector"
+                  value={mesSeleccionado}
+                  onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                >
+                  {MESES_ORDEN.map((mes, idx) => (
+                    <option key={idx} value={idx + 1}>
+                      {mes}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {periodoSeleccionado === "Q" && (
+              <div>
+                <label
+                  htmlFor="quarter-selector"
+                  className="block text-sm font-medium text-gray-900 mb-2"
+                >
+                  Quarter:
+                </label>
+                <select
+                  id="quarter-selector"
+                  value={cuartoSeleccionado}
+                  onChange={(e) => setCuartoSeleccionado(e.target.value)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                >
+                  <option value="Q1">Q1 (Ene-Mar)</option>
+                  <option value="Q2">Q2 (Abr-Jun)</option>
+                  <option value="Q3">Q3 (Jul-Sep)</option>
+                  <option value="Q4">Q4 (Oct-Dic)</option>
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Lado izquierdo: Barra de progreso y reembolsos */}
+          <div className="space-y-6">
+            {/* Barra de progreso */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                Proyección vs Presupuesto vs Gasto
+              </h4>
+
+              <div className="space-y-6">
+                {/* Valores */}
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-1">
+                      PROYECCIÓN
+                    </p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {formatearMiles(datosBarraProgreso.proyeccion)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-1">
+                      PRESUPUESTO
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {formatearMiles(datosBarraProgreso.presupuesto)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-1">
+                      GASTO
+                    </p>
+                    <p className="text-lg font-bold text-green-600">
+                      {formatearMiles(datosBarraProgreso.gasto)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Barra de progreso */}
+                <div className="relative">
+                  <div className="h-8 bg-gray-200 rounded-lg relative overflow-hidden">
+                    {(() => {
+                      const { proyeccion, presupuesto, gasto } =
+                        datosBarraProgreso;
+                      const gastoSobrepasaPresupuesto =
+                        gasto > presupuesto && presupuesto > 0;
+                      const base100 = gastoSobrepasaPresupuesto
+                        ? proyeccion
+                        : presupuesto;
+
+                      const porcentajeProyeccion =
+                        base100 > 0 ? (proyeccion / base100) * 100 : 0;
+                      const porcentajePresupuesto =
+                        base100 > 0 ? (presupuesto / base100) * 100 : 0;
+                      const gastoHastaPresupuesto = Math.min(
+                        gasto,
+                        presupuesto,
+                      );
+                      const gastoSobrante = Math.max(0, gasto - presupuesto);
+                      const porcentajeGastoVerde =
+                        base100 > 0
+                          ? (gastoHastaPresupuesto / base100) * 100
+                          : 0;
+                      const porcentajeGastoRojo =
+                        base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
+
+                      return (
+                        <>
+                          {/* Gasto verde (dentro del presupuesto) */}
+                          <div
+                            className="h-full bg-green-500 transition-all duration-500"
+                            style={{
+                              width: `${Math.min(porcentajeGastoVerde, 100)}%`,
+                            }}
+                          ></div>
+                          {/* Gasto rojo (sobrepasa presupuesto) */}
+                          {gastoSobrepasaPresupuesto && (
+                            <div
+                              className="absolute top-0 h-full bg-red-500 transition-all duration-500"
+                              style={{
+                                left: `${porcentajeGastoVerde}%`,
+                                width: `${Math.min(porcentajeGastoRojo, 100 - porcentajeGastoVerde)}%`,
+                              }}
+                            ></div>
+                          )}
+                          {/* Línea azul (proyección) */}
+                          {proyeccion > 0 && (
+                            <div
+                              className="absolute top-0 bottom-0 w-1 bg-blue-600 transition-all duration-500 z-10"
+                              style={{
+                                left: `${Math.min(porcentajeProyeccion, 100)}%`,
+                              }}
+                            ></div>
+                          )}
+                          {/* Línea negra (presupuesto) solo si gasto sobrepasa */}
+                          {gastoSobrepasaPresupuesto && (
+                            <div
+                              className="absolute top-0 bottom-0 w-1 bg-black transition-all duration-500 z-10"
+                              style={{
+                                left: `${Math.min(porcentajePresupuesto, 100)}%`,
+                              }}
+                            ></div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Porcentaje de gasto */}
+                <div className="text-right">
+                  <span
+                    className={`text-sm font-medium ${
+                      datosBarraProgreso.gasto > datosBarraProgreso.proyeccion
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    Gasto:{" "}
+                    {datosBarraProgreso.proyeccion > 0
+                      ? (
+                          (datosBarraProgreso.gasto /
+                            datosBarraProgreso.proyeccion) *
+                          100
+                        ).toFixed(1)
+                      : "0.0"}
+                    % de proyección
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recuadro de reembolsos */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                    💰 Reembolsos
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Total a reembolsar en el período
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-amber-600">
+                    {formatearMiles(reembolsosData)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {
+                      proyeccionesFiltradas.filter((p) => {
+                        let partidas = p.partidas;
+                        if (!partidas && p.partidas_json) {
+                          try {
+                            partidas = JSON.parse(p.partidas_json);
+                          } catch (e) {
+                            return false;
+                          }
+                        }
+                        return (
+                          partidas && partidas.some((p: any) => p.esReembolso)
+                        );
+                      }).length
+                    }{" "}
+                    proyección(es) con reembolsos
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lado derecho: Gráfica de pie */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">
+              Proyección por Categoría
+            </h4>
+            {datosGraficaPie.length > 0 ? (
+              <>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={datosGraficaPie}
+                        dataKey="valor"
+                        nameKey="nombre"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={0}
+                      >
+                        {datosGraficaPie.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORES_PIE[index % COLORES_PIE.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatearMiles(value)}
+                        contentStyle={{
+                          backgroundColor: "transparent",
+                          border: "none",
+                          boxShadow: "none",
+                        }}
+                        labelStyle={{
+                          color: "#111827",
+                          fontWeight: "600",
+                          fontSize: "14px",
+                        }}
+                        itemStyle={{
+                          color: "#374151",
+                          fontSize: "13px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Leyenda */}
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {datosGraficaPie.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{
+                          backgroundColor:
+                            COLORES_PIE[idx % COLORES_PIE.length],
+                        }}
+                      ></div>
+                      <span className="text-xs text-gray-700">
+                        {item.nombre}:{" "}
+                        <span className="font-medium">
+                          {formatearMiles(item.valor)}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-500">
+                <p>No hay datos de proyecciones para el período seleccionado</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sección Funnel */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">Funnel</h2>
+
+        {/* Digital */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            📱 Digital
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Leads */}
+            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Leads</span>
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-blue-900">0</p>
+            </div>
+
+            {/* Citas */}
+            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Citas</span>
+                <svg
+                  className="w-5 h-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-green-900">0</p>
+            </div>
+
+            {/* Ventas */}
+            <div className="bg-emerald-50 rounded-lg p-6 border border-emerald-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">
+                  Ventas
+                </span>
+                <svg
+                  className="w-5 h-5 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-emerald-900">0</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Eventos */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            🎉 Eventos
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Pisos */}
+            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Pisos</span>
+                <svg
+                  className="w-5 h-5 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-purple-900">0</p>
+            </div>
+
+            {/* Leads */}
+            <div className="bg-pink-50 rounded-lg p-6 border border-pink-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Leads</span>
+                <svg
+                  className="w-5 h-5 text-pink-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-pink-900">0</p>
+            </div>
+
+            {/* Ventas */}
+            <div className="bg-rose-50 rounded-lg p-6 border border-rose-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">
+                  Ventas
+                </span>
+                <svg
+                  className="w-5 h-5 text-rose-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-3xl font-bold text-rose-900">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sección Desplazamiento */}
+      <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">
+              📊 Desplazamiento
+            </h2>
+            <p className="text-sm text-gray-600">
+              Gestiona información por mes
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Filtro de agencia */}
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+              <label className="text-sm font-semibold text-gray-700">
+                🏢 Agencia:
+              </label>
+              <select
+                value={agenciaDesplazamiento || "todas"}
+                onChange={(e) => {
+                  const valor =
+                    e.target.value === "todas" ? null : e.target.value;
+                  setAgenciaDesplazamiento(valor);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors"
+              >
+                <option value="todas">Todas las agencias</option>
+                {marcas.map((marca) => (
+                  <option key={marca.id} value={marca.cuenta}>
+                    {marca.cuenta}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Filtro de mes */}
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+              <label className="text-sm font-semibold text-gray-700">
+                📅 Mes:
+              </label>
+              <select
+                value={mesDesplazamiento}
+                onChange={(e) => setMesDesplazamiento(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors"
+              >
+                {MESES_ORDEN.map((mes, idx) => (
+                  <option key={idx} value={idx + 1}>
+                    {mes}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Botón de edición */}
+            <button
+              onClick={() =>
+                setModoEdicionDesplazamiento(!modoEdicionDesplazamiento)
+              }
+              disabled={!agenciaDesplazamiento}
+              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg ${
+                !agenciaDesplazamiento
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : modoEdicionDesplazamiento
+                    ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
+                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
+              }`}
+            >
+              {modoEdicionDesplazamiento ? "💾 Guardar Cambios" : "✏️ Editar"}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Mayor Existencia */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-blue-900 flex items-center gap-2">
+                <span className="text-xl">📦</span> Mayor Existencia
+              </h3>
+              {modoEdicionDesplazamiento && (
+                <button
+                  onClick={() =>
+                    actualizarDatosDesplazamiento("mayorExistencia", [
+                      ...datosDesplazamientoActual.mayorExistencia,
+                      { unidad: "", porcentaje: "", oc: "" },
+                    ])
+                  }
+                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                >
+                  + Agregar
+                </button>
+              )}
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      Unidad
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      %
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      OC
+                    </th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
+                      PDF
+                    </th>
+                    {modoEdicionDesplazamiento && (
+                      <th className="px-2 py-2 w-8"></th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {datosDesplazamientoActual.mayorExistencia.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                        className="px-2 py-4 text-center text-gray-500 text-xs"
+                      >
+                        Sin datos
+                      </td>
+                    </tr>
+                  ) : (
+                    datosDesplazamientoActual.mayorExistencia.map(
+                      (item, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-t border-blue-100 hover:bg-blue-50 transition-colors"
+                        >
+                          <td className="px-2 py-2">
+                            {modoEdicionDesplazamiento ? (
+                              <input
+                                type="text"
+                                value={item.unidad}
+                                onChange={(e) => {
+                                  const updated = [
+                                    ...datosDesplazamientoActual.mayorExistencia,
+                                  ];
+                                  updated[idx].unidad = e.target.value;
+                                  actualizarDatosDesplazamiento(
+                                    "mayorExistencia",
+                                    updated,
+                                  );
+                                }}
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            ) : (
+                              <span className="text-gray-900 font-medium">
+                                {item.unidad}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2">
+                            {modoEdicionDesplazamiento ? (
+                              <input
+                                type="text"
+                                value={item.porcentaje}
+                                onChange={(e) => {
+                                  const updated = [
+                                    ...datosDesplazamientoActual.mayorExistencia,
+                                  ];
+                                  updated[idx].porcentaje = e.target.value;
+                                  actualizarDatosDesplazamiento(
+                                    "mayorExistencia",
+                                    updated,
+                                  );
+                                }}
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            ) : (
+                              <span className="text-gray-900 font-medium">
+                                {item.porcentaje}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2">
+                            {modoEdicionDesplazamiento ? (
+                              <input
+                                type="text"
+                                value={item.oc}
+                                onChange={(e) => {
+                                  const updated = [
+                                    ...datosDesplazamientoActual.mayorExistencia,
+                                  ];
+                                  updated[idx].oc = e.target.value;
+                                  actualizarDatosDesplazamiento(
+                                    "mayorExistencia",
+                                    updated,
+                                  );
+                                }}
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            ) : (
+                              <span className="text-gray-900 font-medium">
+                                {item.oc}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="flex items-center justify-center gap-1">
+                              {modoEdicionDesplazamiento && (
+                                <label className="cursor-pointer">
+                                  <input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handlePdfUpload(
+                                          file,
+                                          "mayorExistencia",
+                                          idx,
+                                        );
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 inline-block">
+                                    📎 {item.pdf ? "Cambiar" : "Subir"}
+                                  </span>
+                                </label>
+                              )}
+                              {item.pdf && (
+                                <button
+                                  onClick={() =>
+                                    handlePdfDownload(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                                  title="Descargar PDF"
+                                >
+                                  ⬇️
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          {modoEdicionDesplazamiento && (
+                            <td className="px-2 py-2">
+                              <button
+                                onClick={() => {
+                                  const updated =
+                                    datosDesplazamientoActual.mayorExistencia.filter(
+                                      (_, i) => i !== idx,
+                                    );
+                                  actualizarDatosDesplazamiento(
+                                    "mayorExistencia",
+                                    updated,
+                                  );
+                                }}
+                                className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ),
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Más de 90 días */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-amber-900 flex items-center gap-2">
+                <span className="text-xl">⏰</span> Más de 90 días
+              </h3>
+              {modoEdicionDesplazamiento && (
+                <button
+                  onClick={() =>
+                    actualizarDatosDesplazamiento("mas90Dias", [
+                      ...datosDesplazamientoActual.mas90Dias,
+                      { unidad: "", porcentaje: "", oc: "" },
+                    ])
+                  }
+                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                >
+                  + Agregar
+                </button>
+              )}
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      Unidad
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      %
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      OC
+                    </th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
+                      PDF
+                    </th>
+                    {modoEdicionDesplazamiento && (
+                      <th className="px-2 py-2 w-8"></th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {datosDesplazamientoActual.mas90Dias.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                        className="px-2 py-4 text-center text-gray-500 text-xs"
+                      >
+                        Sin datos
+                      </td>
+                    </tr>
+                  ) : (
+                    datosDesplazamientoActual.mas90Dias.map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className="border-t border-amber-100 hover:bg-amber-50 transition-colors"
+                      >
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.unidad}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.mas90Dias,
+                                ];
+                                updated[idx].unidad = e.target.value;
+                                actualizarDatosDesplazamiento(
+                                  "mas90Dias",
+                                  updated,
+                                );
+                              }}
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.unidad}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.porcentaje}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.mas90Dias,
+                                ];
+                                updated[idx].porcentaje = e.target.value;
+                                actualizarDatosDesplazamiento(
+                                  "mas90Dias",
+                                  updated,
+                                );
+                              }}
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.porcentaje}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.oc}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.mas90Dias,
+                                ];
+                                updated[idx].oc = e.target.value;
+                                actualizarDatosDesplazamiento(
+                                  "mas90Dias",
+                                  updated,
+                                );
+                              }}
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.oc}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center justify-center gap-1">
+                            {modoEdicionDesplazamiento && (
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handlePdfUpload(file, "mas90Dias", idx);
+                                    }
+                                  }}
+                                />
+                                <span className="inline-flex items-center justify-center w-7 h-7 bg-amber-500 hover:bg-amber-600 text-white rounded text-sm transition-colors">
+                                  📎
+                                </span>
+                              </label>
+                            )}
+                            {item.pdf && (
+                              <button
+                                onClick={() =>
+                                  handlePdfDownload(
+                                    item.pdf!,
+                                    item.pdfNombre || "documento.pdf",
+                                  )
+                                }
+                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
+                                title="Descargar PDF"
+                              >
+                                ⬇️
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {modoEdicionDesplazamiento && (
+                          <td className="px-2 py-2">
+                            <button
+                              onClick={() => {
+                                const updated =
+                                  datosDesplazamientoActual.mas90Dias.filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                actualizarDatosDesplazamiento(
+                                  "mas90Dias",
+                                  updated,
+                                );
+                              }}
+                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Demos */}
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 border-2 border-purple-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                <span className="text-xl">🎮</span> Demos
+              </h3>
+              {modoEdicionDesplazamiento && (
+                <button
+                  onClick={() =>
+                    actualizarDatosDesplazamiento("demos", [
+                      ...datosDesplazamientoActual.demos,
+                      { unidad: "", porcentaje: "", oc: "" },
+                    ])
+                  }
+                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                >
+                  + Agregar
+                </button>
+              )}
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      Unidad
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      %
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      OC
+                    </th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
+                      PDF
+                    </th>
+                    {modoEdicionDesplazamiento && (
+                      <th className="px-2 py-2 w-8"></th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {datosDesplazamientoActual.demos.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                        className="px-2 py-4 text-center text-gray-500 text-xs"
+                      >
+                        Sin datos
+                      </td>
+                    </tr>
+                  ) : (
+                    datosDesplazamientoActual.demos.map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className="border-t border-purple-100 hover:bg-purple-50 transition-colors"
+                      >
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.unidad}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.demos,
+                                ];
+                                updated[idx].unidad = e.target.value;
+                                actualizarDatosDesplazamiento("demos", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.unidad}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.porcentaje}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.demos,
+                                ];
+                                updated[idx].porcentaje = e.target.value;
+                                actualizarDatosDesplazamiento("demos", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.porcentaje}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.oc}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.demos,
+                                ];
+                                updated[idx].oc = e.target.value;
+                                actualizarDatosDesplazamiento("demos", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.oc}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center justify-center gap-1">
+                            {modoEdicionDesplazamiento && (
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handlePdfUpload(file, "demos", idx);
+                                    }
+                                  }}
+                                />
+                                <span className="inline-flex items-center justify-center w-7 h-7 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm transition-colors">
+                                  📎
+                                </span>
+                              </label>
+                            )}
+                            {item.pdf && (
+                              <button
+                                onClick={() =>
+                                  handlePdfDownload(
+                                    item.pdf!,
+                                    item.pdfNombre || "documento.pdf",
+                                  )
+                                }
+                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
+                                title="Descargar PDF"
+                              >
+                                ⬇️
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {modoEdicionDesplazamiento && (
+                          <td className="px-2 py-2">
+                            <button
+                              onClick={() => {
+                                const updated =
+                                  datosDesplazamientoActual.demos.filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                actualizarDatosDesplazamiento("demos", updated);
+                              }}
+                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Otros */}
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-emerald-900 flex items-center gap-2">
+                <span className="text-xl">📋</span> Otros
+              </h3>
+              {modoEdicionDesplazamiento && (
+                <button
+                  onClick={() =>
+                    actualizarDatosDesplazamiento("otros", [
+                      ...datosDesplazamientoActual.otros,
+                      { unidad: "", porcentaje: "", oc: "" },
+                    ])
+                  }
+                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                >
+                  + Agregar
+                </button>
+              )}
+            </div>
+            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      Unidad
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      %
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-700">
+                      OC
+                    </th>
+                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
+                      PDF
+                    </th>
+                    {modoEdicionDesplazamiento && (
+                      <th className="px-2 py-2 w-8"></th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {datosDesplazamientoActual.otros.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                        className="px-2 py-4 text-center text-gray-500 text-xs"
+                      >
+                        Sin datos
+                      </td>
+                    </tr>
+                  ) : (
+                    datosDesplazamientoActual.otros.map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className="border-t border-emerald-100 hover:bg-emerald-50 transition-colors"
+                      >
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.unidad}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.otros,
+                                ];
+                                updated[idx].unidad = e.target.value;
+                                actualizarDatosDesplazamiento("otros", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.unidad}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.porcentaje}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.otros,
+                                ];
+                                updated[idx].porcentaje = e.target.value;
+                                actualizarDatosDesplazamiento("otros", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.porcentaje}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          {modoEdicionDesplazamiento ? (
+                            <input
+                              type="text"
+                              value={item.oc}
+                              onChange={(e) => {
+                                const updated = [
+                                  ...datosDesplazamientoActual.otros,
+                                ];
+                                updated[idx].oc = e.target.value;
+                                actualizarDatosDesplazamiento("otros", updated);
+                              }}
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            />
+                          ) : (
+                            <span className="text-gray-900 font-medium">
+                              {item.oc}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center justify-center gap-1">
+                            {modoEdicionDesplazamiento && (
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handlePdfUpload(file, "otros", idx);
+                                    }
+                                  }}
+                                />
+                                <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-sm transition-colors">
+                                  📎
+                                </span>
+                              </label>
+                            )}
+                            {item.pdf && (
+                              <button
+                                onClick={() =>
+                                  handlePdfDownload(
+                                    item.pdf!,
+                                    item.pdfNombre || "documento.pdf",
+                                  )
+                                }
+                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
+                                title="Descargar PDF"
+                              >
+                                ⬇️
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {modoEdicionDesplazamiento && (
+                          <td className="px-2 py-2">
+                            <button
+                              onClick={() => {
+                                const updated =
+                                  datosDesplazamientoActual.otros.filter(
+                                    (_, i) => i !== idx,
+                                  );
+                                actualizarDatosDesplazamiento("otros", updated);
+                              }}
+                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sección Listado de Eventos */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">
+            📅 Eventos del Mes
+          </h2>
+          <select
+            value={mesEventos}
+            onChange={(e) => setMesEventos(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            {MESES_ORDEN.map((mes, idx) => (
+              <option key={idx} value={idx + 1}>
+                {mes}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          {eventosFiltrados.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg">
+                No hay eventos para este mes
+                {agenciaSeleccionada && ` en ${agenciaSeleccionada}`}
+              </p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Agencia
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {eventosFiltrados.map((evento) => {
+                  const getEstadoColor = (estado: string) => {
+                    const colors: Record<string, string> = {
+                      Realizado: "bg-green-100 text-green-800",
+                      Confirmado: "bg-blue-100 text-blue-800",
+                      "Por Suceder": "bg-yellow-100 text-yellow-800",
+                      Prospectado: "bg-purple-100 text-purple-800",
+                      Cancelado: "bg-red-100 text-red-800",
+                    };
+                    return colors[estado] || "bg-gray-100 text-gray-800";
+                  };
+
+                  return (
+                    <tr key={evento.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {evento.nombre}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {evento.tipoEvento}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {evento.marca}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(evento.fechaInicio).toLocaleDateString(
+                          "es-MX",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoColor(evento.estado)}`}
+                        >
+                          {evento.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -1219,21 +3145,25 @@ export default function DashboardGeneral({
         </div>
       </div>
 
-      {/* Sección Eventos */}
+      {/* Sección Asesores */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Eventos</h2>
-          <button
-            onClick={() => router.push("/eventos")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Ver todos los eventos
-          </button>
-        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">👥 Asesores</h2>
         <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <ChartBarIcon className="h-16 w-16 mb-4 text-gray-400" />
+          <svg
+            className="h-16 w-16 mb-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
           <p className="text-lg font-medium">Próximamente</p>
-          <p className="text-sm">Estadísticas de eventos en desarrollo</p>
+          <p className="text-sm">Gestión de asesores en desarrollo</p>
         </div>
       </div>
 

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import models
 from database import engine
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, desplazamiento
 
 # Cargar variables de entorno
 load_dotenv()
@@ -58,6 +58,7 @@ app.include_router(presencia_tradicional.router)
 app.include_router(metricas.router)
 app.include_router(presupuesto.router)
 app.include_router(categorias.router)
+app.include_router(desplazamiento.router)
 
 @app.get("/")
 async def root():

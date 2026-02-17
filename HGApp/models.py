@@ -337,3 +337,22 @@ class Categorias(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     user_id = Column(Integer, ForeignKey('users.id'))
+
+
+class Desplazamiento(Base):
+    __tablename__ = 'desplazamiento'
+
+    __table_args__ = (
+        # Un registro único por mes, año, marca y categoría de desplazamiento
+        UniqueConstraint('mes', 'anio', 'marca_id', 'categoria', name='uq_desplazamiento_mes_anio_marca_categoria'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    mes = Column(Integer, nullable=False)  # 1-12
+    anio = Column(Integer, nullable=False)
+    marca_id = Column(Integer, ForeignKey('marcas.id'), nullable=False)
+    categoria = Column(String, nullable=False)  # 'mayorExistencia', 'mas90Dias', 'demos', 'otros'
+    datos_json = Column(Text, nullable=False)  # JSON con array de registros {unidad, porcentaje, oc, pdf?, pdfNombre?}
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    modificado_por = Column(String)
