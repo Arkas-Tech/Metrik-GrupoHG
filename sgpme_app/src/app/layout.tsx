@@ -45,6 +45,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      {/* Deploy v2 test - zero-downtime staging build */}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
