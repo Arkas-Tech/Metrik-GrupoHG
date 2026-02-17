@@ -64,6 +64,10 @@ fi
 BEFORE_COMMIT=$(git rev-parse --short HEAD)
 git fetch origin main --quiet
 git reset --hard origin/main --quiet
+
+# Actualizar submodules (sgpme_app es submodule de frontend)
+git submodule update --init --recursive --quiet 2>/dev/null || true
+
 AFTER_COMMIT=$(git rev-parse --short HEAD)
 
 if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
@@ -79,11 +83,19 @@ BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 FRONTEND_DEPS_CHANGED=false
 FRONTEND_NEEDS_BUILD=false
+SUBMODULE_CHANGED=false
 
 for file in $CHANGED_FILES; do
     case "$file" in
         backend/*|HGApp/*)
             BACKEND_CHANGED=true
+            ;;
+        sgpme_app)
+            # sgpme_app es un submodule — cuando cambia su commit pointer,
+            # necesitamos sincronizar TODO el submodule al directorio frontend/
+            SUBMODULE_CHANGED=true
+            FRONTEND_CHANGED=true
+            FRONTEND_NEEDS_BUILD=true
             ;;
         frontend/*|sgpme_app/*)
             FRONTEND_CHANGED=true
@@ -105,33 +117,59 @@ done
 
 log "   Backend changed: $BACKEND_CHANGED"
 log "   Frontend changed: $FRONTEND_CHANGED"
+log "   Submodule changed: $SUBMODULE_CHANGED"
 log "   Frontend needs build: $FRONTEND_NEEDS_BUILD"
 
 # ─── 3. SYNC ARCHIVOS ─────────────────────────────────────
 SYNCED=0
-for file in $CHANGED_FILES; do
-    target_path=""
-    
-    case "$file" in
-        backend/*)   target_path="$BACKEND_DIR/${file#backend/}" ;;
-        HGApp/*)     target_path="$BACKEND_DIR/${file#HGApp/}" ;;
-        frontend/*)  target_path="$FRONTEND_DIR/${file#frontend/}" ;;
-        sgpme_app/*) target_path="$FRONTEND_DIR/${file#sgpme_app/}" ;;
-        *)           continue ;;
-    esac
-    
-    if [ -n "$target_path" ]; then
-        if [ -f "$file" ]; then
-            mkdir -p "$(dirname "$target_path")"
-            cp "$file" "$target_path"
-            SYNCED=$((SYNCED + 1))
-        elif [ ! -e "$file" ]; then
-            rm -f "$target_path" 2>/dev/null
-        fi
-    fi
-done
 
-log "📋 $SYNCED archivos sincronizados"
+# Si el submodule sgpme_app cambió, sincronizar TODO con rsync
+if [ "$SUBMODULE_CHANGED" = true ] && [ -d "$APP_DIR/sgpme_app" ]; then
+    log "📂 Sincronizando submodule sgpme_app → frontend/..."
+    
+    # Detectar si deps cambiaron comparando package.json
+    if ! diff -q "$APP_DIR/sgpme_app/package.json" "$FRONTEND_DIR/package.json" > /dev/null 2>&1; then
+        FRONTEND_DEPS_CHANGED=true
+        log "   📦 package.json cambió — se instalarán dependencias"
+    fi
+    
+    # rsync: sincronizar todo excepto node_modules, .next, .git
+    rsync -a --delete \
+        --exclude 'node_modules' \
+        --exclude '.next' \
+        --exclude '.git' \
+        "$APP_DIR/sgpme_app/" "$FRONTEND_DIR/"
+    
+    SYNCED=$(find "$APP_DIR/sgpme_app" -type f \
+        ! -path '*/node_modules/*' \
+        ! -path '*/.next/*' \
+        ! -path '*/.git/*' | wc -l)
+    log "   ✅ $SYNCED archivos sincronizados via rsync"
+else
+    # Sync individual de archivos (cuando los cambios no son del submodule)
+    for file in $CHANGED_FILES; do
+        target_path=""
+        
+        case "$file" in
+            backend/*)   target_path="$BACKEND_DIR/${file#backend/}" ;;
+            HGApp/*)     target_path="$BACKEND_DIR/${file#HGApp/}" ;;
+            frontend/*)  target_path="$FRONTEND_DIR/${file#frontend/}" ;;
+            sgpme_app/*) target_path="$FRONTEND_DIR/${file#sgpme_app/}" ;;
+            *)           continue ;;
+        esac
+        
+        if [ -n "$target_path" ]; then
+            if [ -f "$file" ]; then
+                mkdir -p "$(dirname "$target_path")"
+                cp "$file" "$target_path"
+                SYNCED=$((SYNCED + 1))
+            elif [ ! -e "$file" ]; then
+                rm -f "$target_path" 2>/dev/null
+            fi
+        fi
+    done
+    log "📋 $SYNCED archivos sincronizados"
+fi
 
 # ─── 4. BACKEND: Instalar deps si cambiaron ───────────────
 if [ "$BACKEND_CHANGED" = true ]; then
