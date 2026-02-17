@@ -203,9 +203,10 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
         npm ci --production=false >> "$BUILD_LOG" 2>&1
         log "   ✅ Dependencias instaladas"
     else
-        log "   🔗 Reusando node_modules (hardlink copy)..."
-        cp -al "$FRONTEND_DIR/node_modules" "$STAGING_DIR/node_modules" 2>/dev/null || {
-            log "   ⚠️  Hardlink falló, instalando deps..."
+        # Deps iguales → rsync copy de node_modules (preserva symlinks en .bin/)
+        log "   🔗 Reusando node_modules (rsync copy)..."
+        rsync -a "$FRONTEND_DIR/node_modules/" "$STAGING_DIR/node_modules/" 2>/dev/null || {
+            log "   ⚠️  Rsync falló, instalando deps..."
             cd "$STAGING_DIR"
             npm ci --production=false >> "$BUILD_LOG" 2>&1
         }
@@ -251,13 +252,21 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     # Mover .next del staging al live
     mv "$STAGING_DIR/.next" "$FRONTEND_DIR/.next"
     
-    # Sincronizar source files y node_modules al live
+    # Sincronizar source files al live (excluir .next y node_modules)
+    # node_modules ya está en live — si deps cambiaron, se actualizará abajo
     rsync -a --delete \
         --exclude '.next' \
         --exclude '.next.rollback' \
         --exclude '.git' \
         --exclude '.env*' \
+        --exclude 'node_modules' \
         "$STAGING_DIR/" "$FRONTEND_DIR/"
+    
+    # Si deps cambiaron, mover node_modules del staging al live
+    if [ "$FRONTEND_DEPS_CHANGED" = true ]; then
+        rm -rf "$FRONTEND_DIR/node_modules"
+        mv "$STAGING_DIR/node_modules" "$FRONTEND_DIR/node_modules"
+    fi
     
     log "   ✅ Archivos swapped a live"
     
