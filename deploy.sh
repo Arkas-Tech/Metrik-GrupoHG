@@ -24,7 +24,7 @@ LOG_DIR="$APP_DIR/logs"
 LOG_FILE="$LOG_DIR/deploy.log"
 BUILD_LOG="$LOG_DIR/build.log"
 LOCK_FILE="/tmp/metrik-deploy.lock"
-MAX_BUILD_TIME=600                        # 10 min timeout para build
+MAX_BUILD_TIME=900                        # 15 min timeout para build
 HEALTH_CHECK_RETRIES=10
 HEALTH_CHECK_INTERVAL=3
 
@@ -203,10 +203,10 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
         npm ci --production=false >> "$BUILD_LOG" 2>&1
         log "   ✅ Dependencias instaladas"
     else
-        # Deps iguales → rsync copy de node_modules (preserva symlinks en .bin/)
-        log "   🔗 Reusando node_modules (rsync copy)..."
-        rsync -a "$FRONTEND_DIR/node_modules/" "$STAGING_DIR/node_modules/" 2>/dev/null || {
-            log "   ⚠️  Rsync falló, instalando deps..."
+        # Deps iguales → symlink a node_modules del live (instantáneo)
+        log "   🔗 Reusando node_modules (symlink)..."
+        ln -s "$FRONTEND_DIR/node_modules" "$STAGING_DIR/node_modules" 2>/dev/null || {
+            log "   ⚠️  Symlink falló, instalando deps..."
             cd "$STAGING_DIR"
             npm ci --production=false >> "$BUILD_LOG" 2>&1
         }
