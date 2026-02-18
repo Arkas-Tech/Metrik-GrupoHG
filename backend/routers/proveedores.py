@@ -27,9 +27,19 @@ class ProveedorRequest(BaseModel):
     razon_social: Optional[str] = None
     contacto: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=1, max_length=100)
-    rfc: Optional[str] = None
+    rfc: str = Field(min_length=1, max_length=13)  # Ahora obligatorio
     telefono: Optional[str] = None
+    # Campo antiguo de dirección (opcional para compatibilidad)
     direccion: Optional[str] = None
+    # Nuevos campos de dirección separados
+    calle: Optional[str] = None
+    numero_exterior: Optional[str] = None
+    numero_interior: Optional[str] = None
+    colonia: Optional[str] = None
+    ciudad: Optional[str] = None
+    estado: Optional[str] = None
+    codigo_postal: Optional[str] = None
+    # Campos de control
     categoria: str = Field(min_length=1, max_length=100)
     activo: Optional[bool] = True
 
@@ -39,9 +49,19 @@ class ProveedorResponse(BaseModel):
     razon_social: Optional[str]
     contacto: str
     email: str
-    rfc: Optional[str]
+    rfc: str  # Ahora obligatorio
     telefono: Optional[str]
+    # Campo antiguo de dirección
     direccion: Optional[str]
+    # Nuevos campos de dirección separados
+    calle: Optional[str]
+    numero_exterior: Optional[str]
+    numero_interior: Optional[str]
+    colonia: Optional[str]
+    ciudad: Optional[str]
+    estado: Optional[str]
+    codigo_postal: Optional[str]
+    # Campos de control
     categoria: str
     activo: bool
     creado_por: str
@@ -104,6 +124,13 @@ async def create_proveedor(user: user_dependency, db: db_dependency, proveedor_r
         rfc=proveedor_request.rfc,
         telefono=proveedor_request.telefono,
         direccion=proveedor_request.direccion,
+        calle=proveedor_request.calle,
+        numero_exterior=proveedor_request.numero_exterior,
+        numero_interior=proveedor_request.numero_interior,
+        colonia=proveedor_request.colonia,
+        ciudad=proveedor_request.ciudad,
+        estado=proveedor_request.estado,
+        codigo_postal=proveedor_request.codigo_postal,
         categoria=proveedor_request.categoria,
         activo=proveedor_request.activo,
         creado_por=user.get('username'),
@@ -134,6 +161,13 @@ async def update_proveedor(user: user_dependency, db: db_dependency,
     proveedor.rfc = proveedor_request.rfc
     proveedor.telefono = proveedor_request.telefono
     proveedor.direccion = proveedor_request.direccion
+    proveedor.calle = proveedor_request.calle
+    proveedor.numero_exterior = proveedor_request.numero_exterior
+    proveedor.numero_interior = proveedor_request.numero_interior
+    proveedor.colonia = proveedor_request.colonia
+    proveedor.ciudad = proveedor_request.ciudad
+    proveedor.estado = proveedor_request.estado
+    proveedor.codigo_postal = proveedor_request.codigo_postal
     proveedor.categoria = proveedor_request.categoria
     proveedor.activo = proveedor_request.activo
 

@@ -172,9 +172,19 @@ export interface Proveedor {
   razonSocial?: string;
   contacto: string;
   email: string;
-  rfc?: string;
+  rfc: string; // Ahora obligatorio
   telefono?: string;
+  // Campo antiguo de dirección (mantenido por compatibilidad)
   direccion?: string;
+  // Nuevos campos de dirección separados
+  calle?: string;
+  numeroExterior?: string;
+  numeroInterior?: string;
+  colonia?: string;
+  ciudad?: string;
+  estado?: string;
+  codigoPostal?: string;
+  // Campos de control
   categoria: string;
   activo: boolean;
   fechaCreacion: string;
@@ -210,6 +220,7 @@ export interface Factura {
   fechaRealPago?: string;
   fechaIngresada?: string;
   estado: "Pendiente" | "Autorizada" | "Pagada" | "Rechazada" | "Ingresada";
+  productos?: string;
   observaciones?: string;
   proyeccionId?: string;
   eventoId?: string;

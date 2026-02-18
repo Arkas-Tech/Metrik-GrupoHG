@@ -26,6 +26,8 @@ interface FormularioFacturaProps {
   ) => Promise<string | void>;
   onCancel: () => void;
   loading?: boolean;
+  onAbrirModalProveedor?: () => void;
+  proveedorRecienCreado?: string | null;
 }
 
 export default function FormularioFactura({
@@ -33,6 +35,8 @@ export default function FormularioFactura({
   onSubmit,
   onCancel,
   loading = false,
+  onAbrirModalProveedor,
+  proveedorRecienCreado,
 }: FormularioFacturaProps) {
   const {
     proveedores,
@@ -65,6 +69,7 @@ export default function FormularioFactura({
   const [metodoPago, setMetodoPago] = useState(
     facturaInicial?.metodoPago || "",
   );
+  const [productos, setProductos] = useState(facturaInicial?.productos || "");
   const [observaciones, setObservaciones] = useState(
     facturaInicial?.observaciones || "",
   );
@@ -193,6 +198,35 @@ export default function FormularioFactura({
     }
   }, [categoria, facturaInicial]);
 
+  // Auto-seleccionar proveedor recién creado
+  useEffect(() => {
+    if (proveedorRecienCreado && proveedores.length > 0) {
+      console.log("🔍 Buscando proveedor recién creado:", {
+        proveedorRecienCreado,
+        totalProveedores: proveedores.length,
+        idsProveedores: proveedores.map((p) => p.id),
+      });
+
+      const proveedorNuevo = proveedores.find(
+        (p) => p.id === proveedorRecienCreado,
+      );
+
+      if (proveedorNuevo) {
+        console.log(
+          "✅ Auto-seleccionando proveedor recién creado:",
+          proveedorNuevo.nombre,
+        );
+        setProveedor(proveedorNuevo.nombre);
+        setRfc(proveedorNuevo.rfc || "");
+      } else {
+        console.warn(
+          "⚠️ No se encontró el proveedor con ID:",
+          proveedorRecienCreado,
+        );
+      }
+    }
+  }, [proveedorRecienCreado, proveedores]);
+
   useEffect(() => {
     const cargarEventosYCampanyas = async () => {
       try {
@@ -292,6 +326,7 @@ export default function FormularioFactura({
       setMarca(facturaInicial.marca || "");
       setCategoria(facturaInicial.categoria || "");
       setMetodoPago(facturaInicial.metodoPago || "");
+      setProductos(facturaInicial.productos || "");
       setObservaciones(facturaInicial.observaciones || "");
       setOrdenCompra(facturaInicial.ordenCompra || "");
       setEventoId(facturaInicial.eventoId || "");
@@ -565,6 +600,7 @@ export default function FormularioFactura({
         subcategoria,
         usoCfdi,
         metodoPago,
+        productos,
         observaciones,
         ordenCompra,
         proyeccionId: undefined,
@@ -638,6 +674,7 @@ export default function FormularioFactura({
         setMarca("");
         setCategoria("");
         setMetodoPago("");
+        setProductos("");
         setObservaciones("");
         setOrdenCompra("");
         setEventoId("");
@@ -792,9 +829,22 @@ export default function FormularioFactura({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proveedor *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-gray-700">
+                Proveedor *
+              </label>
+              {onAbrirModalProveedor && (
+                <button
+                  type="button"
+                  onClick={onAbrirModalProveedor}
+                  className="text-blue-600 hover:text-blue-800 font-bold focus:outline-none leading-none"
+                  disabled={enviando}
+                  title="Agregar nuevo proveedor"
+                >
+                  +
+                </button>
+              )}
+            </div>
             <select
               value={
                 proveedores.find(
@@ -858,14 +908,11 @@ export default function FormularioFactura({
             </label>
             <input
               type="text"
-              value={
-                subtotal
-                  ? new Intl.NumberFormat("es-MX").format(parseFloat(subtotal))
-                  : ""
-              }
+              value={subtotal}
               onChange={(e) => {
-                const valor = e.target.value.replace(/,/g, "");
-                if (valor === "" || /^\d+\.?\d{0,2}$/.test(valor)) {
+                const valor = e.target.value;
+                // Permite números con punto decimal y hasta 2 decimales
+                if (valor === "" || /^\d*\.?\d{0,2}$/.test(valor)) {
                   setSubtotal(valor);
                 }
               }}
@@ -884,14 +931,11 @@ export default function FormularioFactura({
             </label>
             <input
               type="text"
-              value={
-                iva
-                  ? new Intl.NumberFormat("es-MX").format(parseFloat(iva))
-                  : ""
-              }
+              value={iva}
               onChange={(e) => {
-                const valor = e.target.value.replace(/,/g, "");
-                if (valor === "" || /^\d+\.?\d{0,2}$/.test(valor)) {
+                const valor = e.target.value;
+                // Permite números con punto decimal y hasta 2 decimales
+                if (valor === "" || /^\d*\.?\d{0,2}$/.test(valor)) {
                   setIva(valor);
                 }
               }}
@@ -910,8 +954,8 @@ export default function FormularioFactura({
             </label>
             <div className="relative">
               <input
-                type="number"
-                value={total}
+                type="text"
+                value={total ? parseFloat(total).toFixed(2) : "0.00"}
                 placeholder="0.00"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-900 cursor-not-allowed"
                 disabled
@@ -1207,6 +1251,20 @@ export default function FormularioFactura({
               <p className="text-red-500 text-xs mt-1">{errores.metodoPago}</p>
             )}
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Productos
+          </label>
+          <textarea
+            value={productos}
+            onChange={(e) => setProductos(e.target.value)}
+            placeholder="Descripción de productos o servicios..."
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            disabled={enviando}
+          />
         </div>
 
         <div>

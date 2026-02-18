@@ -236,7 +236,7 @@ export default function CalendarioMensual({
                 parseInt(mes) === fechaActual.getMonth() + 1
               );
             })
-            .reduce((sum, f) => sum + f.total, 0)}
+            .reduce((sum, f) => sum + f.subtotal, 0)}
           titulo={`Presupuesto vs Gasto - ${nombreMesCapitalizado}`}
           tipoCalendario="mensual"
           año={fechaActual.getFullYear()}

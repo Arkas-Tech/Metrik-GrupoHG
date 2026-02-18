@@ -1,730 +1,933 @@
 # Cambios Pendientes de Deploy
 
-## Fecha: 17 de Febrero, 2026
-
-### 🎯 CAMBIO RECIENTE 2: Dashboard - Sección Asesores (Placeholder)
-
-**Descripción:** Agregar nueva sección placeholder "Asesores" al final del Dashboard:
-
-- ✅ Sección ubicada al final del dashboard (antes de los modales)
-- ✅ Diseño placeholder con mensaje "Próximamente"
-- ✅ Icono de grupo de personas (usuarios múltiples)
-- ✅ Mensaje descriptivo: "Gestión de asesores en desarrollo"
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-- Nuevo div con clase `bg-white rounded-lg shadow-md p-6`
-- Header con título "👥 Asesores" (emoji + texto)
-- Contenido centrado con:
-  - Icono SVG de usuarios múltiples (h-16 w-16)
-  - Texto "Próximamente" (texto grande y bold)
-  - Subtítulo "Gestión de asesores en desarrollo" (texto pequeño)
-- Icono Heroicon: Users con tres personas
-- Colores: gris claro para el estado placeholder
-- Ubicación: Entre la sección de Presencia Tradicional y los modales
-
-**Diseño del placeholder:**
-
-```tsx
-<div className="bg-white rounded-lg shadow-md p-6">
-  <h2 className="text-xl font-bold text-gray-900 mb-4">
-    👥 Asesores
-  </h2>
-  <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-    <svg className="h-16 w-16 mb-4 text-gray-400" ...>
-      {/* Heroicon users */}
-    </svg>
-    <p className="text-lg font-medium">Próximamente</p>
-    <p className="text-sm">Gestión de asesores en desarrollo</p>
-  </div>
-</div>
-```
-
-**Notas:**
-
-- Sección preparada para futura implementación
-- Funcionalidad de gestión de asesores pendiente de desarrollo
-- Posibles features futuras:
-  - Lista de asesores por agencia
-  - Métricas de desempeño
-  - Asignación de leads/citas
-  - Comisiones y objetivos
-
-**Estado:** ✅ Completado (placeholder)
+## Fecha: 18 de Febrero, 2026
 
 ---
 
-### 🎯 CAMBIO RECIENTE 1: Dashboard - Eliminación de Previsualizador PDF y Adición de Listado de Eventos
+### 🎯 **NUEVO**: Línea negra de presupuesto cuando proyección lo sobrepasa
 
-**Descripción:** Dos cambios relacionados con el Dashboard:
-
-1. **Eliminación del previsualizador de PDF:**
-   - ✅ Se removió completamente el modal de previsualización de PDFs
-   - ✅ Se eliminaron los botones de "👁️ Ver PDF" en las tablas de Desplazamiento
-   - ✅ Se mantienen solo las funciones de carga (📎) y descarga (⬇️) de PDFs
-
-2. **Nueva sección de Listado de Eventos:**
-   - ✅ Agregada debajo de la sección de Desplazamiento
-   - ✅ Muestra eventos del mes seleccionado
-   - ✅ Filtrado por mes con selector
-   - ✅ Filtrado automático por agencia (usa el filtro del header)
-   - ✅ Eliminada la sección placeholder de eventos del final del dashboard
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-**1. Eliminación del previsualizador:**
-
-- Removidos estados:
-  - `pdfPreviewUrl`
-  - `pdfPreviewNombre`
-  - `showPdfModal`
-- Removida función `handlePdfPreview`
-- Removido componente modal de previsualización completo
-- Actualizadas tablas para mostrar solo botones de carga/descarga
-
-**2. Listado de Eventos:**
-
-- Nuevo import: `useEventos` hook y tipo `Evento`
-- Nuevo estado: `mesEventos` para filtro de mes (inicializado con mes actual)
-- Nuevo useMemo: `eventosFiltrados` que filtra eventos por:
-  - Mes seleccionado (mesEventos)
-  - Agencia del header (agenciaSeleccionada)
-- Nueva sección UI con:
-  - Header con título "📅 Eventos del Mes" y selector de mes
-  - Tabla responsive con columnas:
-    - Nombre del evento
-    - Tipo de evento
-    - Agencia (marca)
-    - Fecha (formateada en español: día, mes, año)
-    - Estado (con badges de colores)
-  - Mensaje cuando no hay eventos
-  - Estados con colores distintivos:
-    - Realizado: verde
-    - Confirmado: azul
-    - Por Suceder: amarillo
-    - Prospectado: morado
-    - Cancelado: rojo
-- Ubicación: Insertada entre sección Desplazamiento y Campañas Digitales
-- Eliminada: Sección placeholder de eventos del final (que solo mostraba "Próximamente")
-
-**Lógica de filtrado de eventos:**
-
-```typescript
-const eventosFiltrados = useMemo(() => {
-  return eventos.filter((evento) => {
-    // Filtrar por agencia (del header)
-    if (agenciaSeleccionada && evento.marca !== agenciaSeleccionada) {
-      return false;
-    }
-
-    // Filtrar por mes
-    const fechaEvento = new Date(evento.fechaInicio);
-    const mesEvento = fechaEvento.getMonth() + 1;
-    return mesEvento === mesEventos;
-  });
-}, [eventos, agenciaSeleccionada, mesEventos]);
-```
-
-**Diseño de la tabla:**
-
-- Tabla con diseño Tailwind moderno
-- Headers con fondo gris claro
-- Filas con hover effect
-- Badges de estado con colores semánticos
-- Fecha formateada en formato largo español
-- Mensaje centrado cuando no hay eventos
-- Scroll horizontal en pantallas pequeñas
-
-**Estados removidos del previsualizador:**
-
-```typescript
-// ANTES (removido):
-const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-const [pdfPreviewNombre, setPdfPreviewNombre] = useState<string>("");
-const [showPdfModal, setShowPdfModal] = useState(false);
-```
-
-**Funcionalidad de eventos:**
-
-- Usa datos de la página de eventos existente
-- Integración con hook `useEventos`
-- Filtrado sincronizado con filtro de agencia global
-- Selector de mes independiente
-- No es editable (solo lectura)
-- Sirve como vista rápida de eventos del mes
-
-**Estado:** ✅ Completado
-
----
-
-## Fecha: 17 de Febrero, 2026
-
-### 🎯 CAMBIO 1: Dashboard - Nuevas Métricas y Visualizaciones
-
-**Descripción:** Agregar debajo de las primeras métricas (presupuesto, total gastado, total por pagar y gráfica):
-
-- **Lado Izquierdo:**
-  - ✅ Barra de progreso comparando proyección, presupuesto y gasto mensual (estilo /facturas)
-  - ✅ Recuadro de reembolsos con total
-  - ✅ Información obtenida de las secciones correspondientes
-
-- **Lado Derecho:**
-  - ✅ Gráfica de pie con proyección de categorías
-
-- **Filtro:**
-  - ✅ YTD (Year to Date)
-  - ✅ Mes
-  - ✅ Q (Quarter)
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-- Agregado import de PieChart, Pie, Cell de recharts
-- Nuevos estados: `periodoSeleccionado`, `mesSeleccionado`, `proyecciones`, `totalReembolsos`
-- Nuevo hook useEffect para cargar proyecciones desde API
-- Nuevos useMemo:
-  - `mesesPeriodo`: calcula meses según período (YTD/Mes/Q)
-  - `proyeccionesFiltradas`: filtra proyecciones por período y agencia
-  - `datosBarraProgreso`: calcula proyección, presupuesto y gasto total
-  - `reembolsosData`: suma total de reembolsos en proyecciones
-  - `datosGraficaPie`: agrupa proyecciones por categoría para gráfica
-- Nueva sección UI con:
-  - Filtros de período (YTD/Mes/Q) con selectores dinámicos
-  - Barra de progreso visual con 3 colores (verde/rojo/azul + líneas de referencia)
-  - Tarjeta de reembolsos con total y contador de proyecciones
-  - Gráfica de pie con colores y leyenda
-- Colores definidos en `COLORES_PIE` array (10 colores distintos)
-
-**Mejoras adicionales:**
-
-- Gráfica de pie sin etiquetas en las porciones (evita amontonamiento cuando hay poca proyección)
-- Aumentado tamaño de la gráfica (outerRadius 90)
-- Porciones sin espacios entre ellas para mejor aprovechamiento visual
-- Toda la información se muestra en la leyenda debajo
-
-**Estado:** ✅ Completado (Build errors corregidos: JSX órfano y variable duplicada datosGrafica)
-
----
-
-### 🎯 CAMBIO 2: Dashboard - Sección Funnel
-
-**Descripción:** Agregar nueva sección "Funnel" debajo de la sección de Análisis Detallado de Proyecciones con dos categorías:
-
-- **Digital:**
-  - ✅ Recuadro de Leads (azul) - valor inicial: 0
-  - ✅ Recuadro de Citas (verde) - valor inicial: 0
-  - ✅ Recuadro de Ventas (esmeralda) - valor inicial: 0
-
-- **Eventos:**
-  - ✅ Recuadro de Pisos (morado) - valor inicial: 0
-  - ✅ Recuadro de Leads (rosa) - valor inicial: 0
-  - ✅ Recuadro de Ventas (rose) - valor inicial: 0
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-- Nueva sección "Funnel" con diseño de cards
-- Subsección "Digital" con grid de 3 columnas
-- Subsección "Eventos" con grid de 3 columnas
-- Cada card incluye:
-  - Ícono SVG temático (usuario, calendario, dinero, edificio, grupos, check)
-  - Título de la métrica
-  - Valor en grande (actualmente en 0)
-  - Colores diferenciados por tipo de métrica
-- Diseño responsive (md:grid-cols-3)
-- Iconos de Heroicons
-
-**Notas:**
-
-- Valores inicialmente en 0, pendiente definir fuente de datos
-- La lógica para cargar datos reales se implementará posteriormente
-
-**Estado:** ✅ Completado (estructura inicial con valores en 0)
-
----
-
-### 🎯 CAMBIO 3: Dashboard - Sección Desplazamiento
-
-**Descripción:** Agregar nueva sección "Desplazamiento" debajo de la sección Funnel con sistema de edición en línea:
-
-- **Filtro por mes:** Selector para filtrar información por mes específico
-- **Modo de edición:** Botón para activar/desactivar modo de edición
-- **4 Recuadros con tablas editables:**
-  - ✅ Mayor Existencia (arriba izquierda)
-  - ✅ Más de 90 días (arriba derecha)
-  - ✅ Demos (abajo izquierda)
-  - ✅ Otros (abajo derecha)
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-- Nuevos estados:
-  - `mesDesplazamiento`: mes seleccionado para filtrar
-  - `modoEdicionDesplazamiento`: controla si se está editando
-  - `mayorExistencia`, `mas90Dias`, `demos`, `otros`: arrays de datos para cada tabla
-- Cada tabla tiene 3 columnas: "Unidad", "%", "OC"
-- Grid 2x2 responsive (md:grid-cols-2)
-- Características de las tablas:
-  - Altura fija con scroll (maxHeight: 300px)
-  - Headers sticky (permanecen visibles al hacer scroll)
-  - En modo lectura: muestra datos
-  - En modo edición:
-    - Inputs editables para cada celda
-    - Botón "+ Agregar" para agregar filas
-    - Botón "✕" para eliminar filas
-    - Cambios en tiempo real
-- Botón de edición que alterna entre "✏️ Editar" y "💾 Guardar"
-- Estado "Sin datos" cuando no hay información
-- Diseño consistente con sombras y bordes
-
-**Funcionalidades:**
-
-- ✅ Filtrado por mes con datos independientes
-- ✅ Edición en línea de todas las tablas
-- ✅ Agregar filas dinámicamente
-- ✅ Eliminar filas
-- ✅ Altura uniforme para todos los recuadros
-- ✅ Scroll independiente cuando hay muchas filas
-- ✅ **NUEVO:** Datos organizados por mes (cada mes tiene su propia información)
-- ✅ **NUEVO:** La información se actualiza solo para el mes seleccionado
-- ✅ **NUEVO:** Diseño visual mejorado con gradientes de colores
-- ✅ **NUEVO:** Cada recuadro tiene esquema de color único (azul, ámbar, morado, esmeralda)
-- ✅ **NUEVO:** Botones con gradientes y efectos hover
-- ✅ **NUEVO:** Inputs con bordes de colores y focus rings
-- ✅ **NUEVO:** Transiciones suaves en hover
-- ✅ **NUEVO:** Iconos emoji para identificar cada categoría
-- ✅ **NUEVO:** Subtítulo descriptivo en el header
-
-**Mejoras de Diseño:**
-
-- Fondo con gradiente sutil (gris claro)
-- Bordes redondeados (rounded-xl)
-- Sombras mejoradas (shadow-lg con hover:shadow-lg)
-- Selector de mes en recuadro blanco con sombra
-- Botón de edición con gradiente verde/azul según estado
-- Cada tabla con gradiente de fondo temático:
-  - Mayor Existencia: azul a índigo
-  - Más de 90 días: ámbar a naranja
-  - Demos: morado a violeta
-  - Otros: esmeralda a teal
-- Filas con hover effect de color temático
-- Inputs con bordes de color y focus rings
-- Botón eliminar con hover effect rojo
-
-**Estructura de Datos:**
-
-```typescript
-desplazamientoPorMes: {
-  [mes: number]: {
-    mayorExistencia: Array<{ unidad, porcentaje, oc }>,
-    mas90Dias: Array<{ unidad, porcentaje, oc }>,
-    demos: Array<{ unidad, porcentaje, oc }>,
-    otros: Array<{ unidad, porcentaje, oc }>
-  }
-}
-```
-
-**Notas:**
-
-- Los datos se almacenan por mes en estado local
-- Cada mes mantiene su propia información independiente
-- Al cambiar de mes, se muestran los datos específicos de ese mes
-- Al editar, solo se actualiza el mes seleccionado
-- Pendiente: implementar persistencia en backend/API
-
-**Estado:** ✅ Completado (con datos por mes y diseño mejorado)
-
----
-
-### 🎯 CAMBIO 4: Dashboard - Sistema de Adjuntos PDF en Desplazamiento
-
-**Descripción:** Agregar funcionalidad de adjuntos PDF a cada fila de las 4 tablas de la sección Desplazamiento:
-
-- **Funcionalidad de PDF:**
-  - ✅ Botón de carga (📎) en modo de edición
-  - ✅ Botón de vista previa (👁️) visible cuando hay PDF
-  - ✅ Botón de descarga (⬇️) visible cuando hay PDF
-  - ✅ Modal de previsualización con visor de PDF integrado
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
-
-**Detalles técnicos implementados:**
-
-- **Nuevos estados:**
-  - `pdfPreviewUrl`: URL del PDF en base64 para preview
-  - `showPdfModal`: controla visibilidad del modal de previsualización
-
-- **Estructura de datos actualizada:**
-
-```typescript
-desplazamientoPorMes: {
-  [mes: number]: {
-    mayorExistencia: Array<{
-      unidad,
-      porcentaje,
-      oc,
-      pdf?: string,        // Base64 del PDF
-      pdfNombre?: string   // Nombre del archivo
-    }>,
-    mas90Dias: Array<{ unidad, porcentaje, oc, pdf?, pdfNombre? }>,
-    demos: Array<{ unidad, porcentaje, oc, pdf?, pdfNombre? }>,
-    otros: Array<{ unidad, porcentaje, oc, pdf?, pdfNombre? }>
-  }
-}
-```
-
-- **Nuevas funciones:**
-  - `handlePdfUpload(file, categoria, index)`:
-    - Acepta solo archivos PDF
-    - Convierte a base64 usando FileReader API
-    - Almacena en estado con nombre del archivo
-  - `handlePdfPreview(pdfBase64)`:
-    - Abre modal con vista previa
-    - Muestra PDF en iframe
-  - `handlePdfDownload(pdfBase64, nombreArchivo)`:
-    - Crea link temporal
-    - Descarga PDF con nombre original
-    - Limpia link después de descarga
-
-- **Cambios en tablas:**
-  - Nueva columna "PDF" (w-32, centrada)
-  - Colspan actualizado de 3/4 a 4/5
-  - Cada fila tiene:
-    - Input file (oculto, accept="application/pdf")
-    - Botón subir con ícono 📎 (solo en modo edición)
-    - Botón previsualizar con ícono 👁️ (condicional)
-    - Botón descargar con ícono ⬇️ (condicional)
-  - Colores de botones por tabla:
-    - Mayor Existencia: azul (bg-blue-500)
-    - Más de 90 días: ámbar (bg-amber-500)
-    - Demos: morado (bg-purple-500)
-    - Otros: esmeralda (bg-emerald-500)
-    - Preview: índigo (bg-indigo-500) - todas las tablas
-    - Descarga: verde (bg-green-500) - todas las tablas
-
-- **Modal de PDF:**
-  - Overlay oscuro semi-transparente (bg-black bg-opacity-50)
-  - Contenedor centrado responsive (max-w-4xl, h-5/6)
-  - Header con título y botón cerrar (✕)
-  - Iframe para mostrar PDF completo
-  - Click en overlay cierra modal
-  - Click en contenido no cierra modal (stopPropagation)
-  - Auto-scroll en contenido del PDF
-
-**Flujo de Usuario:**
-
-1. En modo edición, usuario hace clic en botón 📎
-2. Se abre selector de archivos (solo PDF)
-3. Usuario selecciona PDF
-4. Archivo se convierte a base64 y se guarda
-5. Aparecen botones 👁️ y ⬇️
-6. Clic en 👁️ abre modal con vista previa
-7. Clic en ⬇️ descarga el PDF con nombre original
-8. Datos se mantienen por mes (cada mes tiene sus propios PDFs)
-
-**Características:**
-
-- ✅ Almacenamiento en base64 en base de datos
-- ✅ Vista previa en modal con iframe
-- ✅ Descarga con nombre de archivo original
-- ✅ Interfaz consistente en las 4 tablas
-- ✅ Botones con tooltips descriptivos
-- ✅ Botones solo visibles cuando corresponde
-- ✅ Transiciones suaves en hover
-- ✅ Modal responsive y accesible
-- ✅ Datos independientes por mes
-- ✅ Persistencia automática en base de datos
-- ✅ Carga automática al cambiar mes/agencia
-
-**Implementación Backend:**
-
-- ✅ Modelo `Desplazamiento` en SQLite
-- ✅ Router `/desplazamiento` con endpoints:
-  - `POST /desplazamiento/guardar`: Guardar datos
-  - `GET /desplazamiento/obtener/{mes}/{anio}/{marca_id}`: Obtener datos
-  - `GET /desplazamiento/obtener-anio/{anio}/{marca_id}`: Obtener año completo
-- ✅ Tabla `desplazamiento` creada con migración
-- ✅ Datos organizados por mes/año/marca/categoría
-- ✅ **FIX:** Agregado endpoint `GET /marcas/` para permitir carga de marcas desde frontend
-
-**Implementación Frontend:**
-
-- ✅ Carga automática de datos al montar componente
-- ✅ Carga automática al cambiar mes
-- ✅ Carga automática al cambiar agencia
-- ✅ Guardado automático al editar cualquier campo
-- ✅ Guardado automático al subir/eliminar PDF
-- ✅ Integración con sistema de autenticación
-- ✅ **DEBUG:** Logs de consola para rastrear guardado/carga
-- ✅ **FIX:** useEffect optimizado para evitar loops infinitos
-- ✅ **FIX:** Modal de PDF con tipo MIME correcto para visualización
-
-**Notas:**
-
-- PDFs se almacenan en base64 en la base de datos
-- Almacenamiento en base64 puede ser pesado para PDFs grandes
-- Constraint único: un registro por mes/año/marca/categoría
-- Datos se mantienen entre sesiones y refrescos
-- Pendiente: límite de tamaño de archivo (frontend)
-- Pendiente: validación de tipo de archivo en backend
-- Pendiente: optimización para PDFs grandes (considerar almacenamiento en S3/filesystem)
-
-**Estado:** ✅ Completado (con persistencia completa en base de datos)
-
----
-
-### 🎯 ACTUALIZACIÓN CAMBIO 4: Filtro de Agencia Local + Fix Previsualizador PDF
-
-**Fecha:** 17 de Febrero, 2026 - Update 2
-
-**Descripción:** Mejoras en la sección Desplazamiento:
-
-1. **Filtro de agencia local en la sección Desplazamiento**
-2. **Previsualizador de PDF mejorado con compatibilidad multi-navegador**
-
-**Archivos modificados:**
-
-- ✅ `/sgpme_app/src/components/DashboardGeneral.tsx`
+**Descripción:** Cuando la proyección es mayor que el presupuesto, la barra usa la proyección como referencia del 100% y una línea negra vertical marca la posición del presupuesto dentro de la barra (simétrico a cómo la línea azul marca la proyección cuando el presupuesto es mayor).
 
 **Cambios implementados:**
 
-#### 1. Filtro de Agencia Local
+1. **Base del 100%:** Se usa `Math.max(proyeccion, presupuesto)` como base de la barra. Si proyección > presupuesto, la barra al 100% = proyección. Si presupuesto >= proyección, la barra al 100% = presupuesto.
+2. **Línea negra de presupuesto:** Se muestra siempre que la proyección sobrepase el presupuesto (no solo cuando el gasto lo sobrepasa).
+3. **Variable `proyeccionSobrepasaPresupuesto`:** Nueva flag para controlar la visualización de la línea negra de forma independiente al gasto.
 
-**Problema resuelto:**
+**Archivos modificados:**
 
-- La sección Desplazamiento dependía del filtro global de agencia del dashboard
-- Los usuarios debían seleccionar agencia en el header para poder usar Desplazamiento
-- Confusión sobre dónde seleccionar la agencia
+- `/sgpme_app/src/components/GraficaProyeccionVsGasto.tsx` - Lógica de `base100`, nueva flag `proyeccionSobrepasaPresupuesto`, condición de línea negra
 
-**Solución implementada:**
+---
 
-- **Nuevo estado:** `agenciaDesplazamiento` (independiente de `agenciaSeleccionada`)
-- **Nuevo selector de agencia:** En la sección Desplazamiento con opciones:
-  - "Todas las agencias" (muestra tablas vacías)
-  - Lista completa de 14 agencias disponibles
-- **Lógica actualizada:**
-  - `guardarDesplazamientoEnDB()`: Usa `agenciaDesplazamiento` en lugar de `agenciaSeleccionada`
-  - `cargarDesplazamientoDesdeDB()`: Usa `agenciaDesplazamiento` para filtrar datos
-  - `useEffect`: Se dispara al cambiar `agenciaDesplazamiento` (no `agenciaSeleccionada`)
-- **Comportamiento:**
-  - Cuando está en "Todas las agencias": Tablas vacías, botón editar deshabilitado
-  - Cuando se selecciona agencia específica: Carga datos de esa agencia, permite editar
-  - Cambio de agencia: Recarga automáticamente datos de la nueva agencia
+### 🎯 **NUEVO**: Gráfica muestra gasto sin proyección/presupuesto
 
-**Código clave:**
+**Descripción:** La gráfica de Proyección vs Gasto por Categoría ahora muestra el gasto real incluso cuando no hay proyección ni presupuesto registrado. Antes, si ambos eran 0, la barra no se renderizaba.
+
+**Cambios implementados:**
+
+1. **Lógica de barra:** Cuando proyección y presupuesto son 0 pero hay gasto, se usa el gasto como base del 100% para que la barra se dibuje completa (en rojo).
+2. **Detección de sobrepaso:** Se detecta que el gasto sobrepasa presupuesto aunque este sea 0.
+3. **Línea de presupuesto:** La línea negra de presupuesto solo se muestra si presupuesto > 0 (no se dibuja en posición 0%).
+4. **Texto de porcentaje:** Muestra "Gasto sin proyección" cuando hay gasto pero no hay proyección, y "Sin datos" cuando ambos son 0.
+
+**Archivos modificados:**
+
+- `/sgpme_app/src/components/GraficaProyeccionVsGasto.tsx` - Lógica de `base100`, `gastoSobrepasaPresupuesto`, línea de presupuesto, texto de porcentaje
+
+---
+
+### 🎯 **NUEVO**: Campo de Productos en Facturas
+
+**Descripción:** Nuevo campo de texto en el formulario de facturas para describir los productos o servicios asociados. La información se muestra en los detalles de cada factura.
+
+**Cambios implementados:**
+
+1. **Formulario de Factura:**
+   - Nuevo campo textarea "Productos" ubicado antes de "Observaciones"
+   - Placeholder: "Descripción de productos o servicios..."
+   - Campo opcional, se guarda y restaura al editar
+
+2. **Detalles de Factura:**
+   - Se muestra "Productos:" en los detalles si el campo tiene contenido
+   - Respeta saltos de línea con `whitespace-pre-wrap`
+   - Ubicado antes de "Observaciones" en la vista de detalles
+
+**Archivos modificados:**
+
+**Frontend:**
+
+- `/sgpme_app/src/types/index.ts` - Campo `productos?: string` en interfaz `Factura`
+- `/sgpme_app/src/components/FormularioFactura.tsx` - Estado, textarea, reset y sync con `facturaInicial`
+- `/sgpme_app/src/components/ListaFacturas.tsx` - Visualización en detalles de factura
+- `/sgpme_app/src/hooks/useFacturasAPI.ts` - Mapeo en interfaz backend, response mapper y request mapper
+
+**Backend:**
+
+- `/HGApp/models.py` - `productos = Column(Text, nullable=True)` en modelo `Facturas`
+- `/HGApp/routers/facturas.py` - Campo en `FacturaRequest`, `FacturaResponse`, create, update y response builders
+
+**Migración:**
+
+- `/HGApp/migrations/add_productos_facturas.py` - `ALTER TABLE facturas ADD COLUMN productos TEXT`
+- Migración ejecutada exitosamente en SQLite local
+- **Pendiente ejecutar en servidor de producción (PostgreSQL)**
+
+---
+
+### 🎯 **NUEVO**: Soporte Completo para Decimales en Montos de Facturas
+
+**Descripción:** Mejora en el manejo de cantidades con decimales en todo el sistema, permitiendo ingresar y visualizar correctamente montos con centavos (ej: 9.90, 1234.56).
+
+**Cambios implementados:**
+
+1. **Entrada de Datos Mejorada:**
+   - Campos de Subtotal e IVA aceptan punto decimal sin restricciones
+   - Validación mejorada: permite escribir desde el primer dígito incluyendo punto (ej: `.5`, `9.9`, `1234.56`)
+   - Eliminado el formateo automático con comas durante la edición que causaba confusión
+   - Campo de Total calculado automáticamente con exactamente 2 decimales (control estricto)
+   - Total usa `type="text"` para garantizar formato preciso sin comportamientos inesperados de inputs numéricos
+
+2. **Visualización Consistente de Decimales:**
+   - Todos los montos en el sistema ahora muestran siempre 2 decimales
+   - Formato consistente: `$1,234.56` (con separador de miles y 2 decimales)
+   - Aplicado en: listas de facturas, dashboard, proyecciones, gráficas, calendarios
+
+**Archivos modificados:**
+
+**Frontend:**
+
+- `/sgpme_app/src/components/FormularioFactura.tsx`:
+  - Campos de Subtotal e IVA: removido formateo con `Intl.NumberFormat` durante edición
+  - Validación actualizada: `/^\d*\.?\d{0,2}$/` (permite 0 o más dígitos antes del punto)
+  - Valor mostrado directamente sin formato para permitir edición natural
+  - Total calculado con `toFixed(2)` para mantener precisión
+
+- `/sgpme_app/src/components/ListaFacturas.tsx`:
+  - `formatearMonto`: `minimumFractionDigits: 2` y `maximumFractionDigits: 2`
+  - Todos los montos (subtotal, IVA, total) se muestran con 2 decimales consistentemente
+
+- `/sgpme_app/src/components/DashboardGeneral.tsx`:
+  - `formatearMoneda`: actualizado de `0` decimales a `2` decimales
+  - Métricas de gasto, proyección y presupuesto respetan centavos
+
+- `/sgpme_app/src/components/FormularioProyeccion.tsx`:
+  - `formatearMonto`: actualizado para mostrar 2 decimales en proyecciones
+
+- `/sgpme_app/src/components/ListaProyecciones.tsx`:
+  - Dos funciones `formatearMonto` actualizadas (PDF y UI)
+  - Presupuestos y montos proyectados con 2 decimales
+
+**Detalles técnicos:**
+
+### 1. Validación Mejorada en Inputs
 
 ```typescript
-// Nuevo estado
-const [agenciaDesplazamiento, setAgenciaDesplazamiento] = useState<string | null>(null);
+onChange={(e) => {
+  const valor = e.target.value;
+  // Permite: "", "9", "9.", "9.9", "9.90", ".5" (se convierte a "0.5")
+  if (valor === "" || /^\d*\.?\d{0,2}$/.test(valor)) {
+    setSubtotal(valor);
+  }
+}}
+```
 
-// Nuevo selector en UI
-<select
-  value={agenciaDesplazamiento || "todas"}
-  onChange={(e) => {
-    const valor = e.target.value === "todas" ? null : e.target.value;
-    setAgenciaDesplazamiento(valor);
-  }}
->
-  <option value="todas">Todas las agencias</option>
-  {marcas.map((marca) => (
-    <option key={marca.id} value={marca.cuenta}>
-      {marca.cuenta}
-    </option>
-  ))}
-</select>
+**Cambios clave:**
 
-// Guardado con agencia local
-if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
-  console.log("[DEBUG-GUARDAR] ❌ No hay agencia seleccionada o está en 'todas'");
-  return;
+- `\d*` en lugar de `\d+`: permite empezar con punto decimal
+- Sin formateo durante edición: el usuario ve exactamente lo que escribe
+- Validación en tiempo real: solo acepta números válidos con hasta 2 decimales
+
+### 2. Cálculo Automático del Total
+
+```typescript
+useEffect(() => {
+  const subtotalNum = parseFloat(subtotal) || 0;
+  const ivaNum = parseFloat(iva) || 0;
+  const totalCalculado = subtotalNum + ivaNum;
+  setTotal(totalCalculado.toFixed(2)); // Siempre 2 decimales
+}, [subtotal, iva]);
+
+// Campo de visualización del Total
+<input
+  type="text"
+  value={total ? parseFloat(total).toFixed(2) : "0.00"}
+  disabled
+  readOnly
+/>
+```
+
+**Características:**
+
+- Cálculo automático al cambiar subtotal o IVA
+- `toFixed(2)` en el cálculo asegura precisión de 2 decimales
+- Campo de Total usa `type="text"` para control exacto del formato
+- Doble verificación: `parseFloat(total).toFixed(2)` en la visualización
+- Siempre muestra exactamente 2 decimales, incluso con `.00`
+
+### 3. Formateo Consistente en Visualización
+
+```typescript
+const formatearMonto = (monto: number) => {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: 2, // Antes: 0
+    maximumFractionDigits: 2, // Agregado
+  }).format(monto);
+};
+```
+
+**Ventajas:**
+
+- ✅ Usuario puede escribir decimales libremente (9.9, 0.5, 1234.56)
+- ✅ Cálculos precisos al centavo con `toFixed(2)` en toda la cadena
+- ✅ Total SIEMPRE muestra exactamente 2 decimales (nunca más, nunca menos)
+- ✅ Visualización consistente en todo el sistema
+- ✅ No se pierden centavos en cálculos de totales
+- ✅ Compatible con montos que terminan en .00 (se muestran explícitamente)
+- ✅ Experiencia de edición natural sin formateo que interfiera
+- ✅ Campo de Total con doble validación de formato (cálculo + visualización)
+
+---
+
+### 🎯 **NUEVO**: Mejoras en Flujo de Creación de Facturas
+
+**Descripción:** Optimización del flujo de trabajo para crear facturas, permitiendo agregar proveedores sin salir del formulario de factura.
+
+**Cambios implementados:**
+
+1. **Botón de Navegación Mejorado:**
+   - Cambio de "Volver al Dashboard" a "Volver a Facturas" en formularios de nueva factura y edición
+   - Mejora la claridad de navegación para el usuario
+
+2. **Creación Inline de Proveedores:**
+   - Botón "+" pequeño y discreto en la misma línea que el label "Proveedor \*"
+   - Sin bordes ni fondo, solo el símbolo "+" en color azul
+   - Modal popup para agregar nuevo proveedor sin salir del formulario
+   - Auto-selección automática del proveedor recién creado con todos sus datos
+   - Mejora significativa en la experiencia de usuario
+
+**Archivos modificados:**
+
+**Frontend:**
+
+- `/sgpme_app/src/app/facturas/page.tsx`:
+  - Textos de botones de navegación actualizados
+  - Nuevo estado `mostrarModalProveedor` y `proveedorRecienCreado`
+  - Nueva función `manejarCrearProveedorDesdeModal` con retry logic
+  - Props `onAbrirModalProveedor` y `proveedorRecienCreado` pasadas a FormularioFactura
+  - Modal renderizado para FormularioProveedor
+
+- `/sgpme_app/src/components/FormularioFactura.tsx`:
+  - Nuevas props opcionales: `onAbrirModalProveedor` y `proveedorRecienCreado`
+  - Botón "+" posicionado junto al label usando flexbox
+  - useEffect mejorado para auto-seleccionar proveedor recién creado con logs de depuración
+  - UI mejorada: botón sin bordes, solo texto azul hover
+
+- `/sgpme_app/src/hooks/useProveedoresAPI.ts`:
+  - Return completo en `crearProveedor` con todos los campos (RFC, dirección separada, etc.)
+  - Asegura que el objeto Proveedor retornado esté completo para auto-selección
+
+**Detalles técnicos:**
+
+### 1. Botón "+" Mejorado
+
+```tsx
+<div className="flex items-center justify-between mb-1">
+  <label className="text-sm font-medium text-gray-700">
+    Proveedor *
+  </label>
+  {onAbrirModalProveedor && (
+    <button
+      type="button"
+      onClick={onAbrirModalProveedor}
+      className="text-blue-600 hover:text-blue-800 font-bold focus:outline-none leading-none"
+      title="Agregar nuevo proveedor"
+    >
+      +
+    </button>
+  )}
+</div>
+<select className="w-full ...">...</select>
+```
+
+**Características del botón:**
+
+- Mismo tamaño de fuente que el label (text-sm) para mantener layout consistente
+- `leading-none` para eliminar line-height extra y evitar desplazamiento vertical
+- Sin bordes ni fondo, solo texto azul
+- Posicionado a la derecha del label usando `justify-between`
+- No afecta la altura del contenedor ni desplaza el selector hacia abajo
+
+### 2. Modal de Proveedor
+
+El modal se muestra como overlay con:
+
+- Fondo semitransparente (bg-black bg-opacity-50)
+- Tarjeta centrada con scroll interno (max-h-[90vh])
+- Header sticky con título y botón de cerrar
+- FormularioProveedor completo dentro del modal
+
+### 3. Flujo de Auto-selección Mejorado
+
+El flujo se optimizó para asegurar que el proveedor recién creado aparezca en la lista y se seleccione automáticamente:
+
+```typescript
+// useEffect en FormularioFactura.tsx con logs de depuración
+useEffect(() => {
+  if (proveedorRecienCreado && proveedores.length > 0) {
+    console.log("🔍 Buscando proveedor recién creado:", {
+      proveedorRecienCreado,
+      totalProveedores: proveedores.length,
+      idsProveedores: proveedores.map((p) => p.id),
+    });
+
+    const proveedorNuevo = proveedores.find(
+      (p) => p.id === proveedorRecienCreado,
+    );
+
+    if (proveedorNuevo) {
+      console.log("✅ Auto-seleccionando proveedor:", proveedorNuevo.nombre);
+      setProveedor(proveedorNuevo.nombre);
+      setRfc(proveedorNuevo.rfc || "");
+    } else {
+      console.warn(
+        "⚠️ No se encontró el proveedor con ID:",
+        proveedorRecienCreado,
+      );
+    }
+  }
+}, [proveedorRecienCreado, proveedores]);
+```
+
+### 4. Handler de Creación con Timing Mejorado
+
+```typescript
+const manejarCrearProveedorDesdeModal = async (datos) => {
+  const nuevoProveedor = await crearProveedor(datos); // Ya llama a cargarProveedores internamente
+  console.log("✅ Proveedor creado desde modal:", nuevoProveedor);
+
+  setMostrarModalProveedor(false);
+  await cargarProveedores(); // Segunda carga para asegurar
+
+  // Delay para asegurar que React actualice el estado antes de establecer ID
+  setTimeout(() => {
+    if (nuevoProveedor && nuevoProveedor.id) {
+      console.log(
+        "🎯 Estableciendo proveedor recién creado:",
+        nuevoProveedor.id,
+      );
+      setProveedorRecienCreado(nuevoProveedor.id);
+    }
+  }, 100);
+};
+```
+
+### 5. Return Completo en crearProveedor
+
+Ahora retorna todos los campos del Proveedor:
+
+```typescript
+return {
+  id: proveedorCreado.id.toString(),
+  nombre: proveedorCreado.nombre,
+  razonSocial: proveedorCreado.razon_social || "",
+  contacto: proveedorCreado.contacto,
+  email: proveedorCreado.email,
+  rfc: proveedorCreado.rfc, // Obligatorio
+  telefono: proveedorCreado.telefono || "",
+  direccion: proveedorCreado.direccion || "",
+  calle: proveedorCreado.calle || "",
+  numeroExterior: proveedorCreado.numero_exterior || "",
+  numeroInterior: proveedorCreado.numero_interior || "",
+  colonia: proveedorCreado.colonia || "",
+  ciudad: proveedorCreado.ciudad || "",
+  estado: proveedorCreado.estado || "",
+  codigoPostal: proveedorCreado.codigo_postal || "",
+  categoria: proveedorCreado.categoria,
+  activo: proveedorCreado.activo,
+  fechaCreacion: new Date().toISOString().split("T")[0],
+};
+```
+
+**Ventajas:**
+
+- ✅ Usuario no pierde contexto del formulario de factura
+- ✅ Proveedor se selecciona automáticamente tras creación con todos los campos (RFC, dirección, etc.)
+- ✅ RFC y datos se autocompletan desde el proveedor creado
+- ✅ Flujo más rápido y eficiente
+- ✅ Reducción de clics y navegación innecesaria
+- ✅ Logs de depuración para troubleshooting
+- ✅ Timing mejorado para asegurar sincronización de estado
+- ✅ Diseño limpio y minimalista del botón "+"
+
+**Correcciones implementadas:**
+
+- 🔧 Return completo de `crearProveedor` con todos los campos del proveedor
+- 🔧 Delay de 100ms para asegurar que React actualice el estado antes de auto-seleccionar
+- 🔧 Doble llamada a `cargarProveedores` para asegurar que la lista esté actualizada
+- 🔧 Logs extensivos para depuración del flujo de auto-selección
+- 🔧 Botón "+" con `leading-none` para evitar desplazamiento vertical del layout
+- 🔧 Tamaño de fuente consistente con el label para mantener altura uniforme
+
+---
+
+### 🎯 **NUEVO**: Campos de Dirección Separados y RFC Obligatorio en Proveedores
+
+**Descripción:** Refactorización del formulario de registro de proveedores para mejorar la captura y estructuración de datos de dirección, y hacer obligatorio el campo RFC.
+
+**Cambios implementados:**
+
+1. **Dirección Separada en Múltiples Campos:**
+   - Calle
+   - Número Exterior
+   - Número Interior
+   - Colonia
+   - Ciudad
+   - Estado
+   - Código Postal
+
+2. **RFC Obligatorio:**
+   - Cambiado de opcional a requerido
+   - Validación de longitud (12-13 caracteres)
+   - Campo con validación visual de errores
+
+**Archivos modificados:**
+
+**Backend:**
+
+- `/backend/migrations/separar_direccion_proveedores.py` - Nueva migración
+- `/HGApp/migrations/separar_direccion_proveedores.py` - Nueva migración
+- `/HGApp/models.py` - Modelo Proveedores actualizado
+- `/HGApp/routers/proveedores.py` - Esquemas Pydantic actualizados
+
+**Frontend:**
+
+- `/sgpme_app/src/types/index.ts` - Interfaz Proveedor
+- `/sgpme_app/src/components/FormularioProveedor.tsx` - UI del formulario
+- `/sgpme_app/src/hooks/useProveedoresAPI.ts` - Transformaciones de datos
+
+**Detalles técnicos:**
+
+### 1. Migración de Base de Datos
+
+```python
+# Nuevos campos agregados a tabla proveedores
+'calle': 'TEXT',
+'numero_exterior': 'VARCHAR(20)',
+'numero_interior': 'VARCHAR(20)',
+'colonia': 'VARCHAR(200)',
+'ciudad': 'VARCHAR(200)',
+'estado': 'VARCHAR(100)',
+'codigo_postal': 'VARCHAR(10)'
+
+# RFC ahora NOT NULL
+rfc = Column(String, unique=True, nullable=False)
+```
+
+### 2. Modelo Backend (models.py)
+
+```python
+class Proveedores(Base):
+    __tablename__ = 'proveedores'
+
+    # ... campos existentes ...
+    rfc = Column(String, unique=True, nullable=False)  # Ahora obligatorio
+
+    # Campo antiguo mantenido por compatibilidad
+    direccion = Column(Text, nullable=True)
+
+    # Nuevos campos de dirección separados
+    calle = Column(Text, nullable=True)
+    numero_exterior = Column(String(20), nullable=True)
+    numero_interior = Column(String(20), nullable=True)
+    colonia = Column(String(200), nullable=True)
+    ciudad = Column(String(200), nullable=True)
+    estado = Column(String(100), nullable=True)
+    codigo_postal = Column(String(10), nullable=True)
+```
+
+### 3. Interfaz TypeScript (types/index.ts)
+
+```typescript
+export interface Proveedor {
+  id: string;
+  nombre: string;
+  razonSocial?: string;
+  contacto: string;
+  email: string;
+  rfc: string; // Ahora obligatorio
+  telefono?: string;
+
+  // Campo antiguo (compatibilidad)
+  direccion?: string;
+
+  // Nuevos campos de dirección
+  calle?: string;
+  numeroExterior?: string;
+  numeroInterior?: string;
+  colonia?: string;
+  ciudad?: string;
+  estado?: string;
+  codigoPostal?: string;
+
+  categoria: string;
+  activo: boolean;
+  fechaCreacion: string;
+  creadoPor?: string;
 }
-const marca = marcas.find((m) => m.cuenta === agenciaDesplazamiento);
+```
 
-// Carga con agencia local
-if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
-  // Mostrar tablas vacías
-  setDesplazamientoPorMes((prev) => ({
-    ...prev,
-    [mesDesplazamiento]: {
-      mayorExistencia: [],
-      mas90Dias: [],
-      demos: [],
-      otros: [],
-    },
-  }));
-  return;
+### 4. Formulario (FormularioProveedor.tsx)
+
+**Campo RFC - Ahora obligatorio:**
+
+```tsx
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">RFC *</label>
+  <input
+    type="text"
+    value={datos.rfc}
+    onChange={handleChange("rfc")}
+    className={`... ${errores.rfc ? "border-red-500" : "border-gray-300"}`}
+    placeholder="ABC123456XYZ"
+    maxLength={13}
+  />
+  {errores.rfc && <p className="text-red-500 text-sm mt-1">{errores.rfc}</p>}
+</div>
+```
+
+**Validación actualizada:**
+
+```tsx
+if (!datos.rfc.trim()) {
+  nuevosErrores.rfc = "El RFC es requerido";
+} else if (datos.rfc.length < 12 || datos.rfc.length > 13) {
+  nuevosErrores.rfc = "El RFC debe tener entre 12 y 13 caracteres";
 }
+```
+
+**Nueva sección de dirección:**
+
+```tsx
+{/* Sección de Dirección */}
+<div className="col-span-2">
+  <h4 className="text-md font-semibold text-gray-800 mb-3 border-b pb-2">
+    Dirección
+  </h4>
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-2">
+  {/* Calle */}
+  <div>
+    <label>Calle</label>
+    <input type="text" value={datos.calle} ... />
+  </div>
+
+  {/* Números Exterior e Interior */}
+  <div className="grid grid-cols-2 gap-2">
+    <div>
+      <label>Número Ext.</label>
+      <input type="text" value={datos.numeroExterior} ... />
+    </div>
+    <div>
+      <label>Número Int.</label>
+      <input type="text" value={datos.numeroInterior} ... />
+    </div>
+  </div>
+
+  {/* Colonia, Ciudad, Estado, Código Postal */}
+  ...
+</div>
 ```
 
 **Beneficios:**
 
-- ✅ Independencia total del filtro global del dashboard
-- ✅ Interfaz más clara y directa para el usuario
-- ✅ Evita confusión sobre qué filtro usar
-- ✅ Permite gestionar Desplazamiento sin afectar otras secciones
-- ✅ Botón "Editar" se deshabilita automáticamente cuando no hay agencia seleccionada
-- ✅ Warning eliminado (ya no es necesario)
+- ✅ Datos de dirección más estructurados y completos
+- ✅ Mejor UX con campos específicos en lugar de texto libre
+- ✅ Validación mejorada con campo RFC obligatorio
+- ✅ Facilita búsquedas y filtros por ubicación
+- ✅ Preparado para integración con servicios de geolocalización
+- ✅ Compatibilidad retroactiva mantenida (campo `direccion` antiguo preservado)
 
-#### 2. Fix Previsualizador de PDF
-
-**Problema resuelto:**
-
-- El tag `<iframe>` no siempre muestra PDFs correctamente en todos los navegadores
-- Safari y algunos navegadores móviles tienen problemas con PDFs en base64 en iframes
-- No había fallback si el navegador no podía mostrar el PDF
-- Faltaba opción de descarga directa desde el modal
-
-**Solución implementada:**
-
-- **Tag `<object>` en lugar de `<iframe>`:**
-  - Mejor soporte multi-navegador para PDFs
-  - Manejo nativo de contenido PDF
-  - Fallback integrado cuando no se puede mostrar
-- **Fallback visual:**
-  - Si el navegador no puede mostrar el PDF, muestra mensaje amigable
-  - Botón de descarga como alternativa
-  - Diseño atractivo y profesional
-
-- **Botón de descarga en header:**
-  - Acceso directo a descarga sin necesidad de cerrar modal
-  - Siempre visible en el header del modal
-
-- **Nuevo estado:** `pdfPreviewNombre` para mostrar nombre del archivo
-
-**Código del nuevo modal:**
-
-```typescript
-// Estado actualizado
-const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
-const [pdfPreviewNombre, setPdfPreviewNombre] = useState<string>("documento.pdf");
-const [showPdfModal, setShowPdfModal] = useState(false);
-
-// Función actualizada
-const handlePdfPreview = (pdfBase64: string, nombreArchivo?: string) => {
-  setPdfPreviewUrl(pdfBase64);
-  setPdfPreviewNombre(nombreArchivo || "documento.pdf");
-  setShowPdfModal(true);
-};
-
-// Modal con <object> y fallback
-<object
-  data={pdfPreviewUrl}
-  type="application/pdf"
-  className="w-full h-full"
->
-  {/* Fallback cuando el navegador no soporta vista previa */}
-  <div className="flex flex-col items-center justify-center h-full">
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="text-6xl mb-4">📄</div>
-      <h4 className="text-lg font-bold">
-        No se puede mostrar el PDF en el navegador
-      </h4>
-      <p className="text-gray-600 mb-4">
-        Tu navegador no soporta la visualización de PDFs integrada.
-      </p>
-      <button onClick={() => handlePdfDownload(...)}>
-        ⬇️ Descargar PDF
-      </button>
-    </div>
-  </div>
-</object>
-```
-
-**Mejoras en el modal:**
-
-- ✅ Header con fondo gris claro (bg-gray-50)
-- ✅ Muestra nombre del archivo en el header
-- ✅ Botón de descarga prominente en el header
-- ✅ Tag `<object>` con fallback elegante
-- ✅ Modal más grande (max-w-5xl)
-- ✅ Fondo gris para el área del PDF (bg-gray-100)
-- ✅ Mensaje de error amigable y profesional
-- ✅ Iconos emoji para mejor UX
-- ✅ Transiciones suaves en todos los botones
-
-**Llamadas actualizadas:**
-
-```typescript
-// Todas las llamadas ahora pasan el nombre del archivo
-<button onClick={() => handlePdfPreview(item.pdf!, item.pdfNombre)}>
-  👁️
-</button>
-```
-
-**Compatibilidad:**
-
-- ✅ Chrome/Edge: ✅ Vista previa nativa
-- ✅ Firefox: ✅ Vista previa nativa
-- ✅ Safari: ✅ Vista previa o fallback automático
-- ✅ Safari iOS: ✅ Fallback con descarga
-- ✅ Chrome Android: ✅ Vista previa o fallback
-- ✅ Todos: ✅ Descarga siempre disponible
-
-**Debug mejorado:**
-
-```console
-[DEBUG-CARGAR] agenciaDesplazamiento: Toyota Chihuahua
-[DEBUG-CARGAR] marcas.length: 14
-[DEBUG-CARGAR] mes: 2
-[DEBUG-CARGAR] año: 2026
-[DEBUG-CARGAR] 📡 Cargando desplazamiento desde: http://localhost:8000/desplazamiento/obtener/2/2026/1
-[DEBUG-CARGAR] ✅ Datos cargados exitosamente: {...}
-```
-
-**Resumen de mejoras:**
-
-1. ✅ Filtro de agencia local independiente
-2. ✅ Selector de agencia directo en la sección
-3. ✅ Opción "Todas las agencias" muestra vacío
-4. ✅ Previsualizador de PDF con `<object>` tag
-5. ✅ Fallback elegante para navegadores incompatibles
-6. ✅ Botón de descarga en header del modal
-7. ✅ Nombre de archivo visible en modal
-8. ✅ Mejor compatibilidad multi-navegador
-9. ✅ UX mejorada con mensajes claros
-10. ✅ Warning eliminado (ya no necesario)
-
-**Estado:** ✅ Completado y probado
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
 
 ---
 
-## Instrucciones para Deploy
+### 🎯 **NUEVO**: Filtros de Subcategorías en Gráfica de Proyección vs Gasto
 
-Cuando esté listo para subir:
+**Descripción:** Agregar selectores de subcategorías dinámicos en la gráfica de proyección vs gasto por categoría en `/facturas`. Los usuarios pueden filtrar el gasto mostrado seleccionando/deseleccionando subcategorías específicas de cada categoría.
 
-```bash
-git add .
-git commit -m "Dashboard: Desplazamiento con filtro agencia local + fix previsualizador PDF con compatibilidad multi-navegador"
-git push
+**Archivo:** `/sgpme_app/src/components/GraficaProyeccionVsGasto.tsx`
+
+**Características implementadas:**
+
+1. **Selectores Dinámicos de Subcategorías:**
+   - Se muestran debajo de la barra de progreso de cada categoría
+   - Ubicación: lado izquierdo, mismo tamaño que el indicador "Gasto: X% de proyección"
+   - Se actualizan automáticamente desde el editor de categorías
+   - Botones de "Seleccionar todas" / "Deseleccionar todas" por categoría
+
+2. **Estado Inicial:**
+   - Todas las subcategorías seleccionadas por defecto
+   - Se inicializan dinámicamente según las categorías activas
+
+3. **Filtrado en Tiempo Real:**
+   - Al deseleccionar subcategorías, la gráfica se actualiza instantáneamente
+   - Solo suma el gasto de facturas con subcategorías seleccionadas
+   - Mantiene proyección y presupuesto sin cambios
+
+**Cambios técnicos:**
+
+```tsx
+// 1. Interfaz actualizada con subcategoria
+interface FacturaBackend {
+  categoria?: string;
+  subcategoria?: string;  // AGREGADO
+  monto: number;
+  subtotal?: number;
+  estado: string;
+  ...
+}
+
+// 2. Nuevo estado para subcategorías seleccionadas
+const [subcategoriasSeleccionadas, setSubcategoriasSeleccionadas] = useState<
+  Record<string, string[]>
+>({});
+
+// 3. Obtener subcategorías del hook
+const { nombresCategorias, subcategoriasPorCategoria, loading: loadingCategorias } = useCategorias();
+
+// 4. Recálculo dinámico con useMemo
+const datosConSubcategorias = useMemo(() => {
+  // Filtra facturas según subcategorías seleccionadas
+  facturasOriginales.forEach((factura) => {
+    const subcatsSeleccionadas = subcategoriasSeleccionadas[cat] || [];
+    if (subcatsSeleccionadas.length === 0 || subcatsSeleccionadas.includes(factura.subcategoria)) {
+      // Suma al gasto
+    }
+  });
+}, [facturasOriginales, subcategoriasSeleccionadas, ...]);
 ```
 
-Luego en servidor:
+**UI implementado:**
 
-```bash
-ssh arkastech 'cd /home/sgpme/app && git pull && pm2 stop metrik-frontend && nohup npm run build > /tmp/build.log 2>&1 & sleep 5 && tail -f /tmp/build.log'
+```tsx
+<div className="mt-2 flex justify-between items-start gap-4">
+  {/* Selectores de subcategorías (izquierda) */}
+  <div className="flex-1">
+    <div className="flex items-center gap-2 mb-1">
+      <span className="text-xs font-medium text-gray-600">Subcategorías:</span>
+      <button onClick={() => toggleTodasSubcategorias(categoria)}>
+        {todasSeleccionadas ? "Deseleccionar todas" : "Seleccionar todas"}
+      </button>
+    </div>
+    <div className="flex flex-wrap gap-1.5">
+      {subcategorias.map((subcat) => (
+        <button
+          onClick={() => toggleSubcategoria(categoria, subcat)}
+          className={seleccionada ? "bg-blue-500" : "bg-gray-200"}
+        >
+          {subcat}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Porcentaje de gasto (derecha) */}
+  <div className="text-right">
+    <span>Gasto: X% de proyección</span>
+  </div>
+</div>
 ```
 
-Una vez completado el build:
+**Funcionalidad:**
+
+- ✅ Todas las subcategorías seleccionadas por defecto
+- ✅ Click en subcategoría → toggle selección
+- ✅ "Seleccionar todas" / "Deseleccionar todas" por categoría
+- ✅ Recálculo automático del gasto al cambiar selección
+- ✅ Sincronización con editor de categorías (cambios reflejados automáticamente)
+- ✅ No afecta proyección ni presupuesto
+
+**Beneficios:**
+
+- Mayor granularidad en el análisis financiero
+- Permite identificar gastos específicos por subcategoría
+- Interfaz intuitiva con feedback visual inmediato
+- Mantiene contexto completo (proyección y presupuesto siempre visibles)
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+
+---
+
+### 🎯 Cambio Global: Usar Subtotal (pre-IVA) en todas las Métricas y Gráficas
+
+**Descripción:** Cambio sistemático en toda la aplicación para que las métricas financieras, gráficas y cálculos de gasto utilicen el **Subtotal** (monto antes de impuestos) en lugar del **Total** (monto con IVA incluido).
+
+**Razón del cambio:**
+
+- Los presupuestos se definen en montos antes de impuestos
+- Es más preciso comparar gasto vs presupuesto usando subtotales
+- El Total (con IVA) distorsiona las comparaciones presupuestarias
+- Mantiene consistencia en toda la aplicación (lista de facturas ya mostraba subtotal)
+
+---
+
+## 📊 Cambios Implementados
+
+### 1. Dashboard General - Métricas Principales
+
+**Archivo:** `/sgpme_app/src/components/DashboardGeneral.tsx`
+
+**Cambios realizados:**
+
+#### a) Métrica "Total Gastado" (líneas ~612-614)
+
+```tsx
+// ANTES:
+const totalGastado = facturasFiltradas
+  .filter((f) => f.estado === "Pagada")
+  .reduce((sum, f) => sum + f.total, 0);
+
+// DESPUÉS:
+const totalGastado = facturasFiltradas
+  .filter((f) => f.estado === "Pagada")
+  .reduce((sum, f) => sum + f.subtotal, 0);
+```
+
+#### b) Métrica "Total por Pagar" (líneas ~616-618)
+
+```tsx
+// ANTES:
+const totalPorPagar = facturasFiltradas
+  .filter((f) => f.estado === "Pendiente" || f.estado === "Autorizada")
+  .reduce((sum, f) => sum + f.total, 0);
+
+// DESPUÉS:
+const totalPorPagar = facturasFiltradas
+  .filter((f) => f.estado === "Pendiente" || f.estado === "Autorizada")
+  .reduce((sum, f) => sum + f.subtotal, 0);
+```
+
+#### c) Gráfica Presupuesto vs Gasto Real (línea ~652)
+
+```tsx
+// ANTES:
+datosPorMes[mes].gastoReal += factura.total;
+
+// DESPUÉS:
+datosPorMes[mes].gastoReal += factura.subtotal;
+```
+
+**Impacto:** Las tres métricas principales del dashboard ahora reflejan montos pre-IVA.
+
+---
+
+### 2. Eventos - Calendario Mensual
+
+**Archivo:** `/sgpme_app/src/components/CalendarioMensual.tsx`
+
+**Cambio realizado (línea ~238):**
+
+```tsx
+// ANTES:
+gastoReal={facturas
+  .filter(...)
+  .reduce((sum, f) => sum + f.total, 0)}
+
+// DESPUÉS:
+gastoReal={facturas
+  .filter(...)
+  .reduce((sum, f) => sum + f.subtotal, 0)}
+```
+
+**Impacto:** La gráfica "Presupuesto vs Gasto" mensual ahora usa subtotales.
+
+---
+
+### 3. Eventos - Calendario Trimestral
+
+**Archivo:** `/sgpme_app/src/components/CalendarioTrimestral.tsx`
+
+**Cambio realizado (línea ~243):**
+
+```tsx
+// ANTES:
+return facturasEventosPorPeriodo.reduce((sum, f) => sum + f.total, 0);
+
+// DESPUÉS:
+return facturasEventosPorPeriodo.reduce((sum, f) => sum + f.subtotal, 0);
+```
+
+**Impacto:** La gráfica "Presupuesto vs Gasto" trimestral ahora usa subtotales.
+
+---
+
+### 4. Eventos - Calendario Anual
+
+**Archivo:** `/sgpme_app/src/components/CalendarioAnual.tsx`
+
+**Cambio realizado (línea ~273):**
+
+```tsx
+// ANTES:
+return facturasEventosPorPeriodo.reduce((sum, f) => sum + f.total, 0);
+
+// DESPUÉS:
+return facturasEventosPorPeriodo.reduce((sum, f) => sum + f.subtotal, 0);
+```
+
+**Impacto:** La gráfica "Presupuesto vs Gasto" anual ahora usa subtotales.
+
+---
+
+### 5. Facturas - Gráfica Proyección vs Gasto por Categoría
+
+**Archivo:** `/sgpme_app/src/components/GraficaProyeccionVsGasto.tsx`
+
+**Cambios realizados:**
+
+#### a) Interfaz FacturaBackend (líneas ~28-31)
+
+```tsx
+// ANTES:
+interface FacturaBackend {
+  categoria?: string;
+  monto: number;
+  estado: string;
+  ...
+}
+
+// DESPUÉS:
+interface FacturaBackend {
+  categoria?: string;
+  monto: number;
+  subtotal?: number;  // AGREGADO
+  estado: string;
+  ...
+}
+```
+
+#### b) Cálculo de gasto por categoría (línea ~192)
+
+```tsx
+// ANTES:
+categorias[cat].gasto += factura.monto || 0;
+
+// DESPUÉS:
+categorias[cat].gasto += factura.subtotal || 0;
+```
+
+**Nota técnica:**
+
+- El campo `monto` en el backend corresponde al Total (con IVA)
+- El campo `subtotal` en el backend corresponde al Subtotal (pre-IVA)
+- Se agregó `subtotal` a la interfaz TypeScript para usar el valor correcto
+
+**Impacto:** La gráfica de "Proyección vs Gasto" por categoría ahora muestra montos pre-IVA.
+
+---
+
+### 6. Facturas - Mostrar Subtotal en lista
+
+**Archivo:** `/sgpme_app/src/components/ListaFacturas.tsx`
+
+**Estado:** ✅ Ya implementado en cambio anterior
+
+**Cambios:**
+
+- Header de columna: "Total" → "Subtotal" (línea ~315)
+- Valor mostrado: `factura.total` → `factura.subtotal` (línea ~372)
+
+---
+
+## 📋 Resumen de Cambios
+
+| Componente                               | Archivo                      | Líneas Modificadas | Cambio                               |
+| ---------------------------------------- | ---------------------------- | ------------------ | ------------------------------------ |
+| Dashboard - Total Gastado                | DashboardGeneral.tsx         | ~612-614           | `f.total` → `f.subtotal`             |
+| Dashboard - Total por Pagar              | DashboardGeneral.tsx         | ~616-618           | `f.total` → `f.subtotal`             |
+| Dashboard - Gráfica Presupuesto vs Gasto | DashboardGeneral.tsx         | ~652               | `factura.total` → `factura.subtotal` |
+| Calendario Mensual                       | CalendarioMensual.tsx        | ~238               | `f.total` → `f.subtotal`             |
+| Calendario Trimestral                    | CalendarioTrimestral.tsx     | ~243               | `f.total` → `f.subtotal`             |
+| Calendario Anual                         | CalendarioAnual.tsx          | ~273               | `f.total` → `f.subtotal`             |
+| Gráfica Proyección - Interface           | GraficaProyeccionVsGasto.tsx | ~30                | Agregado `subtotal?: number;`        |
+| Gráfica Proyección - Cálculo             | GraficaProyeccionVsGasto.tsx | ~192               | `factura.monto` → `factura.subtotal` |
+| Lista Facturas                           | ListaFacturas.tsx            | ~315, ~372         | Columna Total → Subtotal             |
+
+**Total de archivos modificados:** 5  
+**Total de cambios en código:** 9
+
+---
+
+## 🔍 Verificación y Testing
+
+**Áreas a verificar antes del deploy:**
+
+1. **Dashboard:**
+   - Verificar que "Total Gastado" refleje suma de subtotales de facturas pagadas
+   - Verificar que "Total por Pagar" refleje suma de subtotales de facturas pendientes/autorizadas
+   - Verificar que la gráfica trimestral muestre gastos reales basados en subtotales
+
+2. **Eventos - Calendarios:**
+   - Verificar calendario mensual: gráfica Presupuesto vs Gasto usa subtotales
+   - Verificar calendario trimestral: gráfica Presupuesto vs Gasto usa subtotales
+   - Verificar calendario anual: gráfica Presupuesto vs Gasto usa subtotales
+
+3. **Facturas:**
+   - Verificar que la lista muestre columna "Subtotal"
+   - Verificar que gráfica "Proyección vs Gasto" use subtotales por categoría
+
+**Tests recomendados:**
 
 ```bash
-ssh arkastech 'pm2 start metrik-frontend && pm2 save'
+# 1. Crear factura de prueba con:
+#    Subtotal: $1,000.00
+#    IVA: $160.00
+#    Total: $1,160.00
+
+# 2. Marcar como "Pagada"
+
+# 3. Verificar que Dashboard muestre:
+#    Total Gastado: $1,000.00 (no $1,160.00)
+
+# 4. Verificar gráficas muestren $1,000.00
 ```
+
+---
+
+## 🚀 Deploy
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+
+**Backend:** No requiere cambios (ya envía ambos campos: `subtotal` y `total`/`monto`)
+
+**Frontend:** Requiere deploy de cambios en 5 componentes React
+
+**Pasos de deploy:**
+
+1. Commit de cambios en frontend
+2. Push a repositorio
+3. SSH a servidor metrik
+4. Pull de cambios
+5. Rebuild de frontend (`npm run build`)
+6. Restart de frontend con PM2
+7. Verificación de métricas en producción
+
+---
+
+## 📝 Notas Adicionales
+
+- ✅ No hay cambios de base de datos necesarios
+- ✅ Compatibilidad retroactiva mantenida (backend sigue enviando ambos campos)
+- ✅ Modales y detalles expandidos no afectados (siguen mostrando ambos valores)
+- ✅ Exportaciones y reportes mantienen sus formatos actuales
+- ⚠️ Validar que presupuestos estén definidos en subtotal (pre-IVA) para comparaciones precisas
+
+---
+
+**Último update:** 18 de Febrero, 2026
+**Implementado por:** Sistema automatizado
+**Revisado por:** Pendiente

@@ -118,6 +118,7 @@ class FacturaRequest(BaseModel):
     metodo_pago: Optional[str] = None
     uso_cfdi: Optional[str] = None
     orden_compra: Optional[str] = None
+    productos: Optional[str] = None
     observaciones: Optional[str] = None
     proyeccion_id: Optional[int] = None
     evento_id: Optional[int] = None
@@ -146,6 +147,7 @@ class FacturaResponse(BaseModel):
     metodo_pago: Optional[str]
     uso_cfdi: Optional[str]
     orden_compra: Optional[str]
+    productos: Optional[str] = None
     observaciones: Optional[str]
     proyeccion_id: Optional[int]
     evento_id: Optional[int] = None
@@ -311,6 +313,7 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
             metodo_pago=factura.metodo_pago,
             uso_cfdi=factura.uso_cfdi,
             orden_compra=factura.orden_compra,
+            productos=factura.productos,
             observaciones=factura.observaciones,
             proyeccion_id=factura.proyeccion_id,
             evento_id=factura.evento_id,
@@ -407,6 +410,7 @@ async def read_factura(user: user_dependency, db: db_dependency, factura_id: int
         metodo_pago=factura.metodo_pago,
         uso_cfdi=factura.uso_cfdi,
         orden_compra=factura.orden_compra,
+        productos=factura.productos,
         observaciones=factura.observaciones,
         proyeccion_id=factura.proyeccion_id,
         evento_id=factura.evento_id,
@@ -452,6 +456,7 @@ async def create_factura(user: user_dependency, db: db_dependency, factura_reque
         metodo_pago=factura_request.metodo_pago,
         uso_cfdi=factura_request.uso_cfdi,
         orden_compra=factura_request.orden_compra,
+        productos=factura_request.productos,
         observaciones=factura_request.observaciones,
         proyeccion_id=factura_request.proyeccion_id,
         evento_id=factura_request.evento_id,
@@ -723,6 +728,7 @@ async def update_factura(user: user_dependency, db: db_dependency,
     factura.metodo_pago = factura_request.metodo_pago
     factura.uso_cfdi = factura_request.uso_cfdi
     factura.orden_compra = factura_request.orden_compra
+    factura.productos = factura_request.productos
     factura.observaciones = factura_request.observaciones
     
     # Guardar proyección anterior para actualizar

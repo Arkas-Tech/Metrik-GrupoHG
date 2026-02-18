@@ -270,7 +270,7 @@ export default function CalendarioAnual({
                 });
 
               return facturasEventosPorPeriodo.reduce(
-                (sum, f) => sum + f.total,
+                (sum, f) => sum + f.subtotal,
                 0,
               );
             })()

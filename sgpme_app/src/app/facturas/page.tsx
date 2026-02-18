@@ -103,6 +103,12 @@ function FacturasPageContent() {
   const [comprobanteParaEliminar, setComprobanteParaEliminar] =
     useState<Archivo | null>(null);
 
+  // Estados para modal de nuevo proveedor desde formulario de factura
+  const [mostrarModalProveedor, setMostrarModalProveedor] = useState(false);
+  const [proveedorRecienCreado, setProveedorRecienCreado] = useState<
+    string | null
+  >(null);
+
   const isAdmin = usuario?.tipo === "administrador";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
@@ -613,6 +619,36 @@ function FacturasPageContent() {
     }
   };
 
+  // Handler para crear proveedor desde el modal en formulario de factura
+  const manejarCrearProveedorDesdeModal = async (
+    datos: Omit<Proveedor, "id" | "fechaCreacion">,
+  ) => {
+    try {
+      const nuevoProveedor = await crearProveedor(datos);
+      console.log("✅ Proveedor creado desde modal:", nuevoProveedor);
+
+      // Cerrar el modal
+      setMostrarModalProveedor(false);
+
+      // Recargar proveedores para asegurar que la lista esté actualizada
+      await cargarProveedores();
+
+      // Pequeño delay para asegurar que React actualice el estado
+      setTimeout(() => {
+        // Guardar el ID del proveedor recién creado
+        if (nuevoProveedor && nuevoProveedor.id) {
+          console.log(
+            "🎯 Estableciendo proveedor recién creado:",
+            nuevoProveedor.id,
+          );
+          setProveedorRecienCreado(nuevoProveedor.id);
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Error al crear proveedor desde modal:", error);
+    }
+  };
+
   const manejarEliminarProveedor = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas desactivar este proveedor?")) {
       try {
@@ -852,7 +888,7 @@ function FacturasPageContent() {
                 onClick={() => setVistaActual("dashboard")}
                 className="text-blue-600 hover:text-blue-800 mb-4"
               >
-                ← Volver al Dashboard
+                ← Volver a Facturas
               </button>
               <h2 className="text-2xl font-bold text-gray-900">
                 Registrar Nueva Factura
@@ -862,6 +898,8 @@ function FacturasPageContent() {
               onSubmit={manejarCrearFactura}
               onCancel={() => setVistaActual("dashboard")}
               loading={loading}
+              onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
+              proveedorRecienCreado={proveedorRecienCreado}
             />
           </div>
         )}
@@ -873,7 +911,7 @@ function FacturasPageContent() {
                 onClick={() => setVistaActual("dashboard")}
                 className="text-blue-600 hover:text-blue-800 mb-4"
               >
-                ← Volver al Dashboard
+                ← Volver a Facturas
               </button>
               <h2 className="text-2xl font-bold text-gray-900">
                 Editar Factura
@@ -884,6 +922,8 @@ function FacturasPageContent() {
               onSubmit={manejarActualizarFactura}
               onCancel={() => setVistaActual("dashboard")}
               loading={loading}
+              onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
+              proveedorRecienCreado={proveedorRecienCreado}
             />
           </div>
         )}
@@ -1190,6 +1230,31 @@ function FacturasPageContent() {
             </div>
           </div>
         )}
+
+      {/* Modal para agregar proveedor desde formulario de factura */}
+      {mostrarModalProveedor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Agregar Nuevo Proveedor
+              </h3>
+              <button
+                onClick={() => setMostrarModalProveedor(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <FormularioProveedor
+                onSubmit={manejarCrearProveedorDesdeModal}
+                onCancelar={() => setMostrarModalProveedor(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

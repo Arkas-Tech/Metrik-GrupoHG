@@ -77,7 +77,8 @@ export default function ListaFacturas({
     return new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: "MXN",
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(monto);
   };
 
@@ -312,7 +313,7 @@ export default function ListaFacturas({
                 Orden de Compra
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                Total
+                Subtotal
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 Estado
@@ -369,7 +370,7 @@ export default function ListaFacturas({
                       {factura.ordenCompra || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatearMonto(factura.total)}
+                      {formatearMonto(factura.subtotal)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {esAdministrador ? (
@@ -550,6 +551,14 @@ export default function ListaFacturas({
                                   <dt className="text-gray-700">Campaña:</dt>
                                   <dd className="font-medium text-purple-900">
                                     {factura.campanyaNombre}
+                                  </dd>
+                                </div>
+                              )}
+                              {factura.productos && (
+                                <div className="pt-2">
+                                  <dt className="text-gray-700">Productos:</dt>
+                                  <dd className="mt-1 text-gray-900 font-medium whitespace-pre-wrap">
+                                    {factura.productos}
                                   </dd>
                                 </div>
                               )}

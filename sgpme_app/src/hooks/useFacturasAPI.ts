@@ -17,6 +17,7 @@ interface FacturaBackend {
   fecha_ingresada?: string;
   estado?: string;
   observaciones?: string;
+  productos?: string;
   proyeccion_id?: number;
   evento_id?: number;
   evento_nombre?: string;
@@ -86,6 +87,7 @@ export function useFacturasAPI() {
         fechaRealPago: fact.fecha_pago || undefined,
         fechaIngresada: fact.fecha_ingresada || undefined,
         estado: fact.estado || "Pendiente",
+        productos: fact.productos || "",
         observaciones: fact.observaciones || "",
         proyeccionId: fact.proyeccion_id
           ? fact.proyeccion_id.toString()
@@ -191,6 +193,7 @@ export function useFacturasAPI() {
           fecha_pago: factura.fechaRealPago || null,
           metodo_pago: factura.metodoPago || null,
           orden_compra: factura.ordenCompra || null,
+          productos: factura.productos || null,
           observaciones: factura.observaciones || null,
           fecha_ingresada: factura.fechaIngresada || null,
           proyeccion_id: factura.proyeccionId

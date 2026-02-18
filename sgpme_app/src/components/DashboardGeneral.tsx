@@ -113,8 +113,8 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       return new Intl.NumberFormat("es-MX", {
         style: "currency",
         currency: "MXN",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       }).format(valor);
     };
 
@@ -611,10 +611,10 @@ export default function DashboardGeneral({
     );
     const totalGastado = facturasFiltradas
       .filter((f) => f.estado === "Pagada")
-      .reduce((sum, f) => sum + f.total, 0);
+      .reduce((sum, f) => sum + f.subtotal, 0);
     const totalPorPagar = facturasFiltradas
       .filter((f) => f.estado === "Pendiente" || f.estado === "Autorizada")
-      .reduce((sum, f) => sum + f.total, 0);
+      .reduce((sum, f) => sum + f.subtotal, 0);
 
     return {
       presupuestoAnual,
@@ -649,7 +649,7 @@ export default function DashboardGeneral({
         const fechaEmision = new Date(factura.fechaEmision);
         const mes = MESES_ORDEN[fechaEmision.getMonth()];
         if (datosPorMes[mes]) {
-          datosPorMes[mes].gastoReal += factura.total;
+          datosPorMes[mes].gastoReal += factura.subtotal;
         }
       });
 

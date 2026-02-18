@@ -10,9 +10,16 @@ interface ProveedorBackend {
   razon_social?: string;
   contacto: string;
   email: string;
-  rfc?: string;
+  rfc: string; // Ahora obligatorio
   telefono?: string;
   direccion?: string;
+  calle?: string;
+  numero_exterior?: string;
+  numero_interior?: string;
+  colonia?: string;
+  ciudad?: string;
+  estado?: string;
+  codigo_postal?: string;
   categoria: string;
   activo: boolean;
   creado_por: string;
@@ -52,6 +59,13 @@ export const useProveedoresAPI = () => {
         rfc: prov.rfc || "",
         telefono: prov.telefono || "",
         direccion: prov.direccion || "",
+        calle: prov.calle || "",
+        numeroExterior: prov.numero_exterior || "",
+        numeroInterior: prov.numero_interior || "",
+        colonia: prov.colonia || "",
+        ciudad: prov.ciudad || "",
+        estado: prov.estado || "",
+        codigoPostal: prov.codigo_postal || "",
         categoria: prov.categoria || "",
         activo: prov.activo ?? true,
         fechaCreacion: prov.fecha_creacion
@@ -92,9 +106,16 @@ export const useProveedoresAPI = () => {
           razon_social: datos.razonSocial || null,
           contacto: datos.contacto,
           email: datos.email,
-          rfc: datos.rfc || null,
+          rfc: datos.rfc, // Ahora obligatorio
           telefono: datos.telefono || null,
           direccion: datos.direccion || null,
+          calle: datos.calle || null,
+          numero_exterior: datos.numeroExterior || null,
+          numero_interior: datos.numeroInterior || null,
+          colonia: datos.colonia || null,
+          ciudad: datos.ciudad || null,
+          estado: datos.estado || null,
+          codigo_postal: datos.codigoPostal || null,
           categoria: datos.categoria,
           activo: datos.activo ?? true,
         };
@@ -121,10 +142,19 @@ export const useProveedoresAPI = () => {
         return {
           id: proveedorCreado.id.toString(),
           nombre: proveedorCreado.nombre,
+          razonSocial: proveedorCreado.razon_social || "",
           contacto: proveedorCreado.contacto,
           email: proveedorCreado.email,
+          rfc: proveedorCreado.rfc,
           telefono: proveedorCreado.telefono || "",
           direccion: proveedorCreado.direccion || "",
+          calle: proveedorCreado.calle || "",
+          numeroExterior: proveedorCreado.numero_exterior || "",
+          numeroInterior: proveedorCreado.numero_interior || "",
+          colonia: proveedorCreado.colonia || "",
+          ciudad: proveedorCreado.ciudad || "",
+          estado: proveedorCreado.estado || "",
+          codigoPostal: proveedorCreado.codigo_postal || "",
           categoria: proveedorCreado.categoria,
           activo: proveedorCreado.activo,
           fechaCreacion: new Date().toISOString().split("T")[0],
@@ -148,9 +178,16 @@ export const useProveedoresAPI = () => {
           razon_social: datos.razonSocial || null,
           contacto: datos.contacto,
           email: datos.email,
-          rfc: datos.rfc || null,
+          rfc: datos.rfc, // Ahora obligatorio
           telefono: datos.telefono || null,
           direccion: datos.direccion || null,
+          calle: datos.calle || null,
+          numero_exterior: datos.numeroExterior || null,
+          numero_interior: datos.numeroInterior || null,
+          colonia: datos.colonia || null,
+          ciudad: datos.ciudad || null,
+          estado: datos.estado || null,
+          codigo_postal: datos.codigoPostal || null,
           categoria: datos.categoria,
           activo: datos.activo ?? true,
         };

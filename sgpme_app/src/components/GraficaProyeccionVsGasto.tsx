@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { fetchConToken } from "@/lib/auth-utils";
 import { useCategorias } from "@/hooks/useCategorias";
@@ -27,7 +27,9 @@ interface Proyeccion {
 
 interface FacturaBackend {
   categoria?: string;
+  subcategoria?: string;
   monto: number;
+  subtotal?: number;
   estado: string;
   fecha_ingresada?: string;
   mes_asignado?: string;
@@ -62,12 +64,29 @@ export default function GraficaProyeccionVsGasto({
   refreshTrigger,
 }: GraficaProyeccionVsGastoProps) {
   const { marcaSeleccionada } = useMarcaGlobal();
-  const { nombresCategorias, loading: loadingCategorias } = useCategorias();
+  const {
+    nombresCategorias,
+    subcategoriasPorCategoria,
+    loading: loadingCategorias,
+  } = useCategorias();
   const [datos, setDatos] = useState<DatosCategoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<
     string[]
   >([]);
+  const [subcategoriasSeleccionadas, setSubcategoriasSeleccionadas] = useState<
+    Record<string, string[]>
+  >({});
+  // Guardar facturas y proyecciones originales para recalcular
+  const [facturasOriginales, setFacturasOriginales] = useState<
+    FacturaBackend[]
+  >([]);
+  const [presupuestosPorCategoria, setPresupuestosPorCategoria] = useState<
+    Record<string, number>
+  >({});
+  const [proyeccionesPorCategoria, setProyeccionesPorCategoria] = useState<
+    Record<string, number>
+  >({});
   // const [presupuestoAnual, setPresupuestoAnual] = useState<number>(0);
 
   useEffect(() => {
@@ -189,7 +208,7 @@ export default function GraficaProyeccionVsGasto({
                 presupuesto: 0,
               };
             }
-            categorias[cat].gasto += factura.monto || 0;
+            categorias[cat].gasto += factura.subtotal || 0;
           }
         });
 
@@ -198,7 +217,17 @@ export default function GraficaProyeccionVsGasto({
           categorias[cat].presupuesto = sumaPresupuestosPorCategoria[cat] || 0;
         }
 
-        setDatos(Object.values(categorias));
+        // Guardar datos originales para recalcular con filtros de subcategorías
+        setFacturasOriginales(facturas);
+        setPresupuestosPorCategoria(sumaPresupuestosPorCategoria);
+
+        // Guardar proyecciones por categoría
+        const proyeccionesPorCat: Record<string, number> = {};
+        Object.values(categorias).forEach((cat) => {
+          proyeccionesPorCat[cat.categoria] = cat.proyeccion;
+        });
+        setProyeccionesPorCategoria(proyeccionesPorCat);
+
         setDatos(Object.values(categorias));
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -209,6 +238,20 @@ export default function GraficaProyeccionVsGasto({
 
     cargarDatos();
   }, [marcaSeleccionada, año, mes, refreshTrigger]);
+
+  // Inicializar subcategorías seleccionadas cuando cambien las categorías
+  useEffect(() => {
+    if (Object.keys(subcategoriasPorCategoria).length === 0) return;
+
+    const inicializarSubcategorias: Record<string, string[]> = {};
+    Object.keys(subcategoriasPorCategoria).forEach((categoria) => {
+      inicializarSubcategorias[categoria] = [
+        ...subcategoriasPorCategoria[categoria],
+      ];
+    });
+    setSubcategoriasSeleccionadas(inicializarSubcategorias);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombresCategorias.join(",")]); // Solo reinicializar cuando cambien las categorías
 
   const toggleCategoria = (categoria: string) => {
     setCategoriasSeleccionadas((prev) =>
@@ -225,6 +268,80 @@ export default function GraficaProyeccionVsGasto({
       setCategoriasSeleccionadas([...nombresCategorias]);
     }
   };
+
+  const toggleSubcategoria = (categoria: string, subcategoria: string) => {
+    setSubcategoriasSeleccionadas((prev) => {
+      const subcatsActuales = prev[categoria] || [];
+      const nuevasSubcats = subcatsActuales.includes(subcategoria)
+        ? subcatsActuales.filter((s) => s !== subcategoria)
+        : [...subcatsActuales, subcategoria];
+      return { ...prev, [categoria]: nuevasSubcats };
+    });
+  };
+
+  const toggleTodasSubcategorias = (categoria: string) => {
+    setSubcategoriasSeleccionadas((prev) => {
+      const todasSubcats = subcategoriasPorCategoria[categoria] || [];
+      const subcatsActuales = prev[categoria] || [];
+      const nuevasSubcats =
+        subcatsActuales.length === todasSubcats.length ? [] : [...todasSubcats];
+      return { ...prev, [categoria]: nuevasSubcats };
+    });
+  };
+
+  // Recalcular datos filtrando por subcategorías seleccionadas
+  const datosConSubcategorias = useMemo(() => {
+    if (!facturasOriginales.length) return datos;
+
+    const categorias: { [key: string]: DatosCategoria } = {};
+
+    // Inicializar categorías con proyecciones y presupuestos
+    Object.keys(proyeccionesPorCategoria).forEach((cat) => {
+      categorias[cat] = {
+        categoria: cat,
+        proyeccion: proyeccionesPorCategoria[cat] || 0,
+        gasto: 0,
+        presupuesto: presupuestosPorCategoria[cat] || 0,
+      };
+    });
+
+    // Calcular gasto solo de facturas con subcategorías seleccionadas
+    facturasOriginales.forEach((factura) => {
+      const cat = factura.categoria;
+      if (
+        cat &&
+        (factura.estado === "Ingresada" || factura.estado === "Pagada")
+      ) {
+        // Verificar si la subcategoría está seleccionada
+        const subcatsSeleccionadas = subcategoriasSeleccionadas[cat] || [];
+        const subcatFactura = factura.subcategoria || "";
+
+        // Si no hay subcategorías seleccionadas para esta categoría, o la subcategoría de la factura está seleccionada
+        if (
+          subcatsSeleccionadas.length === 0 ||
+          subcatsSeleccionadas.includes(subcatFactura)
+        ) {
+          if (!categorias[cat]) {
+            categorias[cat] = {
+              categoria: cat,
+              proyeccion: 0,
+              gasto: 0,
+              presupuesto: 0,
+            };
+          }
+          categorias[cat].gasto += factura.subtotal || 0;
+        }
+      }
+    });
+
+    return Object.values(categorias);
+  }, [
+    facturasOriginales,
+    subcategoriasSeleccionadas,
+    proyeccionesPorCategoria,
+    presupuestosPorCategoria,
+    datos,
+  ]);
 
   if (loading || loadingCategorias) {
     return (
@@ -246,7 +363,9 @@ export default function GraficaProyeccionVsGasto({
   for (const categoria of nombresCategorias) {
     if (categoriasSeleccionadas.includes(categoria)) {
       // Buscar si existe data real para esta categoría
-      const dataExistente = datos.find((d) => d.categoria === categoria);
+      const dataExistente = datosConSubcategorias.find(
+        (d) => d.categoria === categoria,
+      );
 
       if (dataExistente) {
         datosFiltrados.push(dataExistente);
@@ -315,13 +434,17 @@ export default function GraficaProyeccionVsGasto({
             const gasto = item.gasto;
 
             // Determinar si el gasto sobrepasa el presupuesto
-            const gastoSobrepasaPresupuesto =
-              gasto > presupuesto && presupuesto > 0;
+            const gastoSobrepasaPresupuesto = gasto > presupuesto;
+            // Determinar si la proyección sobrepasa el presupuesto
+            const proyeccionSobrepasaPresupuesto = proyeccion > presupuesto;
 
-            // Determinar la base del 100%: proyección si gasto sobrepasa presupuesto, sino presupuesto
-            const base100 = gastoSobrepasaPresupuesto
-              ? proyeccion
-              : presupuesto;
+            // Base del 100%: el mayor entre proyección y presupuesto
+            // Cuando proyección > presupuesto, la barra al 100% = proyección
+            // Cuando presupuesto >= proyección, la barra al 100% = presupuesto
+            // Si ambos son 0, usar el gasto como base para que la barra se muestre
+            const base100Calc = Math.max(proyeccion, presupuesto);
+            const base100 =
+              base100Calc > 0 ? base100Calc : gasto > 0 ? gasto : 1;
 
             // Calcular porcentajes
             const porcentajeProyeccion =
@@ -445,8 +568,8 @@ export default function GraficaProyeccionVsGasto({
                       ></div>
                     )}
 
-                    {/* Línea vertical negra (presupuesto) - solo si gasto sobrepasa presupuesto */}
-                    {gastoSobrepasaPresupuesto && (
+                    {/* Línea vertical negra (presupuesto) - marca el presupuesto cuando la proyección lo sobrepasa */}
+                    {proyeccionSobrepasaPresupuesto && presupuesto > 0 && (
                       <div
                         className="absolute top-0 bottom-0 w-0.5 bg-black transition-all duration-500 z-10"
                         style={{
@@ -457,16 +580,72 @@ export default function GraficaProyeccionVsGasto({
                   </div>
                 </div>
 
-                {/* Indicador de porcentaje de gasto respecto a proyección */}
-                <div className="mt-1 text-right">
-                  <span
-                    className={`text-xs font-medium ${
-                      gasto > proyeccion ? "text-red-600" : "text-green-600"
-                    }`}
-                  >
-                    Gasto: {porcentajeGastoRespProyeccion.toFixed(1)}% de
-                    proyección
-                  </span>
+                {/* Filtros de subcategorías y porcentaje de gasto */}
+                <div className="mt-2 flex justify-between items-start gap-4">
+                  {/* Selectores de subcategorías */}
+                  <div className="flex-1">
+                    {subcategoriasPorCategoria[item.categoria] &&
+                      subcategoriasPorCategoria[item.categoria].length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-medium text-gray-600">
+                              Subcategorías:
+                            </span>
+                            <button
+                              onClick={() =>
+                                toggleTodasSubcategorias(item.categoria)
+                              }
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {(
+                                subcategoriasSeleccionadas[item.categoria] || []
+                              ).length ===
+                              subcategoriasPorCategoria[item.categoria].length
+                                ? "Deseleccionar todas"
+                                : "Seleccionar todas"}
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {subcategoriasPorCategoria[item.categoria].map(
+                              (subcat) => (
+                                <button
+                                  key={subcat}
+                                  onClick={() =>
+                                    toggleSubcategoria(item.categoria, subcat)
+                                  }
+                                  className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                                    (
+                                      subcategoriasSeleccionadas[
+                                        item.categoria
+                                      ] || []
+                                    ).includes(subcat)
+                                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                  }`}
+                                >
+                                  {subcat}
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Indicador de porcentaje de gasto respecto a proyección */}
+                  <div className="text-right shrink-0">
+                    <span
+                      className={`text-xs font-medium ${
+                        gasto > proyeccion ? "text-red-600" : "text-green-600"
+                      }`}
+                    >
+                      {proyeccion > 0
+                        ? `Gasto: ${porcentajeGastoRespProyeccion.toFixed(1)}% de proyección`
+                        : gasto > 0
+                          ? "Gasto sin proyección"
+                          : "Sin datos"}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

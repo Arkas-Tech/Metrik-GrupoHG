@@ -69,6 +69,7 @@ class Facturas(Base):
     metodo_pago = Column(String, nullable=True)
     uso_cfdi = Column(String, nullable=True)
     orden_compra = Column(String, nullable=True)
+    productos = Column(Text, nullable=True)
     observaciones = Column(Text)
     proyeccion_id = Column(Integer, ForeignKey('proyecciones.id'), nullable=True)
     evento_id = Column(Integer, ForeignKey('eventos.id'), nullable=True)
@@ -141,9 +142,19 @@ class Proveedores(Base):
     razon_social = Column(String, nullable=True)
     contacto = Column(String)
     email = Column(String)
-    rfc = Column(String, unique=True, nullable=True)
+    rfc = Column(String, unique=True, nullable=False)  # Ahora obligatorio
     telefono = Column(String)
-    direccion = Column(Text)
+    # Campo antiguo mantenido por compatibilidad
+    direccion = Column(Text, nullable=True)
+    # Nuevos campos de dirección separados
+    calle = Column(Text, nullable=True)
+    numero_exterior = Column(String(20), nullable=True)
+    numero_interior = Column(String(20), nullable=True)
+    colonia = Column(String(200), nullable=True)
+    ciudad = Column(String(200), nullable=True)
+    estado = Column(String(100), nullable=True)
+    codigo_postal = Column(String(10), nullable=True)
+    # Campos de control
     categoria = Column(String)
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, server_default=func.now())
