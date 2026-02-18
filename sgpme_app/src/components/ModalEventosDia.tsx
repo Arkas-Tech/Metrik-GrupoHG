@@ -48,8 +48,8 @@ export default function ModalEventosDia({
   onClose,
   fecha,
   eventos,
-  onCrearBrief: _onCrearBrief,
-  onVerBrief: _onVerBrief,
+  onCrearBrief,
+  onVerBrief,
 }: ModalEventosDiaProps) {
   const [expandedEventos, setExpandedEventos] = useState<Set<string>>(
     new Set()
@@ -272,24 +272,50 @@ export default function ModalEventosDia({
                                     </h5>
                                     {evento.brief ? (
                                       <div className="space-y-2">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                            <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                            Brief Disponible
-                                          </span>
-                                          {evento.brief.aprobadoPor && (
-                                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                              ✓ Aprobado
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                              <DocumentTextIcon className="h-3 w-3 mr-1" />
+                                              Brief Disponible
                                             </span>
+                                            {evento.brief.aprobadoPor && (
+                                              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                                ✓ Aprobado
+                                              </span>
+                                            )}
+                                          </div>
+                                          {onVerBrief && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onVerBrief(evento.id.toString());
+                                              }}
+                                              className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                                            >
+                                              Ver Brief
+                                            </button>
                                           )}
                                         </div>
                                       </div>
                                     ) : (
                                       <div className="space-y-2">
-                                        <div className="flex items-center space-x-2">
-                                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                                            ⚠️ Sin Brief
-                                          </span>
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                              ⚠️ Sin Brief
+                                            </span>
+                                          </div>
+                                          {onCrearBrief && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onCrearBrief(evento.id.toString());
+                                              }}
+                                              className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                                            >
+                                              Crear Brief
+                                            </button>
+                                          )}
                                         </div>
                                       </div>
                                     )}

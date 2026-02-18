@@ -102,6 +102,7 @@
    - Navegación más rápida sin necesidad de buscar el día en el calendario
 
 **Flujo de interacción:**
+
 1. Usuario ve la lista de "Eventos del Trimestre" en la parte inferior del calendario
 2. Usuario hace click en cualquier evento de la lista
 3. Se abre el modal con el resumen detallado del evento
@@ -110,6 +111,53 @@
 **Archivos modificados:**
 
 - `/sgpme_app/src/components/CalendarioTrimestral.tsx` - onClick de eventos de la lista abre modal con resumen
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+
+---
+
+### 🎯 **NUEVO**: Botones de Brief en Modal de Resumen de Eventos
+
+**Descripción:** El modal de resumen de eventos ahora incluye botones interactivos para crear o ver el brief del evento, directamente desde la sección "Brief del Evento".
+
+**Problema resuelto:** Aunque el modal mostraba el estado del brief ("Sin Brief" o "Brief Disponible"), no había forma de crear o ver el brief directamente desde ahí. Ahora se pueden realizar estas acciones sin cerrar el modal.
+
+**Cambios implementados:**
+
+1. **Botón "Crear Brief":**
+   - Se muestra cuando el evento no tiene brief (estado: "⚠️ Sin Brief")
+   - Al hacer click, llama a la función `onCrearBrief` del evento
+   - Estilo: verde con hover, posicionado a la derecha del indicador de estado
+   - Permite crear el brief sin salir del modal
+
+2. **Botón "Ver Brief":**
+   - Se muestra cuando el evento tiene brief (estado: "Brief Disponible" + badge de aprobación si aplica)
+   - Al hacer click, llama a la función `onVerBrief` del evento
+   - Estilo: azul con hover, posicionado a la derecha de los indicadores
+   - Permite acceder al brief completo directamente
+
+3. **Layout mejorado:**
+   - Los indicadores de estado y los botones se muestran en línea con `justify-between`
+   - Botones con tamaño compacto (`text-xs`) que no interrumpen el diseño
+   - Eventos propagados correctamente para evitar cerrar el modal accidentalmente
+
+**Flujo de interacción:**
+
+**Sin Brief:**
+1. Usuario abre resumen del evento (desde calendario o lista)
+2. Ve "⚠️ Sin Brief" en la sección "Brief del Evento"
+3. Hace click en botón "Crear Brief"
+4. Sistema navega a la creación del brief del evento
+
+**Con Brief:**
+1. Usuario abre resumen del evento
+2. Ve "Brief Disponible" (y posiblemente "✓ Aprobado")
+3. Hace click en botón "Ver Brief"
+4. Sistema abre/navega al brief existente del evento
+
+**Archivos modificados:**
+
+- `/sgpme_app/src/components/ModalEventosDia.tsx` - Agregados botones "Crear Brief" y "Ver Brief" en sección de brief
 
 **Estado:** ✅ Implementado localmente, pendiente de deploy a producción
 
