@@ -49,7 +49,7 @@ class ProveedorResponse(BaseModel):
     razon_social: Optional[str]
     contacto: str
     email: str
-    rfc: str  # Ahora obligatorio
+    rfc: Optional[str]  # Opcional por compatibilidad con datos existentes
     telefono: Optional[str]
     # Campo antiguo de dirección
     direccion: Optional[str]
