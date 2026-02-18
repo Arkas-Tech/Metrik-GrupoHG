@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AuthProvider as AuthBackendProvider } from "@/hooks/useAuthBackend";
 import { AuthConfigProvider } from "@/hooks/useAuthUnified";
 import { MarcaProvider } from "@/contexts/MarcaContext";
+import { useServiceWorker } from "@/hooks/useServiceWorker";
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -15,6 +16,9 @@ export default function ClientProviders({
   children,
   useBackend = false,
 }: ClientProvidersProps) {
+  // Activar actualizaciones automáticas del service worker
+  useServiceWorker();
+
   return (
     <AuthConfigProvider useBackend={useBackend}>
       <AuthProvider>
