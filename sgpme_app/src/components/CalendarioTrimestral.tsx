@@ -356,9 +356,11 @@ export default function CalendarioTrimestral({
                 key={evento.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onEventoClick) {
-                    onEventoClick(evento);
-                  }
+                  // Abrir modal con el evento específico
+                  const fechaEvento = parsearFecha(evento.fechaInicio);
+                  setFechaSeleccionada(fechaEvento);
+                  setEventosDelDiaSeleccionado([evento]);
+                  setModalAbierto(true);
                 }}
                 className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${
                   COLORES_ESTADO[evento.estado as keyof typeof COLORES_ESTADO]

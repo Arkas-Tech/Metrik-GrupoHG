@@ -62,6 +62,7 @@
    - Activación transparente sin afectar UX
 
 **Flujo de actualización:**
+
 1. Usuario tiene versión vieja cargada
 2. Deploy de nueva versión → nuevo BUILD_ID generado
 3. SW detecta actualización (check cada 60s)
@@ -79,5 +80,37 @@
 **Estado:** ✅ Implementado localmente, pendiente de deploy a producción
 
 **⚠️ Nota importante:** Una vez desplegado, los usuarios con la versión vieja aún necesitarán limpiar cache UNA ÚLTIMA VEZ. Después de eso, todas las actualizaciones futuras serán automáticas.
+
+---
+
+### 🎯 **NUEVO**: Eventos Clickeables en Lista de Calendario Trimestral
+
+**Descripción:** Los eventos mostrados en la lista "Eventos del Trimestre" ahora son completamente clickeables y abren el mismo modal de resumen detallado que se muestra al hacer click en un evento desde el calendario.
+
+**Problema resuelto:** Antes, la lista de eventos del trimestre solo permitía interacción limitada. Ahora permite acceso directo al resumen completo del evento con un click.
+
+**Cambios implementados:**
+
+1. **Click en evento de la lista:**
+   - Al hacer click en cualquier evento de la lista "Eventos del Trimestre", se abre el modal `ModalEventosDia`
+   - El modal muestra el resumen completo del evento (igual que cuando se hace click desde el calendario)
+   - Incluye todos los detalles: descripción, ubicación, audiencia, objetivo, presupuesto, facturas, etc.
+
+2. **Experiencia consistente:**
+   - Misma funcionalidad que hacer click en un día con eventos y luego seleccionar el evento
+   - El usuario puede crear o ver el brief del evento directamente desde la lista
+   - Navegación más rápida sin necesidad de buscar el día en el calendario
+
+**Flujo de interacción:**
+1. Usuario ve la lista de "Eventos del Trimestre" en la parte inferior del calendario
+2. Usuario hace click en cualquier evento de la lista
+3. Se abre el modal con el resumen detallado del evento
+4. Usuario puede ver brief, crear brief, o cerrar el modal
+
+**Archivos modificados:**
+
+- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - onClick de eventos de la lista abre modal con resumen
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
 
 ---

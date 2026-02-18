@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Hook para manejar actualizaciones automáticas del Service Worker
- * 
+ *
  * Funcionalidad:
  * - Detecta cuando hay una nueva versión del service worker
  * - Activa inmediatamente la nueva versión (skip waiting)
@@ -51,7 +51,10 @@ export function useServiceWorker() {
           if (!newWorker) return;
 
           newWorker.addEventListener("statechange", () => {
-            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
               // Hay una nueva versión del SW esperando
               console.log("📦 Nueva versión del SW lista");
               // Enviar mensaje al SW para que haga skip waiting
