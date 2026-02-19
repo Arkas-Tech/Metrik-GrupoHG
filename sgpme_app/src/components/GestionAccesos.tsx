@@ -214,24 +214,14 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
     );
   }
 
-  // Contenedor principal: con overlay si es popup, sin overlay si es integrado
-  const Wrapper = onClose
-    ? ({ children }: { children: React.ReactNode }) => (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          {children}
-        </div>
-      )
-    : ({ children }: { children: React.ReactNode }) => <>{children}</>;
-
-  return (
-    <Wrapper>
-      <div
-        className={
-          onClose
-            ? "bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-full flex flex-col"
-            : "bg-white w-full flex flex-col"
-        }
-      >
+  const content = (
+    <div
+      className={
+        onClose
+          ? "bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-full flex flex-col"
+          : "bg-white w-full flex flex-col"
+      }
+    >
         <div className="overflow-y-auto flex-1 p-6">
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -466,6 +456,14 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
           )}
         </div>
       </div>
-    </Wrapper>
   );
-}
+
+  if (onClose) {
+    return (
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
