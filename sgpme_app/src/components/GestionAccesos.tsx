@@ -222,240 +222,238 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
           : "bg-white w-full flex flex-col"
       }
     >
-        <div className="overflow-y-auto flex-1 p-6">
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {usuario?.tipo === "coordinador"
-                    ? "Mi Perfil"
-                    : "Gestión de Accesos"}
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  {usuario?.tipo === "coordinador"
-                    ? "Administra tu información personal"
-                    : "Administra usuarios, roles y permisos del sistema"}
-                </p>
-              </div>
+      <div className="overflow-y-auto flex-1 p-6">
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {usuario?.tipo === "coordinador"
+                  ? "Mi Perfil"
+                  : "Gestión de Accesos"}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {usuario?.tipo === "coordinador"
+                  ? "Administra tu información personal"
+                  : "Administra usuarios, roles y permisos del sistema"}
+              </p>
+            </div>
 
-              <div className="flex items-center space-x-4">
-                {onClose && (
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 p-2 rounded-md transition-colors"
-                    title="Volver"
-                  >
-                    ✕
-                  </button>
-                )}
-                {usuario?.tipo === "administrador" && (
-                  <button
-                    onClick={() => abrirModal()}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                  >
-                    <UserPlusIcon className="w-5 h-5" />
-                    <span>Nuevo Usuario</span>
-                  </button>
-                )}
-              </div>
+            <div className="flex items-center space-x-4">
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-md transition-colors"
+                  title="Volver"
+                >
+                  ✕
+                </button>
+              )}
+              {usuario?.tipo === "administrador" && (
+                <button
+                  onClick={() => abrirModal()}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  <UserPlusIcon className="w-5 h-5" />
+                  <span>Nuevo Usuario</span>
+                </button>
+              )}
             </div>
           </div>
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-lg font-medium text-gray-900">
-                Usuarios del Sistema ({usuarios.length})
-              </h3>
-            </div>
+        </div>
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-lg font-medium text-gray-900">
+              Usuarios del Sistema ({usuarios.length})
+            </h3>
+          </div>
 
-            <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-              {usuarios.map((user) => (
-                <div key={user.id} className="p-6 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="shrink-0">
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                          <span className="text-purple-600 font-semibold text-sm">
-                            {user.full_name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900">
-                          {user.full_name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          @{user.username}
-                        </p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+          <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+            {usuarios.map((user) => (
+              <div key={user.id} className="p-6 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="shrink-0">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-600 font-semibold text-sm">
+                          {user.full_name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
                     </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        {user.full_name}
+                      </h4>
+                      <p className="text-sm text-gray-500">@{user.username}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
 
-                    <div className="flex items-center space-x-4">
-                      <span className={getRoleBadgeClass(user.role)}>
-                        {roles.find((r) => r.value === user.role)?.label ||
-                          user.role}
-                      </span>
+                  <div className="flex items-center space-x-4">
+                    <span className={getRoleBadgeClass(user.role)}>
+                      {roles.find((r) => r.value === user.role)?.label ||
+                        user.role}
+                    </span>
 
-                      <div className="flex items-center space-x-2">
-                        {usuario?.tipo === "administrador" &&
-                          user.id !== Number(usuario?.id) && (
-                            <button
-                              onClick={() => eliminarUsuario(user.id)}
-                              className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
-                              title="Eliminar usuario"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      {usuario?.tipo === "administrador" &&
+                        user.id !== Number(usuario?.id) && (
+                          <button
+                            onClick={() => eliminarUsuario(user.id)}
+                            className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                            title="Eliminar usuario"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-          {showModal && (
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                <div className="p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Nuevo Usuario
-                  </h3>
+        </div>
+        {showModal && (
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Nuevo Usuario
+                </h3>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formulario.full_name}
+                      onChange={(e) =>
+                        setFormulario({
+                          ...formulario,
+                          full_name: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Usuario
+                    </label>
+                    <input
+                      type="text"
+                      value={formulario.username}
+                      onChange={(e) =>
+                        setFormulario({
+                          ...formulario,
+                          username: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      disabled={usuario?.tipo === "coordinador"}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formulario.email}
+                      onChange={(e) =>
+                        setFormulario({
+                          ...formulario,
+                          email: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                      required
+                    />
+                  </div>
+
+                  {usuario?.tipo === "administrador" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre completo
+                        Rol
                       </label>
-                      <input
-                        type="text"
-                        value={formulario.full_name}
+                      <select
+                        value={formulario.role}
                         onChange={(e) =>
                           setFormulario({
                             ...formulario,
-                            full_name: e.target.value,
+                            role: e.target.value,
                           })
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                         required
-                      />
+                      >
+                        {roles.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                  )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Usuario
-                      </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contraseña
+                    </label>
+                    <div className="relative">
                       <input
-                        type="text"
-                        value={formulario.username}
+                        type={showPassword ? "text" : "password"}
+                        value={formulario.password}
                         onChange={(e) =>
                           setFormulario({
                             ...formulario,
-                            username: e.target.value,
+                            password: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                        disabled={usuario?.tipo === "coordinador"}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                         required
                       />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formulario.email}
-                        onChange={(e) =>
-                          setFormulario({
-                            ...formulario,
-                            email: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                        required
-                      />
-                    </div>
-
-                    {usuario?.tipo === "administrador" && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Rol
-                        </label>
-                        <select
-                          value={formulario.role}
-                          onChange={(e) =>
-                            setFormulario({
-                              ...formulario,
-                              role: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                          required
-                        >
-                          {roles.map((role) => (
-                            <option key={role.value} value={role.value}>
-                              {role.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Contraseña
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={formulario.password}
-                          onChange={(e) =>
-                            setFormulario({
-                              ...formulario,
-                              password: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                        >
-                          {showPassword ? (
-                            <EyeSlashIcon className="w-4 h-4" />
-                          ) : (
-                            <EyeIcon className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end space-x-3 pt-4">
                       <button
                         type="button"
-                        onClick={cerrarModal}
-                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                       >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-                      >
-                        Crear
+                        {showPassword ? (
+                          <EyeSlashIcon className="w-4 h-4" />
+                        ) : (
+                          <EyeIcon className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
-                  </form>
-                </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={cerrarModal}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                    >
+                      Crear
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
   );
 
   if (onClose) {
@@ -467,3 +465,4 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
   }
 
   return content;
+}
