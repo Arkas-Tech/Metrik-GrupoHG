@@ -245,11 +245,13 @@
 - Función `obtenerEventosDelDia` modificada para considerar el filtro
 - Botones con clases condicionales para mostrar estado activo
 - Filtro se aplica tanto a eventos en días como a listas de eventos
+- **Header estandarizado**: Los 3 calendarios ahora usan el mismo diseño de header con gradiente from-blue-600 to-purple-600
+- **5 botones de filtro**: Todos los calendarios incluyen Total, Realizados, Confirmados, Por Suceder y Prospectados
 
 **Archivos modificados:**
 
-- `/sgpme_app/src/components/CalendarioMensual.tsx` - Botones de filtro y lógica de filtrado
-- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - Botones de filtro y lógica de filtrado
+- `/sgpme_app/src/components/CalendarioMensual.tsx` - Botones de filtro, lógica de filtrado y header estandarizado
+- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - Botones de filtro (ahora con Prospectados) y lógica de filtrado
 - `/sgpme_app/src/components/CalendarioAnual.tsx` - Botones de filtro y lógica de filtrado
 
 **Estado:** ✅ Implementado localmente, pendiente de deploy a producción

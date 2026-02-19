@@ -152,36 +152,30 @@ export default function CalendarioMensual({
   const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      <div className="bg-blue-600 text-white p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <CalendarDaysIcon className="h-8 w-8" />
-            <div>
-              <h2 className="text-2xl font-bold">{nombreMesCapitalizado}</h2>
-              <p className="text-blue-100">Vista Mensual</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => navegarMes("anterior")}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-            >
-              <ChevronLeftIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setFechaActual(new Date())}
-              className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors text-sm font-medium"
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => navegarMes("siguiente")}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-            >
-              <ChevronRightIcon className="h-5 w-5" />
-            </button>
-          </div>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="flex items-center space-x-3">
+          <CalendarDaysIcon className="h-8 w-8 text-white" />
+          <h3 className="text-2xl font-bold text-white">
+            {nombreMesCapitalizado} {fechaActual.getFullYear()} - Vista Mensual
+          </h3>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => navegarMes("anterior")}
+            className="p-2 rounded-md hover:bg-white/20 transition-colors"
+          >
+            <ChevronLeftIcon className="h-5 w-5 text-white" />
+          </button>
+          <span className="px-3 py-1 text-sm font-medium text-white bg-white/20 rounded-md">
+            {nombreMesCapitalizado}
+          </span>
+          <button
+            onClick={() => navegarMes("siguiente")}
+            className="p-2 rounded-md hover:bg-white/20 transition-colors"
+          >
+            <ChevronRightIcon className="h-5 w-5 text-white" />
+          </button>
         </div>
       </div>
 

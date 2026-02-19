@@ -172,7 +172,7 @@ export default function CalendarioTrimestral({
         </div>
       </div>
       <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <button
             onClick={() => setFiltroEstado(null)}
             className={`text-center p-3 rounded-lg transition-all ${
@@ -233,6 +233,22 @@ export default function CalendarioTrimestral({
               }
             </div>
             <div className="text-sm text-gray-500">Por Suceder</div>
+          </button>
+          <button
+            onClick={() => setFiltroEstado("Prospectado")}
+            className={`text-center p-3 rounded-lg transition-all ${
+              filtroEstado === "Prospectado"
+                ? "bg-purple-100 ring-2 ring-purple-400 shadow-md"
+                : "hover:bg-purple-50"
+            }`}
+          >
+            <div className="text-2xl font-bold text-purple-600">
+              {
+                eventosDelTrimestre.filter((e) => e.estado === "Prospectado")
+                  .length
+              }
+            </div>
+            <div className="text-sm text-gray-500">Prospectados</div>
           </button>
         </div>
       </div>
