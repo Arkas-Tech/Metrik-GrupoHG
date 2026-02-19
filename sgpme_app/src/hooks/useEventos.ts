@@ -202,7 +202,9 @@ export function useEventos() {
           fecha_inicio: nuevoEvento.fechaInicio,
           fecha_fin: nuevoEvento.fechaFin,
           ubicacion: nuevoEvento.ubicacion,
-          marca: nuevoEvento.marca,
+          marca: Array.isArray(nuevoEvento.marca)
+            ? nuevoEvento.marca.join("|")
+            : nuevoEvento.marca,
           responsable: nuevoEvento.responsable,
           estado: nuevoEvento.estado,
           objetivo: nuevoEvento.objetivo,
@@ -274,7 +276,10 @@ export function useEventos() {
           fecha_inicio: datosActualizados.fechaInicio || evento.fechaInicio,
           fecha_fin: datosActualizados.fechaFin || evento.fechaFin,
           ubicacion: datosActualizados.ubicacion || evento.ubicacion,
-          marca: datosActualizados.marca || evento.marca,
+          marca: (() => {
+            const m = datosActualizados.marca ?? evento.marca;
+            return Array.isArray(m) ? m.join("|") : m;
+          })(),
           responsable: datosActualizados.responsable || evento.responsable,
           estado: datosActualizados.estado || evento.estado,
           objetivo: datosActualizados.objetivo || evento.objetivo,
@@ -588,9 +593,7 @@ export function useEventos() {
         }
 
         // Filtrar facturas asignadas a este evento (todos los estados)
-        const facturasEvento = facturas.filter(
-          (f) => f.eventoId === evento.id,
-        );
+        const facturasEvento = facturas.filter((f) => f.eventoId === evento.id);
 
         const totalGastado = facturasEvento.reduce(
           (sum, f) => sum + f.subtotal,

@@ -29,11 +29,8 @@ export function eventoPerteneceAMarca(
 ): boolean {
   if (!eventoMarca || !marcaBuscada) return false;
 
-  if (Array.isArray(eventoMarca)) {
-    return eventoMarca.includes(marcaBuscada);
-  }
-
-  return eventoMarca === marcaBuscada;
+  const marcas = obtenerArrayMarcas(eventoMarca);
+  return marcas.includes(marcaBuscada);
 }
 
 /**
@@ -61,6 +58,11 @@ export function obtenerArrayMarcas(marca: string | string[]): string[] {
 
   if (Array.isArray(marca)) {
     return marca;
+  }
+
+  // Soporte para múltiples marcas separadas por "|"
+  if (marca.includes("|")) {
+    return marca.split("|").map((m) => m.trim()).filter(Boolean);
   }
 
   return [marca];
