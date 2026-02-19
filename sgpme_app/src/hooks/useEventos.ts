@@ -587,9 +587,9 @@ export function useEventos() {
           return false;
         }
 
-        // Filtrar facturas asignadas a este evento con estado "Ingresada"
+        // Filtrar facturas asignadas a este evento (todos los estados)
         const facturasEvento = facturas.filter(
-          (f) => f.eventoId === evento.id && f.estado === "Ingresada",
+          (f) => f.eventoId === evento.id,
         );
 
         const totalGastado = facturasEvento.reduce(
