@@ -33,7 +33,24 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 async def read_all_users(user: user_dependency, db: db_dependency):
     if user is None or user.get('role') not in ['administrador', 'admin']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    return db.query(Users).all()
+    
+    users = db.query(Users).all()
+    
+    # Parsear JSON strings a objetos para permisos
+    result = []
+    for u in users:
+        user_dict = {
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'full_name': u.full_name,
+            'role': u.role,
+            'permisos': json.loads(u.permisos) if u.permisos else None,
+            'permisos_agencias': json.loads(u.permisos_agencias) if u.permisos_agencias else None
+        }
+        result.append(user_dict)
+    
+    return result
 
 @router.post("/user", status_code=status.HTTP_201_CREATED)
 async def create_user(user: user_dependency,
