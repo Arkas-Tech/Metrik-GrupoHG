@@ -36,11 +36,9 @@ export default function BriefTemplate({
   const [imagenPreview, setImagenPreview] = useState<ImagenEvento | null>(null);
   const { facturas } = useFacturas();
 
-  // Filtrar facturas asignadas a este evento con estado "Ingresada"
+  // Filtrar facturas asignadas a este evento (todos los estados)
   const facturasEvento = useMemo(() => {
-    return facturas.filter(
-      (f) => f.eventoId === evento.id && f.estado === "Ingresada",
-    );
+    return facturas.filter((f) => f.eventoId === evento.id);
   }, [facturas, evento.id]);
 
   // Calcular total gastado
