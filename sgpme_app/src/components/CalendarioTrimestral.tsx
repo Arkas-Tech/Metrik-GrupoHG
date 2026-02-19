@@ -392,13 +392,15 @@ export default function CalendarioTrimestral({
           })}
         </div>
       </div>
-      {eventosDelTrimestre.length > 0 && (
+      {eventosDelTrimestre.filter((e) => (filtroEstado ? e.estado === filtroEstado : true)).length > 0 && (
         <div className="p-4 border-t border-gray-200">
           <h4 className="font-medium text-gray-900 mb-3">
             Eventos del Trimestre
           </h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
-            {eventosDelTrimestre.map((evento) => (
+            {eventosDelTrimestre
+              .filter((e) => (filtroEstado ? e.estado === filtroEstado : true))
+              .map((evento) => (
               <div
                 key={evento.id}
                 onClick={(e) => {
