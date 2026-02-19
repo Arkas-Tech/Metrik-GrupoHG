@@ -25,7 +25,7 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get("/user", status_code=status.HTTP_200_OK)
 async def read_all_users(user: user_dependency, db: db_dependency):
-    if user is None or user.get('user_role') != 'admin':
+    if user is None or user.get('role') not in ['administrador', 'admin']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(Users).all()
 
@@ -33,7 +33,7 @@ async def read_all_users(user: user_dependency, db: db_dependency):
 async def create_user(user: user_dependency,
                       db: db_dependency, 
                       create_user_request: CreateUserRequest):
-    if user is None or user.get('user_role') != 'admin':
+    if user is None or user.get('role') not in ['administrador', 'admin']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     create_user_model = Users(
         email=create_user_request.email,
@@ -50,7 +50,7 @@ async def create_user(user: user_dependency,
 async def delete_user(user: user_dependency,
                        db: db_dependency,
                        user_id: int = Path(gt=0)):
-    if user is None or user.get('user_role') != 'admin':
+    if user is None or user.get('role') not in ['administrador', 'admin']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     user_model = db.query(Users).filter(Users.id == user_id).first()
     if user_model is None:
@@ -61,7 +61,7 @@ async def delete_user(user: user_dependency,
 
 @router.get("/marca", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
-    if user is None or user.get('user_role') != 'admin':
+    if user is None or user.get('role') not in ['administrador', 'admin']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(Marcas).all()
 
