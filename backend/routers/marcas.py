@@ -29,6 +29,14 @@ class MarcaRequest(BaseModel):
     administrador: str = Field(min_length=3, max_length=100)
 
 
+@router.get("/", status_code=status.HTTP_200_OK)
+async def read_all_marcas_root(user: user_dependency, db: db_dependency):
+    """Obtener todas las marcas disponibles (endpoint raíz /marcas)"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    return db.query(Marcas).all()
+
+
 @router.get("/todas/", status_code=status.HTTP_200_OK)
 async def read_all_marcas(user: user_dependency, db: db_dependency):
     """Obtener todas las marcas disponibles (sin filtro por usuario)"""
