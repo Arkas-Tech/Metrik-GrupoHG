@@ -1091,115 +1091,122 @@ export default function DashboardGeneral({
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Métricas a la izquierda */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <BanknotesIcon className="h-6 w-6 text-purple-600" />
+      {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
+      {false && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Métricas a la izquierda */}
+          <div className="grid grid-cols-1 gap-4">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="shrink-0">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                    <BanknotesIcon className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-700 truncate">
+                      Presupuesto{" "}
+                      {cuartoSeleccionado === "Todos"
+                        ? "Anual"
+                        : cuartoSeleccionado}{" "}
+                      {añoSeleccionado}
+                    </dt>
+                    <dd className="text-3xl font-bold text-gray-900">
+                      {formatearMiles(metricas.presupuestoAnual)}
+                    </dd>
+                  </dl>
                 </div>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-700 truncate">
-                    Presupuesto{" "}
-                    {cuartoSeleccionado === "Todos"
-                      ? "Anual"
-                      : cuartoSeleccionado}{" "}
-                    {añoSeleccionado}
-                  </dt>
-                  <dd className="text-3xl font-bold text-gray-900">
-                    {formatearMiles(metricas.presupuestoAnual)}
-                  </dd>
-                </dl>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="shrink-0">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <CreditCardIcon className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-700 truncate">
+                      Total Gastado
+                    </dt>
+                    <dd className="text-3xl font-bold text-gray-900">
+                      {formatearMiles(metricas.totalGastado)}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="shrink-0">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-700 truncate">
+                      Total por Pagar
+                    </dt>
+                    <dd className="text-3xl font-bold text-gray-900">
+                      {formatearMiles(metricas.totalPorPagar)}
+                    </dd>
+                  </dl>
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Gráfica a la derecha */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <CreditCardIcon className="h-6 w-6 text-red-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-700 truncate">
-                    Total Gastado
-                  </dt>
-                  <dd className="text-3xl font-bold text-gray-900">
-                    {formatearMiles(metricas.totalGastado)}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-700 truncate">
-                    Total por Pagar
-                  </dt>
-                  <dd className="text-3xl font-bold text-gray-900">
-                    {formatearMiles(metricas.totalPorPagar)}
-                  </dd>
-                </dl>
-              </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Presupuesto vs. Gasto Real -{" "}
+              {cuartoSeleccionado === "Todos"
+                ? añoSeleccionado
+                : `${cuartoSeleccionado} ${añoSeleccionado}`}
+            </h3>
+            <div className="h-70">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={datosGrafica}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="mes"
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value: number) => `$${value}K`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar
+                    dataKey="presupuesto"
+                    name="Presupuesto"
+                    fill="#6366f1"
+                    radius={[2, 2, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="gastoReal"
+                    name="Gasto Real"
+                    fill="#10b981"
+                    radius={[2, 2, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
-
-        {/* Gráfica a la derecha */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Presupuesto vs. Gasto Real -{" "}
-            {cuartoSeleccionado === "Todos"
-              ? añoSeleccionado
-              : `${cuartoSeleccionado} ${añoSeleccionado}`}
-          </h3>
-          <div className="h-70">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={datosGrafica}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" tick={{ fontSize: 12 }} tickLine={false} />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value: number) => `$${value}K`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Bar
-                  dataKey="presupuesto"
-                  name="Presupuesto"
-                  fill="#6366f1"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar
-                  dataKey="gastoReal"
-                  name="Gasto Real"
-                  fill="#10b981"
-                  radius={[2, 2, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Nueva sección: Filtro de período + Barras de progreso y gráfica de pie */}
       <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
