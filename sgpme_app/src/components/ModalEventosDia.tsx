@@ -9,7 +9,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { Evento } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ModalEventosDiaProps {
   isOpen: boolean;
@@ -51,20 +51,20 @@ export default function ModalEventosDia({
   onCrearBrief,
   onVerBrief,
 }: ModalEventosDiaProps) {
-  const [expandedEventos, setExpandedEventos] = useState<Set<string>>(
-    new Set(),
+  const [expandedEventoId, setExpandedEventoId] = useState<string | null>(
+    null,
   );
 
+  // Resetear eventos expandidos cuando se cierra el modal
+  useEffect(() => {
+    if (!isOpen) {
+      setExpandedEventoId(null);
+    }
+  }, [isOpen]);
+
   const toggleEvento = (eventoId: string) => {
-    setExpandedEventos((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(eventoId)) {
-        newSet.delete(eventoId);
-      } else {
-        newSet.add(eventoId);
-      }
-      return newSet;
-    });
+    // Si el evento ya está expandido, lo colapsamos. Si no, expandimos solo este
+    setExpandedEventoId((prev) => (prev === eventoId ? null : eventoId));
   };
 
   const formatearFecha = (fecha: Date) => {
@@ -147,7 +147,7 @@ export default function ModalEventosDia({
                     </div>
 
                     {eventos.map((evento) => {
-                      const isExpanded = expandedEventos.has(evento.id);
+                      const isExpanded = expandedEventoId === evento.id;
                       return (
                         <div
                           key={evento.id}

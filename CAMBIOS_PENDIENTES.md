@@ -163,7 +163,39 @@
 **Archivos modificados:**
 
 - `/sgpme_app/src/components/ModalEventosDia.tsx` - Botones con estilos consistentes con lista de eventos
+- `/sgpme_app/src/app/eventos/page.tsx` - Props onCrearBrief y onVerBrief agregadas a CalendarioTrimestral y CalendarioAnual en dashboard
 
 **Estado:** ✅ Implementado localmente, pendiente de deploy a producción
 
+---
+
+### 🎯 **NUEVO**: Expansión de un Solo Evento a la Vez en Modal de Resumen
+
+**Descripción:** El modal de resumen de eventos ahora permite expandir solo un evento a la vez. Al expandir un nuevo evento, el anterior se colapsa automáticamente. Además, al cerrar el modal, todos los eventos se resetean a su estado colapsado.
+
+**Problema resuelto:** Antes era posible tener múltiples eventos expandidos simultáneamente, lo que hacía el modal muy largo y difícil de navegar. Ahora la experiencia es más limpia y enfocada.
+
+**Cambios implementados:**
+
+1. **Un evento expandido a la vez:**
+   - Al hacer click para expandir un evento, cualquier otro evento expandido se colapsa automáticamente
+   - Experiencia de navegación más limpia y enfocada
+   - Reduce scrolling innecesario en días con múltiples eventos
+
+2. **Reset al cerrar modal:**
+   - Al cerrar el modal, todos los eventos regresan a su estado colapsado
+   - La próxima vez que se abra el modal, todos los eventos inician colapsados
+   - Estado limpio cada vez que se interactúa con el modal
+
+**Flujo de interacción:**
+
+1. Usuario abre modal de eventos del día (desde calendario)
+2. Hace click en un evento → evento se expande mostrando detalles completos
+3. Hace click en otro evento → el primer evento se colapsa, el segundo se expande
+4. Usuario cierra el modal
+5. Usuario vuelve a abrir el modal → todos los eventos inician colapsados
+
+**Archivos modificados:**
+
+- `/sgpme_app/src/components/ModalEventosDia.tsx` - Estado de expandedEventos cambiado de Set a string único, reset en onClose
 ---
