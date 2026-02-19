@@ -1,11 +1,17 @@
-from typing import Annotated
+from typing import Annotated, Optional, Dict
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Body
 from starlette import status
 from models import Marcas, Users
 from database import SessionLocal
 from .auth import CreateUserRequest, get_current_user, bcrypt_context
+import json
+
+
+class UpdatePermisosRequest(BaseModel):
+    permisos: Optional[Dict] = None
+    permisos_agencias: Optional[Dict] = None
 
 
 router = APIRouter(
@@ -65,4 +71,36 @@ async def read_all(user: user_dependency, db: db_dependency):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(Marcas).all()
 
+
+@router.put("/user/{user_id}/permisos", status_code=status.HTTP_200_OK)
+async def update_user_permisos(
+    user: user_dependency,
+    db: db_dependency,
+    user_id: int = Path(gt=0),
+    permisos_data: UpdatePermisosRequest = Body(...)
+):
+    if user is None or user.get('role') not in ['administrador', 'admin']:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    user_model = db.query(Users).filter(Users.id == user_id).first()
+    if user_model is None:
+        raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    
+    # Actualizar permisos de navegación si se proporcionan
+    if permisos_data.permisos is not None:
+        user_model.permisos = json.dumps(permisos_data.permisos)
+    
+    # Actualizar permisos de agencias si se proporcionan
+    if permisos_data.permisos_agencias is not None:
+        user_model.permisos_agencias = json.dumps(permisos_data.permisos_agencias)
+    
+    db.commit()
+    db.refresh(user_model)
+    
+    return {
+        'message': 'Permisos actualizados correctamente',
+        'user_id': user_id,
+        'permisos': json.loads(user_model.permisos) if user_model.permisos else None,
+        'permisos_agencias': json.loads(user_model.permisos_agencias) if user_model.permisos_agencias else None
+    }
 

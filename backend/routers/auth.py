@@ -222,10 +222,19 @@ async def delete_user(current_user: user_dependency, db: db_dependency, user_id:
     if not user_to_delete:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
     
-    db.delete(user_to_delete)
-    db.commit()
-    
-    return {'message': 'Usuario eliminado exitosamente'}
+    try:
+        db.delete(user_to_delete)
+        db.commit()
+        return {'message': 'Usuario eliminado exitosamente'}
+    except Exception as e:
+        db.rollback()
+        # Si hay un error de constraint (usuario tiene registros relacionados)
+        if 'foreign key constraint' in str(e).lower() or 'violates foreign key' in str(e).lower():
+            raise HTTPException(
+                status_code=400, 
+                detail='No se puede eliminar este usuario porque tiene registros asociados (eventos, facturas, etc.)'
+            )
+        raise HTTPException(status_code=500, detail=f'Error al eliminar usuario: {str(e)}')
 
 
 @router.post("/token", response_model=Token)
