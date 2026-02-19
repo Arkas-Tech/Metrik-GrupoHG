@@ -565,6 +565,24 @@ export default function EventosPage() {
                     <CalendarioTrimestral
                       eventos={eventosParaCalendarios}
                       facturas={facturas}
+                      onEventoClick={(evento) => {
+                        setEventoEditando(evento);
+                        setVistaActual("editar");
+                      }}
+                      onCrearBrief={(eventoId) => {
+                        const evento = eventos.find((e) => e.id === eventoId);
+                        if (evento) {
+                          setEventoEditando(evento);
+                          setVistaActual("brief");
+                        }
+                      }}
+                      onVerBrief={(eventoId) => {
+                        const evento = eventos.find((e) => e.id === eventoId);
+                        if (evento && evento.brief) {
+                          setEventoEditando(evento);
+                          setVistaActual("template");
+                        }
+                      }}
                     />
                   </div>
                 )}
@@ -574,6 +592,24 @@ export default function EventosPage() {
                     <CalendarioAnual
                       eventos={eventosParaCalendarios}
                       facturas={facturas}
+                      onEventoClick={(evento) => {
+                        setEventoEditando(evento);
+                        setVistaActual("editar");
+                      }}
+                      onCrearBrief={(eventoId) => {
+                        const evento = eventos.find((e) => e.id === eventoId);
+                        if (evento) {
+                          setEventoEditando(evento);
+                          setVistaActual("brief");
+                        }
+                      }}
+                      onVerBrief={(eventoId) => {
+                        const evento = eventos.find((e) => e.id === eventoId);
+                        if (evento && evento.brief) {
+                          setEventoEditando(evento);
+                          setVistaActual("template");
+                        }
+                      }}
                     />
                   </div>
                 )}

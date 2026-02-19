@@ -172,39 +172,6 @@ export default function ModalEventosDia({
                                   >
                                     {evento.estado}
                                   </span>
-                                  {/* Botones de Brief - Visibles siempre */}
-                                  {evento.brief ? (
-                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                      <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                      Brief Disponible
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-600">
-                                      ⏳ Sin Brief
-                                    </span>
-                                  )}
-                                  {evento.brief && onVerBrief && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onVerBrief(evento.id.toString());
-                                      }}
-                                      className="px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
-                                    >
-                                      👁️ Preview
-                                    </button>
-                                  )}
-                                  {!evento.brief && onCrearBrief && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onCrearBrief(evento.id.toString());
-                                      }}
-                                      className="px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
-                                    >
-                                      ➕ Crear Brief
-                                    </button>
-                                  )}
                                 </div>
                                 <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
                                   <span>
