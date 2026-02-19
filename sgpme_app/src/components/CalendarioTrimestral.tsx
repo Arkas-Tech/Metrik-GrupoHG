@@ -65,6 +65,7 @@ export default function CalendarioTrimestral({
   const [eventosDelDiaSeleccionado, setEventosDelDiaSeleccionado] = useState<
     Evento[]
   >([]);
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
 
   const mesesDelTrimestre = useMemo(() => {
     const inicio = (trimestre - 1) * 3;
@@ -100,9 +101,11 @@ export default function CalendarioTrimestral({
       );
       const fechaBuscada = new Date(año, mes, dia);
 
-      return (
-        fechaBuscada >= inicioNormalizada && fechaBuscada <= finNormalizada
-      );
+      const estaEnRango =
+        fechaBuscada >= inicioNormalizada && fechaBuscada <= finNormalizada;
+      const cumpleFiltro = filtroEstado ? evento.estado === filtroEstado : true;
+
+      return estaEnRango && cumpleFiltro;
     });
   };
 
@@ -170,13 +173,27 @@ export default function CalendarioTrimestral({
       </div>
       <div className="p-4 bg-gray-50 border-b border-gray-200">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
+          <button
+            onClick={() => setFiltroEstado(null)}
+            className={`text-center p-3 rounded-lg transition-all ${
+              filtroEstado === null
+                ? "bg-gray-200 ring-2 ring-gray-400 shadow-md"
+                : "hover:bg-gray-100"
+            }`}
+          >
             <div className="text-2xl font-bold text-gray-900">
               {eventosDelTrimestre.length}
             </div>
             <div className="text-sm text-gray-500">Total Eventos</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            onClick={() => setFiltroEstado("Realizado")}
+            className={`text-center p-3 rounded-lg transition-all ${
+              filtroEstado === "Realizado"
+                ? "bg-green-100 ring-2 ring-green-400 shadow-md"
+                : "hover:bg-green-50"
+            }`}
+          >
             <div className="text-2xl font-bold text-green-600">
               {
                 eventosDelTrimestre.filter((e) => e.estado === "Realizado")
@@ -184,8 +201,15 @@ export default function CalendarioTrimestral({
               }
             </div>
             <div className="text-sm text-gray-500">Realizados</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            onClick={() => setFiltroEstado("Confirmado")}
+            className={`text-center p-3 rounded-lg transition-all ${
+              filtroEstado === "Confirmado"
+                ? "bg-blue-100 ring-2 ring-blue-400 shadow-md"
+                : "hover:bg-blue-50"
+            }`}
+          >
             <div className="text-2xl font-bold text-blue-600">
               {
                 eventosDelTrimestre.filter((e) => e.estado === "Confirmado")
@@ -193,8 +217,15 @@ export default function CalendarioTrimestral({
               }
             </div>
             <div className="text-sm text-gray-500">Confirmados</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            onClick={() => setFiltroEstado("Por Suceder")}
+            className={`text-center p-3 rounded-lg transition-all ${
+              filtroEstado === "Por Suceder"
+                ? "bg-yellow-100 ring-2 ring-yellow-400 shadow-md"
+                : "hover:bg-yellow-50"
+            }`}
+          >
             <div className="text-2xl font-bold text-yellow-600">
               {
                 eventosDelTrimestre.filter((e) => e.estado === "Por Suceder")
@@ -202,7 +233,7 @@ export default function CalendarioTrimestral({
               }
             </div>
             <div className="text-sm text-gray-500">Por Suceder</div>
-          </div>
+          </button>
         </div>
       </div>
 

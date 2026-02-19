@@ -198,4 +198,58 @@
 **Archivos modificados:**
 
 - `/sgpme_app/src/components/ModalEventosDia.tsx` - Estado de expandedEventos cambiado de Set a string único, reset en onClose
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+
 ---
+
+### 🎯 **NUEVO**: Filtrado de Eventos por Estado en Calendarios
+
+**Descripción:** Los contadores de estado en todos los calendarios (Mensual, Trimestral y Anual) ahora son botones clickeables que filtran los eventos del calendario según el estado seleccionado. Al hacer click en un estado, solo se muestran los eventos con ese estado en el calendario.
+
+**Problema resuelto:** Antes era difícil enfocarse en eventos de un estado específico cuando había muchos eventos en el calendario. Ahora se puede filtrar rápidamente por "Realizados", "Confirmados", "Por Suceder" o "Prospectados".
+
+**Cambios implementados:**
+
+1. **Botones de filtro interactivos:**
+   - Todos los contadores de estado (Total, Realizados, Confirmados, Por Suceder, Prospectados) son ahora botones clickeables
+   - Indicador visual del filtro activo (ring-2 y fondo más intenso)
+   - Hover states para mejor UX
+   - Click en "Total Eventos" muestra todos los eventos (resetea filtro)
+
+2. **Filtrado en tiempo real:**
+   - Al seleccionar un estado, el calendario solo muestra eventos de ese estado
+   - Los eventos en días se filtran dinámicamente
+   - La lista de eventos (en trimestral) también se filtra
+   - El contador total se mantiene para referencia
+
+3. **Estados disponibles para filtrado:**
+   - **Todos** (null): Muestra todos los eventos sin filtro
+   - **Realizado**: Solo eventos completados (verde)
+   - **Confirmado**: Solo eventos confirmados (azul)
+   - **Por Suceder**: Solo eventos próximos (amarillo)
+   - **Prospectado**: Solo eventos en prospección (morado)
+
+**Flujo de interacción:**
+
+1. Usuario abre calendario (Mensual, Trimestral o Anual)
+2. Ve contadores de eventos por estado en la parte superior
+3. Hace click en un estado específico (ej: "Realizados")
+4. El calendario se actualiza mostrando solo eventos con ese estado
+5. El botón seleccionado muestra indicador visual (ring + fondo)
+6. Usuario puede click en "Total Eventos" para volver a ver todos
+
+**Implementación técnica:**
+
+- Estado `filtroEstado` agregado a cada componente de calendario
+- Función `obtenerEventosDelDia` modificada para considerar el filtro
+- Botones con clases condicionales para mostrar estado activo
+- Filtro se aplica tanto a eventos en días como a listas de eventos
+
+**Archivos modificados:**
+
+- `/sgpme_app/src/components/CalendarioMensual.tsx` - Botones de filtro y lógica de filtrado
+- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - Botones de filtro y lógica de filtrado
+- `/sgpme_app/src/components/CalendarioAnual.tsx` - Botones de filtro y lógica de filtrado
+
+**Estado:** ✅ Implementado localmente, pendiente de deploy a producción

@@ -51,9 +51,7 @@ export default function ModalEventosDia({
   onCrearBrief,
   onVerBrief,
 }: ModalEventosDiaProps) {
-  const [expandedEventoId, setExpandedEventoId] = useState<string | null>(
-    null,
-  );
+  const [expandedEventoId, setExpandedEventoId] = useState<string | null>(null);
 
   // Resetear eventos expandidos cuando se cierra el modal
   useEffect(() => {
