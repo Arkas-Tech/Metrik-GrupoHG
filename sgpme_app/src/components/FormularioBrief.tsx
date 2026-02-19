@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { BriefEvento, Evento } from "@/types";
+import { formatearMarca } from "@/lib/evento-utils";
 import ImageUploadMultiple from "./ImageUploadMultiple";
 import ImageModal from "./ImageModal";
 
@@ -349,7 +350,7 @@ export default function FormularioBrief({
           </div>
           <div>
             <span className="font-medium text-blue-800">Marca:</span>
-            <p className="text-blue-700">{evento.marca}</p>
+            <p className="text-blue-700">{formatearMarca(evento.marca)}</p>
           </div>
           <div>
             <span className="font-medium text-blue-800">Presupuesto:</span>
@@ -542,35 +543,35 @@ export default function FormularioBrief({
                 <p className="text-sm text-gray-600">
                   💡 Edita el nombre y descripción de cada imagen:
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {imagenes.map((imagen) => (
                     <div
                       key={imagen.id}
-                      className="border border-gray-200 rounded-lg p-4 bg-white"
+                      className="border border-gray-200 rounded-lg p-3 bg-white"
                     >
                       {/* Imagen preview */}
                       {imagen.url && (
                         <div
-                          className="w-full h-48 relative rounded mb-3 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity group"
+                          className="relative w-full h-32 rounded mb-2 cursor-pointer group overflow-hidden bg-gray-100"
                           onClick={() => abrirImagenModal(imagen)}
                         >
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={imagen.url}
                             alt={imagen.nombre}
-                            fill
-                            className="object-cover rounded"
-                            sizes="(max-width: 768px) 100vw, 50vw"
+                            className="w-full h-32 object-cover rounded"
+                            loading="eager"
                           />
                           {imagen.file && (
-                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                              📁 Archivo Local
+                            <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded z-10">
+                              📁 Local
                             </div>
                           )}
-                          {/* Indicador de que es clickeable */}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-2">
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-transparent group-hover:bg-black/20 transition-all rounded flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1.5">
                               <svg
-                                className="w-6 h-6 text-gray-800"
+                                className="w-4 h-4 text-gray-800"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -590,7 +591,7 @@ export default function FormularioBrief({
                               e.stopPropagation();
                               removerImagen(imagen.id);
                             }}
-                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm transition-colors z-10"
+                            className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
                             disabled={loading}
                           >
                             ✕
@@ -599,27 +600,21 @@ export default function FormularioBrief({
                       )}
 
                       {/* Campo nombre editable */}
-                      <div className="mb-3">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Nombre de la imagen
-                        </label>
+                      <div className="mb-2">
                         <input
                           type="text"
                           value={imagen.nombre}
                           onChange={(e) =>
                             actualizarNombreImagen(imagen.id, e.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                          placeholder="Nombre de la imagen"
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                          placeholder="Nombre"
                           disabled={loading}
                         />
                       </div>
 
                       {/* Campo descripción editable */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Descripción (opcional)
-                        </label>
                         <textarea
                           value={imagen.descripcion}
                           onChange={(e) =>
@@ -629,8 +624,8 @@ export default function FormularioBrief({
                             )
                           }
                           rows={2}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
-                          placeholder="Describe qué se ve en esta imagen..."
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
+                          placeholder="Descripción..."
                           disabled={loading}
                         />
                       </div>

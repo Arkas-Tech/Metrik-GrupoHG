@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Union, List
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -24,6 +24,19 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
+def deserialize_marca(marca_str: str) -> Union[str, List[str]]:
+    """Deserializa el campo marca, retornando un string o lista según corresponda"""
+    if not marca_str:
+        return ""
+    
+    # Intentar parsear como JSON
+    if marca_str.startswith('['):
+        try:
+            return json.loads(marca_str)
+        except:
+            return marca_str
+    return marca_str
+
 class EventoRequest(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     descripcion: Optional[str] = None
@@ -31,7 +44,7 @@ class EventoRequest(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     ubicacion: Optional[str] = None
-    marca: str = Field(min_length=1, max_length=100)
+    marca: Union[str, List[str]] = Field(..., description="Una agencia o lista de agencias")
     responsable: str = Field(min_length=1, max_length=100)
     estado: str = Field(min_length=1, max_length=50)
     objetivo: Optional[str] = None
@@ -48,7 +61,7 @@ class EventoResponse(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     ubicacion: Optional[str]
-    marca: str
+    marca: Union[str, List[str]]
     responsable: str
     estado: str
     objetivo: Optional[str]
@@ -125,7 +138,7 @@ class BriefEventoResponse(BaseModel):
     aprobado_por: Optional[str]
     fecha_aprobacion: Optional[datetime]
 
-@router.get("/", response_model=list[EventoResponse], status_code=status.HTTP_200_OK)
+@router.get("/", status_code=status.HTTP_200_OK)
 async def read_all_eventos(user: user_dependency, db: db_dependency, 
                           marca: Optional[str] = Query(None),
                           estado: Optional[str] = Query(None),
@@ -138,7 +151,11 @@ async def read_all_eventos(user: user_dependency, db: db_dependency,
     query = db.query(Eventos)
     
     if marca:
-        query = query.filter(Eventos.marca == marca)
+        # Buscar en eventos que tengan esta marca (tanto en string como en array JSON)
+        query = query.filter(
+            (Eventos.marca == marca) | 
+            (Eventos.marca.like(f'%"{marca}"%'))
+        )
     if estado:
         query = query.filter(Eventos.estado == estado)
     if fecha_inicio:
@@ -148,9 +165,18 @@ async def read_all_eventos(user: user_dependency, db: db_dependency,
     if responsable:
         query = query.filter(Eventos.responsable.ilike(f'%{responsable}%'))
         
-    return query.order_by(Eventos.fecha_inicio.desc()).all()
+    eventos = query.order_by(Eventos.fecha_inicio.desc()).all()
+    
+    # Deserializar marca en cada evento
+    result = []
+    for evento in eventos:
+        evento_dict = evento.__dict__.copy()
+        evento_dict['marca'] = deserialize_marca(evento.marca)
+        result.append(evento_dict)
+    
+    return result
 
-@router.get("/{evento_id}", response_model=EventoResponse, status_code=status.HTTP_200_OK)
+@router.get("/{evento_id}", status_code=status.HTTP_200_OK)
 async def read_evento(user: user_dependency, db: db_dependency, evento_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
@@ -160,12 +186,21 @@ async def read_evento(user: user_dependency, db: db_dependency, evento_id: int =
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
     
-    return evento
+    # Deserializar marca
+    evento_dict = evento.__dict__.copy()
+    evento_dict['marca'] = deserialize_marca(evento.marca)
+    
+    return evento_dict
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_evento(user: user_dependency, db: db_dependency, evento_request: EventoRequest):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    # Serializar marca si es una lista
+    marca_value = evento_request.marca
+    if isinstance(marca_value, list):
+        marca_value = json.dumps(marca_value)
 
     evento_model = Eventos(
         nombre=evento_request.nombre,
@@ -174,7 +209,7 @@ async def create_evento(user: user_dependency, db: db_dependency, evento_request
         fecha_inicio=evento_request.fecha_inicio,
         fecha_fin=evento_request.fecha_fin,
         ubicacion=evento_request.ubicacion,
-        marca=evento_request.marca,
+        marca=marca_value,
         responsable=evento_request.responsable,
         estado=evento_request.estado,
         objetivo=evento_request.objetivo,
@@ -202,13 +237,18 @@ async def update_evento(user: user_dependency, db: db_dependency,
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
 
+    # Serializar marca si es una lista
+    marca_value = evento_request.marca
+    if isinstance(marca_value, list):
+        marca_value = json.dumps(marca_value)
+
     evento.nombre = evento_request.nombre
     evento.descripcion = evento_request.descripcion
     evento.tipo_evento = evento_request.tipo_evento
     evento.fecha_inicio = evento_request.fecha_inicio
     evento.fecha_fin = evento_request.fecha_fin
     evento.ubicacion = evento_request.ubicacion
-    evento.marca = evento_request.marca
+    evento.marca = marca_value
     evento.responsable = evento_request.responsable
     evento.estado = evento_request.estado
     evento.objetivo = evento_request.objetivo

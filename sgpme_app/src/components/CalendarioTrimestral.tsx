@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import ModalEventosDia from "./ModalEventosDia";
 import GraficaPresupuestoVsGasto from "./GraficaPresupuestoVsGasto";
+import { formatearMarca } from "@/lib/evento-utils";
 
 interface CalendarioTrimestralProps {
   eventos: Evento[];
@@ -392,7 +393,9 @@ export default function CalendarioTrimestral({
           })}
         </div>
       </div>
-      {eventosDelTrimestre.filter((e) => (filtroEstado ? e.estado === filtroEstado : true)).length > 0 && (
+      {eventosDelTrimestre.filter((e) =>
+        filtroEstado ? e.estado === filtroEstado : true,
+      ).length > 0 && (
         <div className="p-4 border-t border-gray-200">
           <h4 className="font-medium text-gray-900 mb-3">
             Eventos del Trimestre
@@ -401,29 +404,29 @@ export default function CalendarioTrimestral({
             {eventosDelTrimestre
               .filter((e) => (filtroEstado ? e.estado === filtroEstado : true))
               .map((evento) => (
-              <div
-                key={evento.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Abrir modal con el evento específico
-                  const fechaEvento = parsearFecha(evento.fechaInicio);
-                  setFechaSeleccionada(fechaEvento);
-                  setEventosDelDiaSeleccionado([evento]);
-                  setModalAbierto(true);
-                }}
-                className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${
-                  COLORES_ESTADO[evento.estado as keyof typeof COLORES_ESTADO]
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{evento.nombre}</div>
-                  <div className="text-xs text-gray-600">
-                    {evento.marca} • {evento.fechaInicio}
+                <div
+                  key={evento.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Abrir modal con el evento específico
+                    const fechaEvento = parsearFecha(evento.fechaInicio);
+                    setFechaSeleccionada(fechaEvento);
+                    setEventosDelDiaSeleccionado([evento]);
+                    setModalAbierto(true);
+                  }}
+                  className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${
+                    COLORES_ESTADO[evento.estado as keyof typeof COLORES_ESTADO]
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{evento.nombre}</div>
+                    <div className="text-xs text-gray-600">
+                      {formatearMarca(evento.marca)} • {evento.fechaInicio}
+                    </div>
                   </div>
+                  <div className="text-xs font-medium">{evento.estado}</div>
                 </div>
-                <div className="text-xs font-medium">{evento.estado}</div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

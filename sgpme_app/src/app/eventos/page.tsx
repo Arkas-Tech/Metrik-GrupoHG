@@ -18,6 +18,7 @@ import CalendarioTrimestral from "@/components/CalendarioTrimestral";
 import CalendarioAnual from "@/components/CalendarioAnual";
 import CalendarioMensual from "@/components/CalendarioMensual";
 import { Evento, FiltrosEvento, BriefEvento } from "@/types";
+import { eventoPerteneceAMarca, formatearMarca } from "@/lib/evento-utils";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
@@ -94,7 +95,10 @@ export default function EventosPage() {
   const eventosFiltrados = useMemo(() => {
     return eventos
       .filter((evento) => {
-        if (marcaSeleccionada && evento.marca !== marcaSeleccionada) {
+        if (
+          marcaSeleccionada &&
+          !eventoPerteneceAMarca(evento.marca, marcaSeleccionada)
+        ) {
           return false;
         }
 
@@ -126,7 +130,10 @@ export default function EventosPage() {
   // Eventos solo filtrados por marca para calendarios (sin filtros de mes/año)
   const eventosParaCalendarios = useMemo(() => {
     return eventos.filter((evento) => {
-      if (marcaSeleccionada && evento.marca !== marcaSeleccionada) {
+      if (
+        marcaSeleccionada &&
+        !eventoPerteneceAMarca(evento.marca, marcaSeleccionada)
+      ) {
         return false;
       }
       return true;
@@ -285,7 +292,7 @@ export default function EventosPage() {
   const manejarExportarBriefPDF = async () => {
     if (eventoEditando) {
       try {
-        await exportarBriefPDF(eventoEditando.id);
+        await exportarBriefPDF(eventoEditando.id, facturas);
       } catch (error) {
         console.error("Error al exportar PDF:", error);
       }
@@ -1088,7 +1095,7 @@ export default function EventosPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {evento.marca}
+                              {formatearMarca(evento.marca)}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                               {formatearFecha(evento.fechaInicio)}
@@ -1387,7 +1394,7 @@ export default function EventosPage() {
                                   </h4>
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <span className="bg-gray-100 px-2 py-1 rounded">
-                                      {evento.marca}
+                                      {formatearMarca(evento.marca)}
                                     </span>
                                     <span>•</span>
                                     <span>

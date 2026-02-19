@@ -1066,25 +1066,24 @@ const CampanasPage = () => {
       {/* Modal de Preview de Imagen */}
       {imagenPreview && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-60"
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4"
           onClick={() => setImagenPreview(null)}
         >
-          <div className="relative max-w-7xl max-h-screen p-4">
+          <div className="relative max-w-[60%] max-h-[90vh] w-full h-full flex items-center justify-center">
+            <button
+              onClick={() => setImagenPreview(null)}
+              className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
+            >
+              <XMarkIcon className="h-6 w-6 text-gray-700" />
+            </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imagenPreview}
               alt="Preview"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              className="object-contain max-h-[85vh] w-auto"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
-          <button
-            onClick={() => setImagenPreview(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
-            style={{ textShadow: "0 0 3px black, 0 0 5px black" }}
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
         </div>
       )}
     </div>

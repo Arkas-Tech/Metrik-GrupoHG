@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import ImageUpload from "./ImageUpload";
 import { MARCAS } from "@/types";
 import DateInput from "./DateInput";
@@ -59,6 +60,12 @@ export default function FormularioCampana({
     marca: initialData?.marca || "",
     imagenes: initialData?.imagenes || [],
   });
+
+  const [imagenPreview, setImagenPreview] = useState<{
+    url: string;
+    nombre: string;
+    descripcion?: string;
+  } | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -331,12 +338,16 @@ export default function FormularioCampana({
                   alt={imagen.nombre}
                   width={200}
                   height={128}
-                  className="w-full h-32 object-cover rounded-lg"
+                  className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setImagenPreview(imagen)}
                 />
                 <button
                   type="button"
-                  onClick={() => eliminarImagen(imagen.id)}
-                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    eliminarImagen(imagen.id);
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 >
                   ✕
                 </button>
@@ -351,6 +362,7 @@ export default function FormularioCampana({
                     rel="noopener noreferrer"
                     className="text-xs text-blue-600 hover:text-blue-800 mt-1 block truncate underline"
                     title={imagen.nombre}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     🔗 Ver anuncio
                   </a>
@@ -378,6 +390,45 @@ export default function FormularioCampana({
           Campaña
         </button>
       </div>
+
+      {/* Modal de Preview de Imagen */}
+      {imagenPreview && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setImagenPreview(null)}
+        >
+          <div className="relative max-w-[60%] max-h-[90vh] w-full h-full flex items-center justify-center">
+            <button
+              onClick={() => setImagenPreview(null)}
+              className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
+            >
+              <XMarkIcon className="h-6 w-6 text-gray-700" />
+            </button>
+            <div className="relative w-full h-full flex flex-col items-center justify-center">
+              <div className="relative max-w-full max-h-[85vh]">
+                <Image
+                  src={imagenPreview.url}
+                  alt={imagenPreview.nombre}
+                  width={1200}
+                  height={800}
+                  className="object-contain max-h-[85vh] w-auto"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="mt-4 bg-white rounded-lg p-4 max-w-2xl">
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {imagenPreview.nombre}
+                </h3>
+                {imagenPreview.descripcion && (
+                  <p className="text-sm text-gray-600">
+                    {imagenPreview.descripcion}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

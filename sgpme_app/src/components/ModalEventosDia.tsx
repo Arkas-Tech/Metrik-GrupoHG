@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   XMarkIcon,
@@ -9,7 +9,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { Evento } from "@/types";
-import { useState, useEffect } from "react";
+import { formatearMarca } from "@/lib/evento-utils";
 
 interface ModalEventosDiaProps {
   isOpen: boolean;
@@ -53,12 +53,11 @@ export default function ModalEventosDia({
 }: ModalEventosDiaProps) {
   const [expandedEventoId, setExpandedEventoId] = useState<string | null>(null);
 
-  // Resetear eventos expandidos cuando se cierra el modal
-  useEffect(() => {
-    if (!isOpen) {
-      setExpandedEventoId(null);
-    }
-  }, [isOpen]);
+  // Manejar cierre del modal con reset de estado
+  const handleClose = () => {
+    setExpandedEventoId(null);
+    onClose();
+  };
 
   const toggleEvento = (eventoId: string) => {
     // Si el evento ya está expandido, lo colapsamos. Si no, expandimos solo este
@@ -81,7 +80,7 @@ export default function ModalEventosDia({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -118,7 +117,7 @@ export default function ModalEventosDia({
                   <button
                     type="button"
                     className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    onClick={onClose}
+                    onClick={handleClose}
                   >
                     <span className="sr-only">Cerrar</span>
                     <XMarkIcon className="h-6 w-6" aria-hidden="true" />
@@ -175,7 +174,7 @@ export default function ModalEventosDia({
                                   <span>
                                     📍 {evento.ubicacion || "Sin ubicación"}
                                   </span>
-                                  <span>🏢 {evento.marca}</span>
+                                  <span>🏢 {formatearMarca(evento.marca)}</span>
                                   <span>
                                     💰{" "}
                                     {formatearMoneda(

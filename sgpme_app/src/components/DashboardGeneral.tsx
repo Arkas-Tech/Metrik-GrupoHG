@@ -10,6 +10,7 @@ import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import FormularioPresencia from "@/components/FormularioPresencia";
 import { AÑOS, Evento } from "@/types";
+import { eventoPerteneceAMarca, formatearMarca } from "@/lib/evento-utils";
 import { fetchConToken } from "@/lib/auth-utils";
 
 const MESES_ORDEN = [
@@ -827,7 +828,10 @@ export default function DashboardGeneral({
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((evento) => {
       // Filtrar por agencia (del header)
-      if (agenciaSeleccionada && evento.marca !== agenciaSeleccionada) {
+      if (
+        agenciaSeleccionada &&
+        !eventoPerteneceAMarca(evento.marca, agenciaSeleccionada)
+      ) {
         return false;
       }
 
@@ -2489,7 +2493,7 @@ export default function DashboardGeneral({
                         {evento.tipoEvento}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {evento.marca}
+                        {formatearMarca(evento.marca)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(evento.fechaInicio).toLocaleDateString(

@@ -26,7 +26,11 @@ export default function FormularioEvento({
     if (eventoInicial) {
       return {
         nombre: eventoInicial.nombre,
-        marca: eventoInicial.marca,
+        marca: Array.isArray(eventoInicial.marca)
+          ? eventoInicial.marca
+          : eventoInicial.marca
+            ? [eventoInicial.marca]
+            : [],
         fechaInicio: eventoInicial.fechaInicio,
         fechaFin: eventoInicial.fechaFin || "",
         fechasTentativas: eventoInicial.fechasTentativas || [],
@@ -44,7 +48,7 @@ export default function FormularioEvento({
     }
     return {
       nombre: "",
-      marca: "",
+      marca: [] as string[],
       fechaInicio: "",
       fechaFin: "",
       fechasTentativas: [] as string[],
@@ -83,6 +87,34 @@ export default function FormularioEvento({
     };
     cargarCoordinadores();
   }, []);
+
+  const handleMarcaChange = (marca: string) => {
+    setFormData((prev) => {
+      const marcasActuales = Array.isArray(prev.marca) ? prev.marca : [];
+      const marcaIndex = marcasActuales.indexOf(marca);
+
+      if (marcaIndex > -1) {
+        // Si ya está seleccionada, la removemos
+        return {
+          ...prev,
+          marca: marcasActuales.filter((m) => m !== marca),
+        };
+      } else {
+        // Si no está seleccionada, la agregamos
+        return {
+          ...prev,
+          marca: [...marcasActuales, marca],
+        };
+      }
+    });
+    // Limpiar error de marca si se selecciona al menos una
+    if (errores.marca) {
+      setErrores((prev) => {
+        const { marca, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -132,8 +164,9 @@ export default function FormularioEvento({
       nuevosErrores.nombre = "El nombre del evento es requerido";
     }
 
-    if (!formData.marca) {
-      nuevosErrores.marca = "La agencia es requerida";
+    const marcasArray = Array.isArray(formData.marca) ? formData.marca : [];
+    if (marcasArray.length === 0) {
+      nuevosErrores.marca = "Debes seleccionar al menos una agencia";
     }
 
     if (!formData.fechaInicio) {
@@ -215,25 +248,56 @@ export default function FormularioEvento({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Agencia *
-            </label>
-            <select
-              name="marca"
-              value={formData.marca}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Agencias *{" "}
+                <span className="text-xs text-gray-500 font-normal">
+                  (selecciona una o varias)
+                </span>
+              </label>
+              {Array.isArray(formData.marca) && formData.marca.length > 0 && (
+                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                  {formData.marca.length} seleccionada
+                  {formData.marca.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <div
+              className={`border rounded-lg p-3 bg-gray-50 ${
                 errores.marca ? "border-red-300" : "border-gray-300"
               }`}
-              disabled={loading}
             >
-              <option value="">Selecciona una agencia</option>
-              {MARCAS.map((marca) => (
-                <option key={marca} value={marca}>
-                  {marca}
-                </option>
-              ))}
-            </select>
+              <div className="flex flex-wrap gap-2">
+                {MARCAS.map((marca) => {
+                  const marcasArray = Array.isArray(formData.marca)
+                    ? formData.marca
+                    : [];
+                  const isChecked = marcasArray.includes(marca);
+
+                  return (
+                    <button
+                      key={marca}
+                      type="button"
+                      onClick={() => handleMarcaChange(marca)}
+                      disabled={loading}
+                      className={`
+                        px-3 py-1.5 rounded-full text-xs font-medium
+                        transition-all duration-200 ease-in-out
+                        ${
+                          isChecked
+                            ? "bg-blue-600 text-white shadow-md hover:bg-blue-700 scale-100"
+                            : "bg-white text-gray-700 border border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+                        }
+                        ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+                      `}
+                    >
+                      {marca}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {errores.marca && (
               <p className="mt-1 text-sm text-red-600">{errores.marca}</p>
             )}

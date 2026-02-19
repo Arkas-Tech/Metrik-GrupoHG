@@ -325,7 +325,7 @@ export const METODOS_PAGO = [
 export interface Evento {
   id: string;
   nombre: string;
-  marca: string;
+  marca: string | string[]; // Soporta una o múltiples agencias
   fechaInicio: string;
   fechaFin?: string;
   fechasTentativas?: string[];

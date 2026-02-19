@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
-import { BriefEvento, Evento, ImagenEvento } from "../types";
+import React, { useState, useMemo } from "react";
+import { BriefEvento, Evento, ImagenEvento } from "@/types";
+import { formatearMarca } from "@/lib/evento-utils";
+import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
 import Image from "next/image";
 import {
   CalendarIcon,
@@ -12,6 +14,9 @@ import {
   PhotoIcon,
   StarIcon,
   ArrowDownTrayIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 interface BriefTemplateProps {
@@ -27,6 +32,22 @@ export default function BriefTemplate({
   onDescargarPDF,
   isPreview = false,
 }: BriefTemplateProps) {
+  const [facturasExpandidas, setFacturasExpandidas] = useState(false);
+  const [imagenPreview, setImagenPreview] = useState<ImagenEvento | null>(null);
+  const { facturas } = useFacturas();
+
+  // Filtrar facturas asignadas a este evento con estado "Ingresada"
+  const facturasEvento = useMemo(() => {
+    return facturas.filter(
+      (f) => f.eventoId === evento.id && f.estado === "Ingresada",
+    );
+  }, [facturas, evento.id]);
+
+  // Calcular total gastado
+  const totalGastado = useMemo(() => {
+    return facturasEvento.reduce((sum, f) => sum + f.subtotal, 0);
+  }, [facturasEvento]);
+
   let evidencia = null;
   let imagenes = [];
   let descripcionEvento = "";
@@ -111,7 +132,7 @@ export default function BriefTemplate({
               </div>
               <div className="flex items-center">
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
-                  {evento.marca}
+                  {formatearMarca(evento.marca)}
                 </span>
               </div>
             </div>
@@ -180,7 +201,7 @@ export default function BriefTemplate({
                   </p>
                   <p className="text-3xl font-bold text-purple-700 mt-1">
                     {((evidencia.leads / evidencia.asistentes) * 100).toFixed(
-                      1
+                      1,
                     )}
                     %
                   </p>
@@ -322,13 +343,75 @@ export default function BriefTemplate({
                       }`}
                     >
                       {formatearMoneda(
-                        evento.presupuestoReal - evento.presupuestoEstimado
+                        evento.presupuestoReal - evento.presupuestoEstimado,
                       )}
                     </span>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Sección de Facturas/Gastos */}
+            {facturasEvento.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+                {/* Recuadro clickeable con Total Gastado */}
+                <button
+                  onClick={() => setFacturasExpandidas(!facturasExpandidas)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-blue-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-gray-800">
+                      Total Gastado:
+                    </span>
+                    <span className="text-lg font-bold text-blue-700">
+                      {formatearMoneda(totalGastado)}
+                    </span>
+                  </div>
+                  {facturasExpandidas ? (
+                    <ChevronDownIcon className="h-5 w-5 text-gray-600" />
+                  ) : (
+                    <ChevronUpIcon className="h-5 w-5 text-gray-600" />
+                  )}
+                </button>
+
+                {/* Lista de facturas */}
+                {facturasExpandidas && (
+                  <div className="border-t border-blue-200 bg-white p-4 space-y-2">
+                    {facturasEvento.map((factura) => (
+                      <div
+                        key={factura.id}
+                        className="border border-gray-200 rounded-md p-3 grid grid-cols-3 gap-3 text-sm"
+                      >
+                        <div>
+                          <span className="text-gray-500 text-xs block">
+                            Proveedor
+                          </span>
+                          <span className="font-medium text-gray-800">
+                            {factura.proveedor}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs block">
+                            Subtotal
+                          </span>
+                          <span className="font-medium text-gray-800">
+                            {formatearMoneda(factura.subtotal)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs block">
+                            Subcategoría
+                          </span>
+                          <span className="font-medium text-gray-800">
+                            {factura.subcategoria || "Sin categoría"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -388,7 +471,8 @@ export default function BriefTemplate({
               {imagenes.map((imagen: ImagenEvento) => (
                 <div
                   key={imagen.id}
-                  className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setImagenPreview(imagen)}
                 >
                   <div className="relative h-48">
                     <Image
@@ -409,6 +493,45 @@ export default function BriefTemplate({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de preview de imagen */}
+        {imagenPreview && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+            onClick={() => setImagenPreview(null)}
+          >
+            <div className="relative max-w-[60%] max-h-[90vh] w-full h-full flex items-center justify-center">
+              <button
+                onClick={() => setImagenPreview(null)}
+                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-700" />
+              </button>
+              <div className="relative w-full h-full flex flex-col items-center justify-center">
+                <div className="relative max-w-full max-h-[85vh]">
+                  <Image
+                    src={imagenPreview.url}
+                    alt={imagenPreview.nombre}
+                    width={1200}
+                    height={800}
+                    className="object-contain max-h-[85vh] w-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="mt-4 bg-white rounded-lg p-4 max-w-2xl">
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {imagenPreview.nombre}
+                  </h3>
+                  {imagenPreview.descripcion && (
+                    <p className="text-sm text-gray-600">
+                      {imagenPreview.descripcion}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -459,8 +582,8 @@ export default function BriefTemplate({
                   evento.estado === "Realizado"
                     ? "bg-green-100 text-green-800"
                     : evento.estado === "Confirmado"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-gray-100 text-gray-800"
                 }`}
               >
                 {evento.estado}

@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Evento, GastoEvento, BriefEvento, EstadisticasEvento } from "@/types";
+import {
+  Evento,
+  GastoEvento,
+  BriefEvento,
+  EstadisticasEvento,
+  Factura,
+} from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
 
 interface EventoBackend {
@@ -572,7 +578,7 @@ export function useEventos() {
   );
 
   const exportarBriefPDF = useCallback(
-    async (eventoId: string): Promise<boolean> => {
+    async (eventoId: string, facturas: Factura[] = []): Promise<boolean> => {
       try {
         const evento = eventos.find((e) => e.id === eventoId);
 
@@ -580,6 +586,16 @@ export function useEventos() {
           alert("No se encontró el brief para este evento");
           return false;
         }
+
+        // Filtrar facturas asignadas a este evento con estado "Ingresada"
+        const facturasEvento = facturas.filter(
+          (f) => f.eventoId === evento.id && f.estado === "Ingresada",
+        );
+
+        const totalGastado = facturasEvento.reduce(
+          (sum, f) => sum + f.subtotal,
+          0,
+        );
 
         const jsPDF = (await import("jspdf")).jsPDF;
 
@@ -743,6 +759,38 @@ export function useEventos() {
               12,
             );
           }
+
+          // Sección de facturas/gastos
+          if (facturasEvento.length > 0) {
+            addSpace(5);
+            addText(
+              `Total Gastado: ${new Intl.NumberFormat("es-MX", {
+                style: "currency",
+                currency: "MXN",
+              }).format(totalGastado)}`,
+              12,
+              true,
+            );
+            addSpace(3);
+            addText("Desglose de Facturas:", 11, true);
+            addSpace(2);
+
+            facturasEvento.forEach((factura, index) => {
+              addText(
+                `${index + 1}. ${factura.proveedor} - ${new Intl.NumberFormat(
+                  "es-MX",
+                  {
+                    style: "currency",
+                    currency: "MXN",
+                  },
+                ).format(
+                  factura.subtotal,
+                )} - ${factura.subcategoria || "Sin categoría"}`,
+                10,
+              );
+            });
+          }
+
           addSpace(10);
 
           if (evidencia.conclusiones) {
