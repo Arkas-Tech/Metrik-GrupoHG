@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { MARCAS } from "@/types";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
@@ -68,6 +69,11 @@ const getDefaultAgencias = (): PermisosAgencias => {
 
 export default function ConfiguracionPermisos() {
   const { showToast, ToastContainer } = useToast();
+  const authContext = useAuth();
+  const currentUserId = authContext.usuario?.id;
+  const refreshUser = (authContext as Record<string, unknown>).refreshUser as
+    | (() => Promise<void>)
+    | undefined;
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] =
     useState<Usuario | null>(null);
@@ -178,6 +184,11 @@ export default function ConfiguracionPermisos() {
           prev.map((u) => (u.id === usuarioSeleccionado.id ? updatedUser : u)),
         );
         setUsuarioSeleccionado(updatedUser);
+        // Si el usuario modificado es el usuario actual, refrescar el contexto de autenticación
+        // para que la NavBar refleje los cambios de inmediato
+        if (currentUserId && currentUserId === String(usuarioSeleccionado.id)) {
+          refreshUser?.();
+        }
       } else {
         showToast("Error al guardar permisos", "error");
       }

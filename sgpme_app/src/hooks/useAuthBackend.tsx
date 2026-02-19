@@ -104,6 +104,7 @@ interface AuthContextType {
   iniciarSesion: (username: string, password: string) => Promise<boolean>;
   cerrarSesion: () => void;
   tienePermiso: (modulo: keyof PermisosUsuario, accion: string) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -246,6 +247,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("usuario");
   };
 
+  const refreshUser = async (): Promise<void> => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const response = await fetch(AUTH_ENDPOINTS.USER_PROFILE, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        const usuarioMapeado: Usuario = {
+          id: userData.id.toString(),
+          nombre: userData.full_name,
+          email: userData.email,
+          tipo: userData.role as TipoUsuario,
+          grupo: "Grupo HG",
+          fechaCreacion: new Date().toISOString().split("T")[0],
+          activo: true,
+          permisos: userData.permisos || {
+            dashboard: true,
+            estrategia: true,
+            facturas: true,
+            eventos: true,
+            digital: true,
+          },
+          permisos_agencias: userData.permisos_agencias || {},
+        };
+        setUsuario(usuarioMapeado);
+        setPermisos(PERMISOS_POR_TIPO[usuarioMapeado.tipo]);
+        localStorage.setItem("usuario", JSON.stringify(usuarioMapeado));
+      }
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  };
+
   const tienePermiso = (
     modulo: keyof PermisosUsuario,
     accion: string,
@@ -265,6 +301,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         iniciarSesion,
         cerrarSesion,
         tienePermiso,
+        refreshUser,
       }}
     >
       {children}
