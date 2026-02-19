@@ -9,7 +9,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "GRUPO HG - SGPME",
+  title: "GRUPO HG - Metrik",
   description: "Sistema de Gestión de Presupuestos, Marcas y Eventos",
   manifest: "/manifest.json",
   themeColor: "#3b82f6",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SGPME",
+    title: "Metrik",
   },
 };
 

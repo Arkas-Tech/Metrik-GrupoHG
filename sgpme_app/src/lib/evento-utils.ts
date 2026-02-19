@@ -37,6 +37,21 @@ export function eventoPerteneceAMarca(
 }
 
 /**
+ * Verifica si un evento pertenece a alguna de las marcas permitidas
+ * @param eventoMarca - Marca(s) del evento
+ * @param marcasPermitidas - Array de marcas permitidas
+ * @returns true si el evento pertenece a alguna de las marcas
+ */
+export function eventoPerteneceAMarcas(
+  eventoMarca: string | string[],
+  marcasPermitidas: string[],
+): boolean {
+  if (!eventoMarca || marcasPermitidas.length === 0) return false;
+  const marcasEvento = obtenerArrayMarcas(eventoMarca);
+  return marcasEvento.some((m) => marcasPermitidas.includes(m));
+}
+
+/**
  * Obtiene un array de marcas desde el campo marca
  * @param marca - String simple o array de marcas
  * @returns Array de marcas

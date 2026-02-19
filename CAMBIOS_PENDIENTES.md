@@ -34,671 +34,1195 @@
 
 ## 🚧 Cambios Pendientes
 
-### 🎯 **NUEVO**: Preview de Imágenes en Formulario de Campañas + Fix Imágenes Negras en Brief + Rediseño Grid
+### 🔐 Permisos Desglosados: Navegación + Agencias
 
-**Descripción:** Se agregó funcionalidad de preview de imágenes en el formulario de campañas con el formato estándar (60% ancho, 90vh alto), se corrigió el problema de imágenes negras en el formulario de briefs, y se rediseñó el grid de imágenes.
+**Reestructuración del sistema de permisos por usuario:**
 
-**Problemas resueltos:**
+1. **ConfiguracionPermisos.tsx - Interfaz con secciones:**
+   - ✅ Selector desplegable con dos secciones: "🧭 Navegación" y "🏢 Agencias"
+   - ✅ Sección Navegación: toggles para Dashboard, Estrategia, Facturas, Eventos, Digital
+   - ✅ Sección Agencias: toggles para las 15 agencias (MARCAS) del sistema
+   - ✅ Contador de permisos activos por sección (ej: 5/5, 14/14)
+   - ✅ Chevron icons para indicar sección expandida/colapsada
+   - ✅ Panel de usuarios reducido ~35% (w-80 → w-52) para dar más espacio a permisos
+   - ✅ Ambas secciones inician cerradas por defecto (no hay sección abierta al entrar)
+   - ✅ Click en sección abierta la cierra (toggle manual)
 
-1. **FormularioCampana**: Las imágenes no tenían preview modal, solo se mostraban como miniaturas sin forma de ampliarlas
-2. **FormularioBrief**: Las imágenes se veían negras en las miniaturas por uso de `bg-black bg-opacity-0` (incompatible con Tailwind v4)
-3. **FormularioBrief**: Grid de imágenes demasiado grande, se necesitaban 4 por hilera y más compactas
+2. **Backend - Nuevo campo `permisos_agencias`:**
+   - ✅ Columna `permisos_agencias` (TEXT JSON) agregada a tabla `users` en models.py
+   - ✅ Migración ejecutada: `migrations/add_permisos_agencias.py`
+   - ✅ PUT `/admin/user/{id}/permisos` acepta `permisos` + `permisos_agencias`
+   - ✅ GET `/admin/user` retorna ambos campos por usuario
+   - ✅ GET `/auth/user` retorna `permisos_agencias` del usuario autenticado
 
-**Causa raíz de imágenes negras:** Tailwind CSS v4 ya no soporta `bg-opacity-*` como clase separada. `bg-black bg-opacity-0` renderizaba un fondo negro sólido sobre las imágenes. Solución: usar `bg-transparent group-hover:bg-black/20` (sintaxis v4).
+3. **Frontend - Tipos y Auth:**
+   - ✅ `Usuario` interface actualizada con `permisos_agencias?: Record<string, boolean>`
+   - ✅ `useAuthBackend.tsx` mapea `permisos_agencias` en verificarSesion e iniciarSesion
+   - ✅ NavBar sigue funcionando sin cambios (lee `usuario.permisos` directamente)
 
-**Rediseño del grid de imágenes en FormularioBrief:**
+4. **Filtrado global por agencias permitidas:**
+   - ✅ `MarcaContext.tsx` - Calcula `marcasPermitidas` basado en `permisos_agencias` del usuario
+   - ✅ Admin ve todas las marcas; otros usuarios solo ven las asignadas
+   - ✅ Auto-selección si el usuario solo tiene 1 agencia permitida
+   - ✅ Si marca seleccionada deja de estar permitida, se resetea a null
+   - ✅ `FiltroMarcaGlobal.tsx` - Usa `marcasPermitidas` en vez de `MARCAS` hardcodeadas
+   - ✅ Si 0 agencias: no muestra filtro; si 1 agencia: muestra texto fijo; si >1: muestra selector
 
-- Grid: de `grid-cols-1 md:grid-cols-2` → `grid-cols-2 md:grid-cols-4`
-- Miniaturas: altura `h-32` (128px), compactas
-- Padding reducido: `p-4` → `p-3`
-- Inputs compactos: `text-xs px-2 py-1.5`
-- Labels removidas para ahorrar espacio
-- Badges y botones proporcionalmente más pequeños
+5. **Formularios actualizados con marcas permitidas:**
+   - ✅ `FormularioMetricaSimple.tsx` - Usa `marcasPermitidas` del contexto
+   - ✅ `FormularioProyeccion.tsx` - Usa `marcasPermitidas` del contexto
+   - ✅ `FormularioFactura.tsx` - Usa `marcasPermitidas` del contexto
+   - ✅ `FormularioPresenciaTradicional.tsx` - Usa `marcasPermitidas` del contexto
+   - ✅ `FormularioCampana.tsx` - Usa `marcasPermitidas` del contexto
+   - ✅ `FormularioEvento.tsx` - Usa `marcasPermitidas` del contexto (multi-select botones)
+   - ✅ `FormularioPresencia.tsx` - Usa `marcasPermitidas` del contexto
 
-**Cambios implementados:**
-
-**1. FormularioCampana.tsx:**
-
-- Import de `XMarkIcon` de Heroicons
-- Estado `imagenPreview` para controlar preview modal
-- Imágenes clickeables con `cursor-pointer` y efecto hover
-- Modal de preview con formato estándar:
-  - Anchura: 60% del viewport (`max-w-[60%]`)
-  - Altura: 90vh (`max-h-[90vh]`)
-  - Imagen: max 85vh con `object-contain`
-  - Botón cerrar en esquina superior derecha
-  - Click fuera para cerrar
-  - Info card debajo de la imagen
-- Botón eliminar con `stopPropagation` para no abrir preview
-- Link "Ver anuncio" con `stopPropagation` para no abrir preview
-
-**2. FormularioBrief.tsx:**
-
-- Cambio de `<Image>` (Next.js) a `<img>` nativo en miniaturas
-- Razón: Next.js Image component con `fill` prop causa problemas con URLs base64/blob locales
-- Reducción de tamaño de miniaturas: de `h-48` (192px) a `h-32` (128px) para mejor visualización
-- Las miniaturas usan `<img>` con `w-full h-32 object-cover`
-- Agregado `loading="eager"` para carga inmediata de imágenes base64
-- Preview modal sigue usando ImageModal component (que funciona correctamente)
-- Agregado `overflow-hidden` al contenedor para garantizar bordes redondeados
-- Simplificación del CSS para mejor compatibilidad con URLs base64
-
-**Flujo de usuario - FormularioCampana:**
-
-1. Usuario agrega imágenes al formulario de campaña
-2. Ve miniaturas en grid de 2-4 columnas
-3. Hace click en cualquier imagen para ver preview en tamaño grande
-4. Se abre modal con imagen en 60% ancho, 90vh alto
-5. Ve título y descripción debajo de la imagen
-6. Cierra con botón X o click fuera
-7. Puede eliminar imagen con botón rojo (sin abrir preview)
-8. Puede ver link del anuncio (sin abrir preview)
-
-**Flujo de usuario - FormularioBrief:**
-
-1. Usuario agrega imágenes al formulario de brief
-2. Ahora ve las imágenes correctamente (ya no aparecen negras)
-3. Puede ver miniaturas compactas h-32 (128px) con imagen visible
-4. Click en miniatura abre ImageModal con preview completo
-5. Experiencia consistente en todo el flujo
+6. **Defaults de permisos:**
+   - ✅ Navegación: todas activadas por defecto (nuevo y existente)
+   - ✅ Agencias: todas desactivadas por defecto (admin debe asignar)
 
 **Archivos modificados:**
 
-- `sgpme_app/src/components/FormularioCampana.tsx`:
-  - Nuevo import: XMarkIcon
-  - Nuevo estado: imagenPreview
-  - onClick en imágenes para abrir preview
-  - stopPropagation en botón eliminar y link
-  - Modal de preview con formato estándar
-- `sgpme_app/src/components/FormularioBrief.tsx`:
-  - Cambio de `<Image fill>` a `<img>` en miniaturas
-  - Agregado `overflow-hidden` al contenedor
-  - Mantiene ImageModal para preview (sigue funcionando)
+- `sgpme_app/src/components/ConfiguracionPermisos.tsx` - Reescrito con secciones, default agencias=false
+- `sgpme_app/src/contexts/MarcaContext.tsx` - Nuevo: `marcasPermitidas` + auto-selección
+- `sgpme_app/src/components/FiltroMarcaGlobal.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioMetricaSimple.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioProyeccion.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioFactura.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioPresenciaTradicional.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioCampana.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioEvento.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/components/FormularioPresencia.tsx` - Usa marcasPermitidas
+- `sgpme_app/src/types/index.ts` - Campo `permisos_agencias` en Usuario
+- `sgpme_app/src/hooks/useAuthBackend.tsx` - Mapeo de permisos_agencias
+- `HGApp/models.py` - Columna `permisos_agencias` en Users
+- `HGApp/routers/admin.py` - PermisosRequest y endpoints actualizados
+- `HGApp/routers/auth.py` - Retorna permisos_agencias en GET /auth/user
+- `HGApp/migrations/add_permisos_agencias.py` - Migración de BD
 
-**Notas técnicas:**
+**⚠️ Migración requerida en servidor:**
 
-- **Next.js Image limitations**: El componente `<Image>` con prop `fill` no funciona bien con URLs base64/blob/local porque Next.js intenta optimizar la imagen y falla
-- **Solución**: Usar `<img>` nativo para miniaturas (no requiere optimización), y `<Image>` solo en modal cuando ya está cargada
-- **Preview modal estándar**: 60% ancho es ideal para ver detalles sin abrumar pantalla
-- **stopPropagation**: Necesario en botones/links dentro de elementos clickeables para prevenir abrir preview accidentalmente
-- Compatible con todos los tamaños de pantalla
-- z-index 50 asegura que modal esté sobre todo el contenido
-
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+```bash
+cd HGApp && python3 migrations/add_permisos_agencias.py
+```
 
 ---
 
-### 🎯 **NUEVO**: Preview de Imágenes en Brief de Eventos
+### 🔒 Filtrado "Todas las agencias" respeta permisos de usuario
 
-**Descripción:** Las imágenes en la galería del brief ahora son clickeables y abren un modal de preview en tamaño completo, permitiendo ver las imágenes con mejor detalle sin salir del brief.
+**Corrección crítica:** Cuando un usuario selecciona "Todas las agencias" en el header, ahora se filtran los datos solo por las agencias que tiene asignadas, en vez de mostrar datos de TODAS las agencias del sistema.
 
-**Problema resuelto:** Antes las imágenes solo se mostraban en miniaturas pequeñas (h-48) sin forma de ampliarlas. Ahora se pueden ver en tamaño completo con un solo click.
+1. **MarcaContext.tsx - Nueva función `filtraPorMarca`:**
+   - ✅ Callback que retorna `true` si la marca pasa el filtro actual
+   - ✅ Si hay marca seleccionada: filtra por esa marca específica
+   - ✅ Si "Todas las agencias": filtra por `marcasPermitidas` del usuario
+   - ✅ Exportada en el contexto para uso en toda la app
 
-**Cambios implementados:**
+2. **evento-utils.ts - Nueva función `eventoPerteneceAMarcas` (plural):**
+   - ✅ Verifica si un evento (que puede tener múltiples marcas) pertenece a alguna de las marcas permitidas
+   - ✅ Usa `obtenerArrayMarcas()` para manejar marca string o string[]
 
-1. **Imágenes clickeables:**
-   - Todas las imágenes en la galería ahora tienen `cursor-pointer`
-   - Click en cualquier imagen abre el modal de preview
-   - Efecto hover visual para indicar que son clickeables
+3. **Páginas con filtro client-side corregidas:**
+   - ✅ `estrategia/page.tsx` - Usa `filtraPorMarca` en vez de `!marcaSeleccionada || ...`
+   - ✅ `facturas/page.tsx` - 2 filtros corregidos con `filtraPorMarca`
+   - ✅ `eventos/page.tsx` - Usa `eventoPerteneceAMarcas` con `marcasPermitidas` cuando no hay marca específica
+   - ✅ `campanas/page.tsx` - Filtra campañas por `filtraPorMarca` antes de otros filtros
+   - ✅ `digital/page.tsx` - Filtra campañas activas por `filtraPorMarca`
 
-2. **Modal de preview fullscreen:**
-   - Fondo oscuro semi-transparente (bg-opacity-75)
-   - Botón de cerrar (X) en esquina superior derecha
-   - Click fuera de la imagen cierra el modal
-   - **Límites de tamaño optimizados:**
-     - Altura máxima: 90vh (90% de la altura de la ventana)
-     - Anchura máxima: 60% del ancho de la ventana
-     - Imagen se ajusta manteniendo proporciones (`object-contain`)
-   - Título y descripción de la imagen debajo del preview
-   - Diseño responsive que funciona en móvil y desktop
+4. **DashboardGeneral.tsx - 8+ filtros corregidos:**
+   - ✅ Importa `useMarcaGlobal` y usa `filtraPorMarca`/`marcasPermitidas`
+   - ✅ Facturas, presupuestos, proyecciones, gastos: `filtraPorMarca(item.marca)`
+   - ✅ Eventos: `eventoPerteneceAMarcas(evento.marca, marcasPermitidas)`
+   - ✅ Presencias: `filtraPorMarca(presencia.agencia)`
+   - ✅ Campañas activas: filtro por marca añadido
 
-3. **Experiencia de usuario mejorada:**
-   - Click en la imagen (dentro del modal) no cierra el preview
-   - ESC o click fuera cierra el modal
-   - Transición suave al abrir/cerrar
-   - Imágenes de alta calidad (1200x800 base)
-   - Texto legible con fondo blanco debajo de la imagen
+5. **Hooks API con post-filtrado:**
+   - ✅ `useMetricas.ts` - Post-filtra métricas por `marcasPermitidas` cuando no hay marca específica
+   - ✅ `usePresencias.ts` - Post-filtra presencias por `marcasPermitidas` cuando no hay marca específica
 
-**Flujo de uso:**
+6. **Componentes gráficos con filtrado:**
+   - ✅ `GraficaPresupuestoVsGasto.tsx` - Filtra presupuestos y proyecciones por agencias permitidas
+   - ✅ `GraficaProyeccionVsGasto.tsx` - Filtra presupuestos, proyecciones y facturas por agencias permitidas
+   - ✅ `PresupuestoAnual.tsx` - Calcula suma solo de agencias permitidas (ya no usa `/suma` endpoint)
 
-1. Usuario abre brief de un evento con imágenes
-2. Ve la galería de imágenes en miniatura
-3. Hace click en cualquier imagen que quiera ver en detalle
-4. Se abre modal con la imagen en tamaño grande (max 90% altura, 60% ancho)
-5. Puede leer el título y descripción debajo de la imagen
-6. Cierra el modal haciendo click en:
-   - Botón X en la esquina
-   - Fondo oscuro fuera de la imagen
-7. Puede abrir otra imagen repitiendo el proceso
+7. **Página /presupuesto - Filtrado por agencias:**
+   - ✅ `ListaPresupuestosMensuales.tsx` - Filtra marcas agrupadas por `marcasPermitidas`
+   - ✅ Solo se muestran las agencias asignadas al usuario
+   - ✅ Formulario de edición solo muestra agencias permitidas
 
 **Archivos modificados:**
 
-- `/sgpme_app/src/components/BriefTemplate.tsx`:
-  - Import de `XMarkIcon` de Heroicons
-  - Estado `imagenPreview` para controlar qué imagen se muestra
-  - Función `setImagenPreview` para abrir/cerrar modal
-  - onClick en cada imagen de la galería
-  - Nuevo modal overlay con imagen fullscreen
-  - Límites de tamaño: `max-w-[60%]` y `max-h-[90vh]`
-  - Botón de cerrar y click fuera para cerrar
+- `sgpme_app/src/contexts/MarcaContext.tsx` - Agregada función `filtraPorMarca`
+- `sgpme_app/src/lib/evento-utils.ts` - Agregada `eventoPerteneceAMarcas`
+- `sgpme_app/src/app/estrategia/page.tsx` - Filtro corregido
+- `sgpme_app/src/app/facturas/page.tsx` - 2 filtros corregidos
+- `sgpme_app/src/app/eventos/page.tsx` - Filtro corregido con multi-marca
+- `sgpme_app/src/app/campanas/page.tsx` - Filtro por marca añadido
+- `sgpme_app/src/app/digital/page.tsx` - Filtro por marca añadido
+- `sgpme_app/src/components/DashboardGeneral.tsx` - 8+ filtros corregidos
+- `sgpme_app/src/hooks/useMetricas.ts` - Post-filtrado por agencias
+- `sgpme_app/src/hooks/usePresencias.ts` - Post-filtrado por agencias
+- `sgpme_app/src/components/GraficaPresupuestoVsGasto.tsx` - Filtrado de datos
+- `sgpme_app/src/components/GraficaProyeccionVsGasto.tsx` - Filtrado de datos
+- `sgpme_app/src/components/PresupuestoAnual.tsx` - Filtrado y suma por agencias
+- `sgpme_app/src/components/ListaPresupuestosMensuales.tsx` - Filtrado de marcas agrupadas
 
-**Notas técnicas:**
-
-- El modal usa `position: fixed` con `z-50` para estar sobre todo
-- Las imágenes se cargan con Next.js Image component para optimización
-- `object-contain` asegura que la imagen completa sea visible
-- `stopPropagation` en la imagen evita que cierre el modal al hacer click en ella
-- Compatible con todos los tamaños de pantalla (responsive)
-- No afecta al PDF descargable (solo funcionalidad en UI web)
-
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+**⚠️ No requiere migración de BD**
 
 ---
 
-### 🎯 **NUEVO**: Estandarización de Preview de Imágenes en Toda la Aplicación
+### 🎨 Página Digital (antes Métricas)
 
-**Descripción:** Se ha estandarizado el formato de los modales de preview de imágenes en toda la aplicación para ofrecer una experiencia consistente. Todos los previews de imágenes ahora usan las mismas dimensiones y estilos.
+**Reestructuración completa de la página de métricas:**
 
-**Problema resuelto:** Antes había diferentes implementaciones de preview de imágenes en la aplicación:
+1. **Renombrado de ruta:**
+   - ✅ Carpeta renombrada: `/app/metricas/` → `/app/digital/`
+   - ✅ Ruta actualizada en navegación: `/metricas` → `/digital`
+   - ✅ Etiqueta en menú: "📈 Métricas" → "📈 Digital"
 
-- Algunos usaban modales muy anchos (`max-w-7xl` ≈ 1280px)
-- Otros tenían alturas limitadas a 70vh
-- Diseños inconsistentes en botones de cerrar
-- Experiencia de usuario fragmentada
+2. **Cambios en sección Funnel:**
+   - ✅ Título cambiado: "Funnel Digital" → "Funnel"
+   - ✅ Métrica "Pisos" eliminada de las tarjetas principales
+   - ✅ Grid reducido de 4 a 3 columnas (Leads, Citas, Ventas)
+   - ✅ Columna "Pisos" removida del historial de métricas
+   - ✅ Cálculo `pisosCambio` eliminado
 
-**Formato estándar implementado:**
+3. **Nuevas secciones agregadas:**
+   - ✅ **Conciliación con BDC** - Placeholder con estado "Próximamente"
+   - ✅ **Diagramas de Conversión** - Placeholder con estado "Próximamente"
 
-- **Anchura:** 60% del viewport (`max-w-[60%]`)
-- **Altura:** 90% del viewport (`max-h-[90vh]`)
-- **Imagen:** Altura máxima 85vh con `object-contain`
-- **Botón cerrar:** Esquina superior derecha (top-4 right-4)
-- **Fondo:** Negro semi-transparente (bg-opacity-75)
-- **Cierre:** Click fuera de la imagen o botón X
-- **Información:** Título y descripción debajo de la imagen
+4. **Sección Embajadores:**
+   - ✅ Copiada desde DashboardGeneral
+   - ✅ 3 tarjetas de embajadores: @mariana_fitness, @carlos_tech, @sofia_lifestyle
+   - ✅ Métricas por embajador: Presupuesto, Leads, Audiencia
+   - ✅ Diseño con gradientes de colores (purple, pink, indigo)
 
-**Componentes actualizados:**
+5. **Orden final de secciones:**
+   1. Funnel (3 métricas)
+   2. Historial de Métricas
+   3. Conciliación con BDC (próximamente)
+   4. Diagramas de Conversión (próximamente)
+   5. Campañas Digitales (Meta, Google, TikTok)
+   6. Embajadores
 
-1. **ImageModal.tsx** (componente base):
-   - Cambió de `max-w-7xl` a `max-w-[60%]`
-   - Cambió de `fill` con contenedores fijos a dimensiones explícitas
-   - Imagen ahora usa `max-h-[85vh]` en vez de `max-h-[70vh]`
-   - Close button movido de `-top-12 right-0` a `top-4 right-4`
-   - Removido texto de instrucción innecesario
-   - Info card ajustada para estar debajo de la imagen
-   - **Usado por:** FormularioBrief (previews de imágenes en formulario del brief)
+6. **Compatibilidad Tailwind v4:**
+   - ✅ Todas las clases `bg-gradient-to-br` actualizadas a `bg-linear-to-br`
 
-2. **campanas/page.tsx** (vista de campañas):
-   - Modal inline actualizado de `max-w-7xl` a `max-w-[60%]`
-   - Altura de contenedor de `max-h-screen` a `max-h-[90vh]`
-   - Close button mejorado con bg-white y mejor posicionamiento
-   - Imagen usa `max-h-[85vh]` para consistencia
-   - Opacidad de fondo ajustada de 90 a 75 para uniformidad
+**Archivos modificados:**
 
-3. **BriefTemplate.tsx** (ya implementado previamente):
-   - ✅ Ya tenía el nuevo formato estándar
-   - Sirvió como referencia para actualizar los demás
+- `/app/digital/page.tsx` (antes metricas/page.tsx)
+- `/app/dashboard/page.tsx`
+- `/app/eventos/page.tsx`
+- `/app/facturas/page.tsx`
+- `/app/estrategia/page.tsx`
+- `/app/campanas/page.tsx`
+- `/app/campanas/[id]/anuncios/page.tsx`
+- `/app/presupuesto/page.tsx`
+- `/components/LayoutDashboard.tsx`
 
-**Componentes verificados (no requieren preview):**
+**Notas técnicas:**
 
-- **FormularioCampana.tsx**: Solo muestra miniaturas con botón de eliminar, no tiene preview modal
+- ⚠️ La ruta ahora es `/digital` en lugar de `/metricas`
+- 💡 Usuarios verán "Digital" en el navegador y en el menú
+- 📝 Los botones internos conservan "Registrar Métricas" para claridad funcional
 
-**Flujo consistente en toda la app:**
+---
 
-1. Usuario hace click en cualquier imagen (brief, campañas, formularios)
-2. Se abre modal de preview con dimensiones estándar (60% ancho, 90vh alto)
-3. Imagen se muestra en tamaño óptimo manteniendo proporciones
-4. Info visible debajo de la imagen cuando está disponible
-5. Cierre intuitivo con click fuera o botón X
-6. Experiencia visual y funcionalmente idéntica en toda la aplicación
+### 📄 Visor de PDFs en Facturas
+
+**Nueva funcionalidad para visualizar PDFs sin descargar:**
+
+1. **Visualización en modal:**
+   - ✅ Modal con iframe para mostrar PDFs directamente en el navegador
+   - ✅ Tamaño del modal: 90vh de altura, máximo ancho de 6xl
+   - ✅ Botón de cerrar (X) en la esquina superior derecha
+   - ✅ Título del modal muestra el nombre del archivo
+
+2. **Botones "Ver" agregados:**
+   - ✅ Botón "Ver" junto a "Descargar" para archivos PDF de facturas
+   - ✅ Botón "Ver" junto a "Descargar" para cotizaciones PDF
+   - ✅ Solo aparece para archivos de tipo PDF
+   - ✅ Color morado distintivo (purple-600) para diferenciarlo de "Descargar" (blue-600)
+
+3. **Funcionalidad técnica:**
+   - ✅ Función `verPDF()` que carga el PDF usando `fetchConToken` con autenticación automática
+   - ✅ Uso de `fetchConToken` de `@/lib/auth-utils` para manejo correcto de tokens
+   - ✅ Crea blob URL temporal para mostrar en iframe
+   - ✅ Limpieza automática de URLs al cerrar el modal (revokeObjectURL)
+   - ✅ Manejo de errores con alertas informativas
+   - ✅ Soporta tanto archivos de facturas como cotizaciones
+   - ✅ Renovación automática de token si expira (manejo de 401)
+
+4. **Endpoints utilizados:**
+   - Archivos: `/facturas/{facturaId}/archivos/{archivoId}/descargar`
+   - Cotizaciones: `/facturas/{facturaId}/cotizaciones/{cotizacionId}/descargar`
+
+**Archivos modificados:**
+
+- `/components/ListaFacturas.tsx`
 
 **Beneficios:**
 
-- ✅ Experiencia de usuario consistente
-- ✅ Imágenes no demasiado grandes ni pequeñas (60% es el punto ideal)
-- ✅ Espacio suficiente para ver detalles sin ocupar toda la pantalla
-- ✅ Diseño limpio y profesional
-- ✅ Código más mantenible (estándar único)
-- ✅ Responsive en todos los dispositivos
+- 📖 Visualización rápida sin descargar archivos
+- 🔍 Navegación dentro del PDF (zoom, scroll, páginas)
+- 💾 Opción de descargar sigue disponible
+- 🎯 UX mejorada para revisión rápida de documentos
+
+---
+
+### 🔧 Correcciones en Formulario de Facturas
+
+**Problemas corregidos en el guardado de cotizaciones y UX:**
+
+1. **Eliminación de botones "Ver" del formulario:**
+   - ✅ Removido botón "Ver" de archivos en el editor de facturas
+   - ✅ Removido botón "Ver" de cotizaciones en el editor de facturas
+   - ✅ Solo queda botón "Eliminar" en el formulario de edición
+   - ℹ️ El botón "Ver" sigue disponible en la lista de facturas (detalles expandidos)
+
+2. **Corrección del flujo de guardado de cotizaciones:**
+   - ✅ Problema identificado: el componente se desmontaba antes de subir cotizaciones
+   - ✅ Solución: `FormularioFactura` ahora llama a `onCancel()` DESPUÉS de subir todos los archivos y cotizaciones
+   - ✅ Agregado timeout de 500ms para asegurar que las cargas terminen
+   - ✅ `manejarCrearFactura` ya no cambia vista inmediatamente
+   - ✅ `manejarActualizarFactura` ya no cambia vista inmediatamente
+   - ✅ Ahora las cotizaciones se guardan correctamente antes de cerrar el formulario
+
+3. **Mejoras en el proceso de guardado:**
+   - ✅ Logs de consola detallados para debugging
+   - ✅ Manejo secuencial de subida de archivos y cotizaciones
+   - ✅ Cada cotización se sube individualmente con confirmación
+   - ✅ Al terminar todo el proceso, se cierra el formulario automáticamente
 
 **Archivos modificados:**
 
-- `sgpme_app/src/components/ImageModal.tsx`
-- `sgpme_app/src/app/campanas/page.tsx`
+- `/components/FormularioFactura.tsx` - Flujo de guardado y eliminación de botones "Ver"
+- `/app/facturas/page.tsx` - Funciones `manejarCrearFactura` y `manejarActualizarFactura`
+
+**Resultado:**
+
+- ✅ Las cotizaciones ahora se guardan correctamente
+- ✅ Los archivos se suben antes de cerrar el formulario
+- ✅ UX más limpia en el editor (sin botones "Ver" redundantes)
+- ✅ Los botones "Ver" siguen funcionando en la vista de detalles de la lista
+
+---
+
+### 📊 Mejoras en Sección de Desplazamiento (Dashboard)
+
+**Visualización de PDFs y mejoras de UI:**
+
+1. **Visor de PDF en modal:**
+   - ✅ Modal para visualizar PDFs sin descargar (igual que en facturas)
+   - ✅ Función `verPDF()` con autenticación mediante `fetchConToken`
+   - ✅ Iframe de 90vh de altura dentro del modal
+   - ✅ Botón de cerrar con XMarkIcon
+   - ✅ Limpieza automática de blob URLs al cerrar
+   - ✅ Título del modal muestra el nombre del archivo
+
+2. **Rediseño completo de botones PDF:**
+   - ✅ **Botón "Cambiar/Subir"** (modo edición):
+     - Antes: Recuadro azul con emoji 📎 y texto "Cambiar"/"Subir"
+     - Ahora: Solo ícono `ArrowPathIcon` naranja sin recuadro ni texto
+   - ✅ **Botón "Ver"**:
+     - Ícono `EyeIcon` (azul) sin recuadro
+     - Abre el PDF en el modal viewer
+   - ✅ **Botón "Descargar"**:
+     - Antes: Emoji ⬇️ en recuadro verde
+     - Ahora: Ícono `ArrowDownTrayIcon` (verde) sin recuadro
+   - ✅ **Botón "Borrar"** (modo edición):
+     - X roja sin recuadro
+   - ✅ Todos los botones ahora son solo íconos sin fondos de colores
+   - ✅ Aplicado consistentemente en las 4 tablas: Mayor Existencia, Más de 90 días, Demos, Otros
+
+3. **Correcciones de colores de texto:**
+   - ✅ Selectores de agencia y mes: agregado `text-gray-900` (antes texto gris)
+   - ✅ Inputs de edición: agregado `text-gray-900` en todos los campos (12 inputs en total)
+   - ✅ Los 3 inputs por tabla (Unidad, %, OC) ahora mantienen texto negro al editar
+   - ✅ Antes el texto se ponía gris al activar modo edición
+
+4. **Iconos importados:**
+   - ✅ `ArrowPathIcon` - Símbolo de flechas circulares para cambiar/subir PDF
+   - ✅ `ArrowDownTrayIcon` - Ícono de descarga profesional
+   - ✅ `EyeIcon` - Ya estaba importado, usado para "Ver"
+   - ✅ `XMarkIcon` - Ya estaba importado, usado para cerrar modal
+
+5. **Experiencia de usuario mejorada:**
+   - 🎯 Interfaz más limpia y profesional con íconos en lugar de emojis
+   - 📖 Vista previa rápida de PDFs sin descargar
+   - 🎨 Mejor legibilidad con texto negro consistente
+   - 🖱️ Botones más intuitivos y minimalistas
+
+**Archivos modificados:**
+
+- `/components/DashboardGeneral.tsx`
+  - Imports: agregado `ArrowPathIcon`, `ArrowDownTrayIcon`
+  - Estado: agregado `pdfViewer` para control del modal
+  - Funciones: agregadas `verPDF()` y `cerrarPdfViewer()`
+  - Botones PDF: actualizados en las 4 tablas
+  - Selectores: agregado `text-gray-900`
+  - Inputs: agregado `text-gray-900` en 12 campos de edición
+  - Modal: agregado al final del componente
+
+**Tablas afectadas:**
+
+- ✅ Mayor Existencia
+- ✅ Más de 90 días
+- ✅ Demos
+- ✅ Otros
+
+**Beneficios:**
+
+- 📄 Visualización inmediata de PDFs en modal
+- 🎨 UI profesional con íconos de Heroicons
+- 👁️ Mejor contraste de texto (negro vs gris)
+- 🔄 Ícono intuitivo para cambiar archivos
+- 💾 Descarga con ícono estándar de la industria
+
+---
+
+### 🔙 Texto de Botones "Volver" Mejorado
+
+**Corrección de textos para mayor claridad:**
+
+1. **Eventos - Formularios:**
+   - ✅ Formulario de nuevo evento: "Volver al Dashboard" → "Volver a Eventos"
+   - ✅ Formulario de editar evento: "Volver al Dashboard" → "Volver a Eventos"
+   - ✅ Formulario de brief: "Volver al Dashboard" → "Volver a Eventos"
+   - ✅ Vista template del brief: "Volver al Dashboard" → "Volver a Eventos"
+   - ✅ Vista preview del brief: "Volver al Dashboard" → "Volver a Eventos"
+
+2. **Facturas - Gestión de Proveedores:**
+   - ✅ Página de proveedores: "Volver al Dashboard de Facturas" → "Volver a Facturas"
+
+**Archivos modificados:**
+
+- `/app/eventos/page.tsx` - 5 botones actualizados
+- `/app/facturas/page.tsx` - 1 botón actualizado
+
+**Beneficio:**
+
+- 🎯 Textos más concisos y claros
+- 🧭 Mejor orientación para el usuario sobre a dónde regresa
+- ✨ Consistencia en nomenclatura de navegación
+
+---
+
+### ⚙️ Página de Configuración Dedicada
+
+**Conversión de popup a página completa:**
+
+1. **Nueva ruta `/configuracion`:**
+   - ✅ Página creada: `/app/configuracion/page.tsx`
+   - ✅ Layout completo: header, nav bar, sidebar izquierdo
+   - ✅ Mismo diseño que dashboard/estrategia/facturas/eventos
+   - ✅ Acceso solo para administradores
+   - ✅ Tab "⚙️ Configuración" destacado en nav bar
+
+2. **Estructura del menú lateral:**
+   - ✅ Header morado "Configuración"
+   - ✅ Menú extensible con opciones:
+     - "Configuración por Categoría" (con icono FolderIcon)
+     - Preparado para futuras opciones de configuración
+   - ✅ Estado `seccionActiva` para selección de menú
+
+3. **Componente ConfiguracionCategorias:**
+   - ✅ Nuevo archivo: `/components/ConfiguracionCategorias.tsx`
+   - ✅ Funcionalidad extraída de PopupConfiguracion
+   - ✅ Sin wrapper de modal - contenido directo
+   - ✅ Todas las features preservadas:
+     - Crear, editar, eliminar, restaurar categorías
+     - Gestión de subcategorías
+     - Toggle activo/inactive
+     - Ordenamiento
+     - Validación de formularios
+     - Integración con API (useCategoriasAPI)
+
+4. **Navegación actualizada en todas las páginas:**
+   - ✅ `/app/dashboard/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/estrategia/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/facturas/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/eventos/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/digital/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/campanas/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/presencias/page.tsx` - handleMenuClick ruta a /configuracion
+   - ✅ `/app/presupuesto/page.tsx` - handleMenuClick ruta a /configuracion
+
+5. **Limpieza de código:**
+   - ✅ Removidos todos los render blocks de PopupConfiguracion
+   - ✅ Removidos todos los imports de PopupConfiguracion
+   - ✅ PopupConfiguracion.tsx preservado pero sin usar
+   - 📝 Puede eliminarse en el futuro si se confirma que no se necesita
+
+**Archivos creados:**
+
+- `/app/configuracion/page.tsx` - Página principal de configuración (299 líneas)
+- `/components/ConfiguracionCategorias.tsx` - Componente de categorías (427 líneas)
+
+**Archivos modificados:**
+
+- `/app/dashboard/page.tsx` - Navegación + limpieza popup
+- `/app/estrategia/page.tsx` - Navegación + limpieza popup
+- `/app/facturas/page.tsx` - Navegación + limpieza popup
+- `/app/eventos/page.tsx` - Navegación + limpieza popup
+- `/app/digital/page.tsx` - Navegación + limpieza popup
+- `/app/campanas/page.tsx` - Navegación + limpieza popup
+- `/app/presencias/page.tsx` - Navegación actualizada
+- `/app/presupuesto/page.tsx` - Navegación + limpieza popup
+
+**Beneficios:**
+
+- 🚀 Mejor UX - página dedicada vs popup modal
+- 🎯 Espacio completo para gestión de configuración
+- 📱 Navegación consistente con resto de la aplicación
+- 🔧 Menú lateral extensible para futuras opciones
+- 🎨 Layout profesional y organizado
+- 🔐 Control de acceso centralizado (admin only)
 
 **Notas técnicas:**
 
-- El estándar 60% de ancho es ideal para ver detalles sin abrumar la pantalla
-- 90vh de altura deja espacio para header/footer de navegador
-- 85vh para la imagen permite espacio para la info card (5vh)
-- `object-contain` asegura que imágenes verticales y horizontales se vean bien
-- z-index de 50-60 asegura que estén sobre todo el contenido
-- Compatible con Next.js Image component y tags img estándar
+- Configuración solo accesible desde ConfigSidebar (admin) o ConfigSidebarCoordinador
+- Componente ConfiguracionCategorias es reutilizable
+- PopupConfiguracion.tsx puede eliminarse en futuro deploy si no se necesita
+  **Mejoras recientes:**
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+- ✅ Tab "⚙️ Configuración" removido del nav bar (solo accesible desde menú lateral)
+- ✅ Menú lateral expandido a 320px (w-80) para mejor legibilidad
+- ✅ Nueva opción añadida: "Permisos" (con icono UserGroupIcon)
+  - Sistema completo de gestión de permisos implementado
+  - Control granular de acceso a páginas por usuario
+
+**Archivos actualizados:**
+
+- `/app/configuracion/page.tsx` - Nav bar limpio + menú más ancho + opción Permisos
 
 ---
 
-### 🎯 **NUEVO**: Facturas Asignadas en Brief de Eventos
+### 🔐 Sistema de Permisos por Usuario
 
-**Descripción:** Los briefs de eventos ahora muestran todas las facturas que han sido asignadas al evento con estado "Ingresada", mostrando el total gastado y un desglose detallado de cada factura. Esta información también se incluye en el PDF descargable del brief.
+**Implementación completa de control de acceso:**
 
-**Problema resuelto:** Antes no había visibilidad del gasto real de un evento directamente en su brief. Ahora se puede ver el total gastado y el detalle de cada factura asignada al evento.
+1. **Componente ConfiguracionPermisos:**
+   - ✅ Archivo creado: `/components/ConfiguracionPermisos.tsx`
+   - ✅ Lista de usuarios en panel izquierdo (nombre, username, rol)
+   - ✅ Panel de permisos en lado derecho al seleccionar usuario
+   - ✅ Toggle switches para cada página: Dashboard, Estrategia, Facturas, Eventos, Digital
+   - ✅ Botón "Guardar Permisos" con indicador de carga
+   - ✅ Integración con API para persistencia de permisos
 
-**Cambios implementados:**
+2. **Backend - Modelo y Endpoints:**
+   - ✅ Campo `permisos` agregado a tabla `users` (TEXT, JSON string)
+   - ✅ Endpoint `PUT /admin/user/{user_id}/permisos` - Actualizar permisos
+   - ✅ Endpoint `GET /admin/user` - Incluye permisos en respuesta
+   - ✅ Endpoint `GET /auth/user` - Incluye permisos del usuario actual
+   - ✅ Permisos por defecto para usuarios existentes (todos activos)
 
-1. **Recuadro "Total Gastado" en Brief (BriefTemplate.tsx):**
-   - Aparece después de la sección "Presupuesto" cuando hay facturas asignadas
-   - **Diseño de recuadro único clickeable:**
-     - Muestra "Total Gastado" con el monto total en un solo recuadro azul claro
-     - Flecha hacia arriba (⬆️) cuando está colapsado (indica "expandir")
-     - Flecha hacia abajo (⬇️) cuando está expandido (indica "colapsar")
-     - Todo el recuadro es clickeable, no solo la flecha
-     - Efecto hover para indicar interactividad
-   - **Desglose de facturas desplegable:**
-     - Click en el recuadro expande/colapsa la lista de facturas
-     - Lista de facturas con tres columnas:
-       - **Proveedor**: Nombre del proveedor
-       - **Subtotal**: Monto de la factura (sin IVA)
-       - **Subcategoría**: Categoría de gasto de la factura
-     - Diseño limpio sin botones adicionales
-   - Solo muestra facturas con estado "Ingresada" (las que ya se reflejan en gráficas)
+3. **Migración de Base de Datos:**
+   - ✅ Script creado: `/HGApp/migrations/add_permisos_users.py`
+   - ✅ Agrega columna `permisos` a tabla `users`
+   - ✅ Inicializa permisos por defecto para usuarios existentes
+   - 📝 **PENDIENTE EJECUTAR:** `python migrations/add_permisos_users.py`
 
-2. **Funcionalidad desplegable simplificada:**
-   - Click en cualquier parte del recuadro "Total Gastado" para expandir/colapsar
-   - Por defecto inicia colapsado (solo se ve el total)
-   - Transición suave al expandir/colapsar
-   - Sin botones separados ni elementos innecesarios
+4. **Funcionalidades Implementadas:**
+   - ✅ Gestión visual de permisos con toggle switches
+   - ✅ Persistencia de permisos en base de datos
+   - ✅ Carga automática de permisos por usuario
+   - ✅ Feedback visual (toasts) al guardar cambios
+   - 🚧 **PENDIENTE:** Aplicar permisos en navegación (mostrar/ocultar tabs)
+   - 🚧 **PENDIENTE:** Bloquear acceso directo a rutas sin permiso
 
-3. **PDF descargable actualizado (exportarBriefPDF):**
-   - Sección "Total Gastado" después del presupuesto
-   - Lista numerada de facturas con formato: "Proveedor - Monto - Subcategoría"
-   - Formateo de moneda en pesos mexicanos
-   - Solo incluye en PDF si hay facturas asignadas
+**Permisos Disponibles:**
 
-**Flujo de uso:**
+- 📊 Dashboard - Acceso a página principal con métricas
+- 🎯 Estrategia - Acceso a proyecciones y presupuestos
+- 📋 Facturas - Acceso a gestión de facturas
+- 🎉 Eventos - Acceso a gestión de eventos
+- 📈 Digital - Acceso a métricas digitales
 
-**Asignar factura a evento:**
+**Archivos creados:**
 
-1. Usuario crea/edita factura en módulo de Facturas
-2. Asigna la factura a un evento específico
-3. Factura pasa por proceso de autorización y eventual estado "Ingresada"
-4. Al pasar a "Ingresada", se refleja en gráficas de presupuesto del calendario
-
-**Ver facturas en Brief:**
-
-1. Usuario abre brief de un evento (desde lista de eventos o calendario)
-2. Sección "Gasto Real" aparece después de "Presupuesto"
-3. Ve el total gastado inmediatamente
-4. Puede hacer click en "Ver desglose de facturas" para ver el detalle
-5. Cada factura muestra: Proveedor, Subtotal, Subcategoría
-
-**Descargar PDF con facturas:**
-
-1. Usuario hace click en "Descargar PDF" del brief
-2. PDF se genera incluyendo el total gastado y lista de facturas
-3. Facturas aparecen después de la sección de presupuesto
-4. Formato legible y profesional
+- `/components/ConfiguracionPermisos.tsx` - Componente de gestión (307 líneas)
+- `/HGApp/migrations/add_permisos_users.py` - Migración de BD (SQLite compatible)
 
 **Archivos modificados:**
 
-- `/sgpme_app/src/components/BriefTemplate.tsx`:
-  - Import de `useFacturasAPI` y `useState`
-  - Import de iconos `ChevronDownIcon` y `ChevronRightIcon`
-  - Hook `useFacturas()` para obtener facturas
-  - useMemo para filtrar facturas del evento (eventoId match + estado "Ingresada")
-  - useMemo para calcular total gastado
-  - Estado `facturasExpandidas` para controlar desplegable
-  - Nueva sección UI con total y lista desplegable
+- `/HGApp/models.py` - Campo `permisos` en Users
+- `/HGApp/routers/admin.py` - Endpoints de permisos + import json
+- `/HGApp/routers/auth.py` - Endpoint /user incluye permisos + import json
+- `/app/configuracion/page.tsx` - Importa y renderiza ConfiguracionPermisos
 
-- `/sgpme_app/src/hooks/useEventos.ts`:
-  - Import de tipo `Factura` desde types
-  - Modificación de firma de `exportarBriefPDF` para recibir `facturas: Factura[] = []`
-  - Filtrado de facturas del evento en función PDF
-  - Cálculo de total gastado en función PDF
-  - Agregado de sección "Total Gastado" y "Desglose de Facturas" al PDF
+**Migración Ejecutada:**
 
-- `/sgpme_app/src/app/eventos/page.tsx`:
-  - Llamada a `exportarBriefPDF(eventoEditando.id, facturas)` pasando facturas como parámetro
+- ✅ `python3 migrations/add_permisos_users.py` - Columna permisos agregada
+- ✅ Permisos por defecto asignados a todos los usuarios existentes
+
+**Correcciones y Fixes Aplicados:**
+
+- ✅ Corrección en `/HGApp/routers/admin.py`:
+  - Cambiado `user.get('user_role')` a `user.get('role')`
+  - Cambiado verificación `'admin'` a `'administrador'`
+  - Endpoint `/admin/user` ahora devuelve objetos serializables (dict)
+  - Aplica a todos los endpoints: GET/POST/DELETE user, PUT permisos
+- ✅ Corrección en `/components/ConfiguracionPermisos.tsx`:
+  - Funciones `obtenerNombreRol` y `obtenerColorRol` actualizadas
+  - Ahora mapean correctamente `'administrador'` en lugar de `'admin'`
+- ✅ Servidor backend reiniciado para aplicar cambios
+
+**Estado Actual:**
+
+- ✅ **FUNCIONAL** - Gestión de permisos completamente operativa
+- ✅ Backend sirviendo usuarios correctamente
+- ✅ Frontend cargando y mostrando usuarios
+- ✅ Guardado de permisos funcional
+
+**Próximos pasos:**
+
+1. ✅ ~~Ejecutar migración~~ - COMPLETADO
+2. 🚧 Implementar lógica en navegación para:
+   - Mostrar solo tabs con permiso activo
+   - Redirigir si usuario intenta acceder sin permiso
+3. 🚧 Crear hook usePermisos() para facilitar verificación en componentes
+4. 🚧 Actualizar todas las páginas para respetar permisos
 
 **Notas técnicas:**
 
-- Solo se muestran facturas con estado "Ingresada" (consistente con gráficas de presupuesto)
-- El filtrado se hace por `eventoId` exacto para evitar mostrar facturas de otros eventos
-- El total gastado se calcula sobre el campo `subtotal` de las facturas (sin IVA)
-- Si un evento no tiene facturas asignadas, la sección no aparece
-- Compatible con eventos existentes sin facturas
-- El PDF incluye las facturas solo si existen, sin afectar briefs sin facturas
+- Permisos almacenados como JSON string en BD
+- Por defecto, todos los permisos están activos
+- Solo administradores pueden modificar permisos
+- Cambios toman efecto inmediatamente (requiere refresh del usuario)
+- Migración compatible con SQLite y PostgreSQL
+  **Instrucciones para Deploy a Metrik:**
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+1. **Backend (HGApp):**
 
----
+   ```bash
+   cd HGApp
+   # Ejecutar migración en servidor
+   python3 migrations/add_permisos_users.py
+   # Reiniciar servidor uvicorn
+   pkill -f "uvicorn main:app"
+   nohup uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+   ```
 
-### 🎯 **NUEVO**: Actualización Automática de Service Worker (Sin intervención del usuario)
+2. **Frontend (sgpme_app):**
 
-**Problema resuelto:** Los usuarios ya no necesitan limpiar cache manualmente después de cada deploy. El sistema ahora detecta y aplica actualizaciones automáticamente.
+   ```bash
+   cd sgpme_app
+   # Build de producción
+   npm run build
+   # O reiniciar servidor de desarrollo
+   npm run dev
+   ```
 
-**Cambios implementados:**
+3. **Archivos a Deployar:**
+   - `/HGApp/models.py` - Modelo actualizado con campo permisos
+   - `/HGApp/routers/admin.py` - Endpoints corregidos
+   - `/HGApp/routers/auth.py` - Usuario con permisos
+   - `/HGApp/migrations/add_permisos_users.py` - Migración
+   - `/sgpme_app/src/components/ConfiguracionPermisos.tsx` - Componente nuevo
+   - `/sgpme_app/src/app/configuracion/page.tsx` - Página actualizada
 
-1. **Configuración de PWA mejorada (`next.config.ts`):**
-   - `skipWaiting: true` - Activa nueva versión del SW inmediatamente
-   - `cleanupOutdatedCaches: true` - Elimina caches viejos automáticamente
-   - Runtime caching con estrategias específicas por tipo de asset:
-     - **Archivos estáticos JS/CSS**: CacheFirst (24h de expiración)
-     - **Imágenes**: StaleWhileRevalidate (64 entradas max)
-     - **Fuentes**: CacheFirst (1 año para Google Fonts)
-     - **API calls**: NetworkFirst (5min cache, 10s timeout)
-     - **Next.js data**: StaleWhileRevalidate (24h)
-
-2. **Hook de actualización automática (`useServiceWorker.ts`):**
-   - Detecta cuando hay una nueva versión del service worker
-   - Envía mensaje SKIP_WAITING al nuevo SW
-   - Listener de controllerchange para recargar página automáticamente
-   - Verificación de actualizaciones cada 60 segundos
-   - Solo se ejecuta en producción
-
-3. **Integración en ClientProviders:**
-   - Hook ejecutado globalmente en toda la aplicación
-   - Activación transparente sin afectar UX
-
-**Flujo de actualización:**
-
-1. Usuario tiene versión vieja cargada
-2. Deploy de nueva versión → nuevo BUILD_ID generado
-3. SW detecta actualización (check cada 60s)
-4. Nuevo SW se instala en background
-5. Nuevo SW hace skipWaiting() automáticamente
-6. Página se recarga automáticamente
-7. Usuario ve nueva versión - **SIN intervención manual**
-
-**Archivos modificados:**
-
-- `/sgpme_app/next.config.ts` - Configuración PWA con skipWaiting y runtime caching
-- `/sgpme_app/src/hooks/useServiceWorker.ts` - Hook de actualización automática (nuevo)
-- `/sgpme_app/src/components/ClientProviders.tsx` - Integración del hook
-
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
-
-**⚠️ Nota importante:** Una vez desplegado, los usuarios con la versión vieja aún necesitarán limpiar cache UNA ÚLTIMA VEZ. Después de eso, todas las actualizaciones futuras serán automáticas.
+4. **Verificación Post-Deploy:**
+   - ✅ Verificar que la migración se ejecutó correctamente
+   - ✅ Probar acceso a /configuracion → Permisos
+   - ✅ Verificar carga de usuarios
+   - ✅ Probar asignación y guardado de permisos
+   - ✅ Verificar que los permisos persisten en BD
 
 ---
 
-### 🎯 **NUEVO**: Eventos Clickeables en Lista de Calendario Trimestral
+## ✅ Navegación Dinámica Basada en Permisos - 19/Feb/2026
 
-**Descripción:** Los eventos mostrados en la lista "Eventos del Trimestre" ahora son completamente clickeables y abren el mismo modal de resumen detallado que se muestra al hacer click en un evento desde el calendario.
-
-**Problema resuelto:** Antes, la lista de eventos del trimestre solo permitía interacción limitada. Ahora permite acceso directo al resumen completo del evento con un click.
+**Implementación completada:** Sistema de navegación que oculta/muestra botones según permisos de usuario.
 
 **Cambios implementados:**
 
-1. **Click en evento de la lista:**
-   - Al hacer click en cualquier evento de la lista "Eventos del Trimestre", se abre el modal `ModalEventosDia`
-   - El modal muestra el resumen completo del evento (igual que cuando se hace click desde el calendario)
-   - Incluye todos los detalles: descripción, ubicación, audiencia, objetivo, presupuesto, facturas, etc.
+### 1. **Actualización del tipo Usuario** (`/types/index.ts`)
 
-2. **Experiencia consistente:**
-   - Misma funcionalidad que hacer click en un día con eventos y luego seleccionar el evento
-   - El usuario puede crear o ver el brief del evento directamente desde la lista
-   - Navegación más rápida sin necesidad de buscar el día en el calendario
+```typescript
+export interface Usuario {
+  id: string;
+  nombre: string;
+  email: string;
+  tipo: TipoUsuario;
+  grupo: string;
+  avatar?: string;
+  fechaCreacion: string;
+  activo: boolean;
+  permisos?: {
+    dashboard?: boolean;
+    estrategia?: boolean;
+    facturas?: boolean;
+    eventos?: boolean;
+    digital?: boolean;
+  };
+}
+```
 
-**Flujo de interacción:**
+### 2. **Actualización de useAuthBackend** (`/hooks/useAuthBackend.tsx`)
 
-1. Usuario ve la lista de "Eventos del Trimestre" en la parte inferior del calendario
-2. Usuario hace click en cualquier evento de la lista
-3. Se abre el modal con el resumen detallado del evento
-4. Usuario puede ver brief, crear brief, o cerrar el modal
+- ✅ Modificado `verificarSesion()` para extraer permisos del backend
+- ✅ Modificado `iniciarSesion()` para extraer permisos del backend
+- ✅ Agregado campo `permisos` al objeto Usuario mapeado
+- ✅ Permisos por defecto (todos true) si no vienen del backend
 
-**Archivos modificados:**
+**Código agregado en líneas 132-148:**
 
-- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - onClick de eventos de la lista abre modal con resumen
+```typescript
+permisos: userData.permisos || {
+  dashboard: true,
+  estrategia: true,
+  facturas: true,
+  eventos: true,
+  digital: true,
+},
+```
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+### 3. **Creación del componente NavBar** (`/components/NavBar.tsx` - NUEVO)
+
+- ✅ 87 líneas de código
+- ✅ Componente reutilizable para navegación
+- ✅ Props: `usuario` y `paginaActiva`
+- ✅ Lee `usuario.permisos` y renderiza solo botones con permiso `true`
+- ✅ Resalta la página activa con borde azul
+- ✅ Maneja permisos undefined con valores por defecto
+
+**Funcionalidad:**
+
+```typescript
+// Ejemplo: Si usuario.permisos.dashboard === false
+// → El botón "📊 Dashboard" NO se renderiza
+
+navItems.map((item) => item.visible && <button>{item.label}</button>);
+```
+
+### 4. **Actualización de todas las páginas** (Navegación unificada)
+
+**Páginas modificadas:**
+
+- ✅ `/app/dashboard/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/estrategia/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/facturas/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/eventos/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/digital/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/configuracion/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/campanas/page.tsx` - Import NavBar + reemplazo de `<nav>`
+- ✅ `/app/presupuesto/page.tsx` - Import NavBar + reemplazo de `<nav>`
+
+**Antes (28 líneas de nav duplicado):**
+
+```tsx
+<nav className="bg-white shadow-sm">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex space-x-8 h-14">
+      <button onClick={() => router.push("/dashboard")}>📊 Dashboard</button>
+      <button onClick={() => router.push("/estrategia")}>🎯 Estrategia</button>
+      {/* ... más botones ... */}
+    </div>
+  </div>
+</nav>
+```
+
+**Después (1 línea):**
+
+```tsx
+<NavBar usuario={usuario} paginaActiva="dashboard" />
+```
+
+### 5. **Flujo completo de funcionamiento**
+
+1. **Login**: Usuario inicia sesión
+2. **Backend**: `/auth/user` retorna permisos JSON
+3. **Frontend**: useAuthBackend extrae permisos a `usuario.permisos`
+4. **NavBar**: Lee permisos y renderiza solo botones permitidos
+5. **Tiempo real**: Cambios en Configuración → Permisos afectan navegación inmediatamente
+
+### 6. **Comportamiento esperado**
+
+**Ejemplo de uso:**
+
+1. Admin accede a **Configuración → Permisos**
+2. Selecciona usuario "Juan Pérez"
+3. Desactiva permiso de **Dashboard**
+4. Guarda cambios
+5. **Resultado**: Usuario "Juan Pérez" ya no ve el botón "📊 Dashboard" en ninguna página
+6. Si reactiva el permiso → Botón reaparece
+
+**Testing realizado:**
+
+- ✅ Navegación muestra todos los botones por defecto
+- ✅ Ocultar permiso → botón desaparece
+- ✅ Mostrar permiso → botón reaparece
+- ✅ Permisos persisten tras cerrar sesión y volver a entrar
+- ✅ Cambios son consistentes en todas las páginas
+- ✅ Sin errores de TypeScript o compilación
+
+### 7. **Archivos modificados (Deploy)**
+
+**Frontend:**
+
+- `/types/index.ts` - Interface Usuario con permisos
+- `/hooks/useAuthBackend.tsx` - Extracción de permisos
+- `/components/NavBar.tsx` - **NUEVO** componente
+- `/app/dashboard/page.tsx` - NavBar integrado
+- `/app/estrategia/page.tsx` - NavBar integrado
+- `/app/facturas/page.tsx` - NavBar integrado
+- `/app/eventos/page.tsx` - NavBar integrado
+- `/app/digital/page.tsx` - NavBar integrado
+- `/app/configuracion/page.tsx` - NavBar integrado
+- `/app/campanas/page.tsx` - NavBar integrado
+- `/app/presupuesto/page.tsx` - NavBar integrado
+
+**Backend:** (Sin cambios - ya estaba listo)
+
+- `/HGApp/routers/auth.py` - Ya retorna permisos
+- `/HGApp/routers/admin.py` - Ya maneja permisos
+- `/HGApp/models.py` - Campo permisos ya existe
+
+### 8. **Estado: FUNCIONAL ✅**
+
+- ✅ Backend retorna permisos correctamente
+- ✅ Frontend extrae y almacena permisos
+- ✅ Navegación dinámica funcionando
+- ✅ Sin errores de compilación
+- ✅ Aplicado a todas las páginas
+- ✅ Listo para deploy
+
+**Próximos pasos sugeridos:**
+
+- 🔄 Protección de rutas (redirigir si usuario sin permiso accede directamente a URL)
+- 🔄 Hook `usePermisosDePagina()` para protección granular dentro de páginas
+- 🔄 Mensaje informativo cuando usuario no tiene permisos
 
 ---
 
-### 🎯 **NUEVO**: Botones de Brief en Modal de Resumen de Eventos
+## ✅ Ordenamiento de Usuarios en Listas - 19/Feb/2026
 
-**Descripción:** El modal de resumen de eventos ahora incluye botones interactivos para crear o ver el brief del evento, directamente desde la sección "Brief del Evento". Los botones siguen el mismo diseño visual que los de la lista de eventos.
+**Implementación completada:** Sistema de ordenamiento consistente de usuarios en todas las listas del sistema.
 
-**Problema resuelto:** Aunque el modal mostraba el estado del brief ("Sin Brief" o "Brief Disponible"), no había forma de crear o ver el brief directamente desde ahí. Ahora se pueden realizar estas acciones sin cerrar el modal.
+**Requisito:**
 
-**Cambios implementados:**
+Todos los usuarios deben aparecer ordenados en el siguiente orden:
 
-1. **Botón "➕ Crear Brief":**
-   - Se muestra cuando el evento no tiene brief (estado: "⚠️ Sin Brief")
-   - Al hacer click, llama a la función `onCrearBrief` del evento
-   - Estilo: naranja (bg-orange-100 text-orange-700) igual que en lista de eventos
-   - Badge y botón en la misma línea pegados (space-x-2)
-   - Permite crear el brief sin salir del modal
+1. **Administradores** (orden alfabético por nombre completo)
+2. **Coordinadores** (orden alfabético por nombre completo)
+3. **Auditores** (orden alfabético por nombre completo)
 
-2. **Botón "👁️ Preview":**
-   - Se muestra cuando el evento tiene brief (estado: "Brief Disponible" + badge de aprobación si aplica)
-   - Al hacer click, llama a la función `onVerBrief` del evento
-   - Estilo: morado (bg-purple-100 text-purple-700) igual que en lista de eventos
-   - Badges de estado y botón en la misma línea pegados (space-x-2)
-   - Permite acceder al brief completo directamente
+**Componentes modificados:**
 
-3. **Layout mejorado:**
-   - Badges de estado y botones en la misma línea horizontal (flex items-center space-x-2)
-   - Botones pegados al badge de estado, no separados con justify-between
-   - Botones con padding py-2 (más grandes que antes) para consistencia con lista
-   - Eventos propagados correctamente para evitar cerrar el modal accidentalmente
+### 1. **ConfiguracionPermisos.tsx** (`/components/ConfiguracionPermisos.tsx`)
 
-**Flujo de interacción:**
+- ✅ Agregada función `ordenarUsuarios()`
+- ✅ Aplicada al cargar usuarios desde API
+- ✅ Lista de usuarios ordenada al renderizar
 
-**Sin Brief:**
+**Código agregado (líneas 29-43):**
 
-1. Usuario abre resumen del evento (desde calendario o lista)
-2. Ve "⚠️ Sin Brief" en la sección "Brief del Evento"
-3. Hace click en botón naranja "➕ Crear Brief"
-4. Sistema navega a la creación del brief del evento
+```typescript
+// Función para ordenar usuarios: administrador > coordinador > auditor, alfabéticamente
+const ordenarUsuarios = (usuarios: Usuario[]): Usuario[] => {
+  const orden: Record<string, number> = {
+    administrador: 1,
+    coordinador: 2,
+    auditor: 3,
+  };
 
-**Con Brief:**
+  return [...usuarios].sort((a, b) => {
+    // Primero ordenar por rol
+    const ordenA = orden[a.role] || 999;
+    const ordenB = orden[b.role] || 999;
+    if (ordenA !== ordenB) {
+      return ordenA - ordenB;
+    }
+    // Luego alfabéticamente por nombre
+    return a.full_name.localeCompare(b.full_name);
+  });
+};
+```
 
-1. Usuario abre resumen del evento
-2. Ve "Brief Disponible" (y posiblemente "✓ Aprobado")
-3. Hace click en botón morado "👁️ Preview"
-4. Sistema abre/navega al brief existente del evento
+**Aplicación:**
 
-**Archivos modificados:**
+```typescript
+if (response.ok) {
+  const data = await response.json();
+  setUsuarios(ordenarUsuarios(data)); // ← Ordenamiento aplicado
+}
+```
 
-- `/sgpme_app/src/components/ModalEventosDia.tsx` - Botones con estilos consistentes con lista de eventos
-- `/sgpme_app/src/app/eventos/page.tsx` - Props onCrearBrief y onVerBrief agregadas a CalendarioTrimestral y CalendarioAnual en dashboard
+### 2. **GestionAccesos.tsx** (`/components/GestionAccesos.tsx`)
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+- ✅ Agregada misma función `ordenarUsuarios()`
+- ✅ Aplicada al cargar usuarios desde API
+- ✅ Aplicada tanto para administradores como coordinadores
+- ✅ Ordenamiento se mantiene al agregar nuevos usuarios
+
+**Aplicación (líneas 67-72):**
+
+```typescript
+if (response.ok) {
+  const data = await response.json();
+  if (usuario?.tipo === "coordinador") {
+    const usuarioActual = data.filter(
+      (u: Usuario) => u.id === Number(usuario.id),
+    );
+    setUsuarios(ordenarUsuarios(usuarioActual)); // ← Ordenamiento aplicado
+  } else {
+    setUsuarios(ordenarUsuarios(data)); // ← Ordenamiento aplicado
+  }
+}
+```
+
+### 3. **Comportamiento automático**
+
+**Cuando se carga la página:**
+
+- ✅ Usuarios se ordenan automáticamente al cargar
+
+**Cuando se agrega un usuario nuevo:**
+
+- ✅ Función `cargarUsuarios()` se ejecuta después de crear usuario
+- ✅ `ordenarUsuarios()` se aplica automáticamente
+- ✅ Lista se actualiza con nuevo orden
+
+**Ejemplo de orden resultante:**
+
+```
+📄 Lista de Usuarios:
+  1. 👤 Ana García (Administrador)
+  2. 👤 Carlos Martínez (Administrador)
+  3. 👤 Beatriz López (Coordinador)
+  4. 👤 Diego Pérez (Coordinador)
+  5. 👤 Elena Torres (Auditor)
+  6. 👤 Francisco Ruiz (Auditor)
+```
+
+### 4. **Archivos modificados**
+
+- `/components/ConfiguracionPermisos.tsx` - Función y aplicación de ordenamiento
+- `/components/GestionAccesos.tsx` - Función y aplicación de ordenamiento
+
+### 5. **Testing realizado**
+
+- ✅ Usuarios se cargan ordenados correctamente
+- ✅ Orden se mantiene al cambiar de sección
+- ✅ Nuevo usuario se inserta en posición correcta
+- ✅ Ordenamiento alfabético funciona con acentos (localeCompare)
+- ✅ Sin errores de compilación
+
+### 6. **Estado: FUNCIONAL ✅**
+
+- ✅ Ordenamiento implementado en ambos componentes
+- ✅ Función reutilizable y mantenible
+- ✅ Comportamiento consistente
+- ✅ Listo para deploy
 
 ---
 
-### 🎯 **NUEVO**: Expansión de un Solo Evento a la Vez en Modal de Resumen
+## ✅ Accesos Integrado en Configuración + Limpieza de Menú Lateral - 19/Feb/2026
 
-**Descripción:** El modal de resumen de eventos ahora permite expandir solo un evento a la vez. Al expandir un nuevo evento, el anterior se colapsa automáticamente. Además, al cerrar el modal, todos los eventos se resetean a su estado colapsado.
+**Implementación completada:** Mover la gestión de Accesos (crear/eliminar usuarios) del popup del menú lateral a la página de Configuración como sección integrada.
 
-**Problema resuelto:** Antes era posible tener múltiples eventos expandidos simultáneamente, lo que hacía el modal muy largo y difícil de navegar. Ahora la experiencia es más limpia y enfocada.
+### 1. **Página de Configuración actualizada** (`/app/configuracion/page.tsx`)
 
-**Cambios implementados:**
+- ✅ Menú lateral ahora tiene 3 opciones en orden: **Accesos → Permisos → Categorías**
+- ✅ "Configuración por Categoría" renombrado a **"Categorías"**
+- ✅ Sección por defecto al entrar: **Accesos**
+- ✅ `GestionAccesos` se renderiza integrado (sin popup overlay)
+- ✅ Importado `UsersIcon` para el ícono de Accesos
 
-1. **Un evento expandido a la vez:**
-   - Al hacer click para expandir un evento, cualquier otro evento expandido se colapsa automáticamente
-   - Experiencia de navegación más limpia y enfocada
-   - Reduce scrolling innecesario en días con múltiples eventos
+### 2. **GestionAccesos adaptado** (`/components/GestionAccesos.tsx`)
 
-2. **Reset al cerrar modal:**
-   - Al cerrar el modal, todos los eventos regresan a su estado colapsado
-   - La próxima vez que se abra el modal, todos los eventos inician colapsados
-   - Estado limpio cada vez que se interactúa con el modal
+- ✅ Prop `onClose` ahora es **opcional** (`onClose?: () => void`)
+- ✅ **Con `onClose`**: funciona como popup (overlay con fondo gris + botón ✕)
+- ✅ **Sin `onClose`**: funciona como componente integrado (sin overlay, sin botón ✕)
+- ✅ Componente `Wrapper` dinámico según modo de uso
+- ✅ Retrocompatible con cualquier página que aún lo use como popup
 
-**Flujo de interacción:**
+### 3. **Accesos eliminado del menú lateral** (`/components/ConfigSidebar.tsx`)
 
-1. Usuario abre modal de eventos del día (desde calendario)
-2. Hace click en un evento → evento se expande mostrando detalles completos
-3. Hace click en otro evento → el primer evento se colapsa, el segundo se expande
-4. Usuario cierra el modal
-5. Usuario vuelve a abrir el modal → todos los eventos inician colapsados
+- ✅ Removida opción "Accesos" del array `menuItems`
+- ✅ Removido import de `UsersIcon` (ya no se usa)
+- ✅ Menú lateral ahora tiene: **Mi Perfil, Cambiar Contraseña, Configuración**
 
-**Archivos modificados:**
+### 4. **Limpieza de GestionAccesos en todas las páginas**
 
-- `/sgpme_app/src/components/ModalEventosDia.tsx` - Estado de expandedEventos cambiado de Set a string único, reset en onClose
+Removido import de `GestionAccesos` y bloque `activeConfigView === "accesos"` de:
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+- ✅ `/app/dashboard/page.tsx` - Import dinámico + bloque JSX
+- ✅ `/app/estrategia/page.tsx` - Import + bloque JSX
+- ✅ `/app/facturas/page.tsx` - Import + bloque JSX
+- ✅ `/app/eventos/page.tsx` - Import + bloque JSX
+- ✅ `/app/digital/page.tsx` - Import + 2 bloques JSX (uno con wrapper modal)
+- ✅ `/app/campanas/page.tsx` - Import + bloque JSX
+- ✅ `/app/presencias/page.tsx` - Import + bloque JSX
+- ✅ `/app/campanas/[id]/anuncios/page.tsx` - Import + bloque JSX
+
+### 5. **Archivos modificados (Deploy)**
+
+- `/app/configuracion/page.tsx` - Menú actualizado con Accesos integrado
+- `/components/GestionAccesos.tsx` - onClose opcional, modo integrado
+- `/components/ConfigSidebar.tsx` - Removida opción Accesos
+- `/app/dashboard/page.tsx` - Limpieza GestionAccesos
+- `/app/estrategia/page.tsx` - Limpieza GestionAccesos
+- `/app/facturas/page.tsx` - Limpieza GestionAccesos
+- `/app/eventos/page.tsx` - Limpieza GestionAccesos
+- `/app/digital/page.tsx` - Limpieza GestionAccesos
+- `/app/campanas/page.tsx` - Limpieza GestionAccesos
+- `/app/presencias/page.tsx` - Limpieza GestionAccesos
+- `/app/campanas/[id]/anuncios/page.tsx` - Limpieza GestionAccesos
+
+### 6. **Estado: FUNCIONAL ✅**
+
+- ✅ Accesos funciona integrado en página de Configuración
+- ✅ Menú lateral limpio (sin duplicados)
+- ✅ Crear/eliminar usuarios desde Configuración → Accesos
+- ✅ Sin errores de compilación en ninguna página
+- ✅ Listo para deploy
 
 ---
 
-### 🎯 **NUEVO**: Filtrado de Eventos por Estado en Calendarios
+## ✅ Correcciones UX en Calendario Mensual + Gráfica de Eventos - 19/Feb/2026
 
-**Descripción:** Los contadores de estado en todos los calendarios (Mensual, Trimestral y Anual) ahora son botones clickeables que filtran los eventos del calendario según el estado seleccionado. Al hacer click en un estado, solo se muestran los eventos con ese estado en el calendario.
+**Correcciones aplicadas:** Fix de año duplicado en header del calendario y verificación de filtrado de gráfica por agencia.
 
-**Problema resuelto:** Antes era difícil enfocarse en eventos de un estado específico cuando había muchos eventos en el calendario. Ahora se puede filtrar rápidamente por "Realizados", "Confirmados", "Por Suceder" o "Prospectados".
+### 1. **Calendario Mensual - Año duplicado corregido** (`/components/CalendarioMensual.tsx`)
 
-**Cambios implementados:**
+**Problema identificado:**
 
-1. **Botones de filtro interactivos:**
-   - Todos los contadores de estado (Total, Realizados, Confirmados, Por Suceder, Prospectados) son ahora botones clickeables
-   - Indicador visual del filtro activo (ring-2 y fondo más intenso)
-   - Hover states para mejor UX
-   - Click en "Total Eventos" muestra todos los eventos (resetea filtro)
+- ❌ Header mostraba "Febrero de 2026 2026 - Vista Mensual"
+- 🐛 Causa: `nombreMes` incluía año con `toLocaleDateString("es-ES", { month: "long", year: "numeric" })` y luego se agregaba `fechaActual.getFullYear()` manualmente
 
-2. **Filtrado en tiempo real:**
-   - Al seleccionar un estado, el calendario solo muestra eventos de ese estado
-   - Los eventos en días se filtran dinámicamente
-   - La lista de eventos (en trimestral) también se filtra
-   - El contador total se mantiene para referencia
+**Solución aplicada:**
 
-3. **Estados disponibles para filtrado:**
-   - **Todos** (null): Muestra todos los eventos sin filtro
-   - **Realizado**: Solo eventos completados (verde)
-   - **Confirmado**: Solo eventos confirmados (azul)
-   - **Por Suceder**: Solo eventos próximos (amarillo)
-   - **Prospectado**: Solo eventos en prospección (morado)
+- ✅ Cambiado formato de fecha para incluir solo el mes: `{ month: "long" }`
+- ✅ Año ahora se concatena manualmente con " de ": `{nombreMesCapitalizado} de {fechaActual.getFullYear()}`
+- ✅ Header ahora muestra: "Febrero de 2026 - Vista Mensual"
 
-**Flujo de interacción:**
+**Código modificado:**
 
-1. Usuario abre calendario (Mensual, Trimestral o Anual)
-2. Ve contadores de eventos por estado en la parte superior
-3. Hace click en un estado específico (ej: "Realizados")
-4. El calendario se actualiza mostrando solo eventos con ese estado
-5. El botón seleccionado muestra indicador visual (ring + fondo)
-6. Usuario puede click en "Total Eventos" para volver a ver todos
+```tsx
+// Antes:
+const nombreMes = fechaActual.toLocaleDateString("es-ES", {
+  month: "long",
+  year: "numeric", // ← Incluía el año aquí
+});
+<h3>
+  {nombreMesCapitalizado} {fechaActual.getFullYear()} - Vista Mensual
+</h3>;
+//      ↑ Febrero de 2026        ↑ 2026 = "Febrero de 2026 2026"
 
-**Implementación técnica:**
+// Ahora:
+const nombreMes = fechaActual.toLocaleDateString("es-ES", {
+  month: "long", // ← Solo el mes
+});
+<h3>
+  {nombreMesCapitalizado} de {fechaActual.getFullYear()} - Vista Mensual
+</h3>;
+//      ↑ Febrero         de    ↑ 2026 = "Febrero de 2026"
+```
 
-- Estado `filtroEstado` agregado a cada componente de calendario
-- Función `obtenerEventosDelDia` modificada para considerar el filtro
-- Botones con clases condicionales para mostrar estado activo
-- Filtro se aplica tanto a eventos en días como a listas de eventos
-- **Lista de eventos trimestral**: La lista "Eventos del Trimestre" también se filtra según el estado seleccionado
-- **Header estandarizado**: Los 3 calendarios ahora usan el mismo diseño de header con gradiente from-blue-600 to-purple-600
-- **5 botones de filtro**: Todos los calendarios incluyen Total, Realizados, Confirmados, Por Suceder y Prospectados
+### 2. **Gráfica Presupuesto vs Gasto - Filtrado por agencia CONFIRMADO + GASTO REAL CORREGIDO**
 
-**Archivos modificados:**
+**Verificación del filtrado en /eventos:**
 
-- `/sgpme_app/src/components/CalendarioMensual.tsx` - Botones de filtro, lógica de filtrado y header estandarizado
-- `/sgpme_app/src/components/CalendarioTrimestral.tsx` - Botones de filtro (con Prospectados), lógica de filtrado en calendario y lista de eventos
-- `/sgpme_app/src/components/CalendarioAnual.tsx` - Botones de filtro y lógica de filtrado
+- ✅ `GraficaPresupuestoVsGasto` ya estaba filtrando correctamente por agencia seleccionada en el header
+- ✅ Usa `useMarcaGlobal()` para obtener `marcaSeleccionada` y `filtraPorMarca`
+- ✅ Parámetros de API incluyen marca seleccionada: `marcaId` en presupuestos, `marca` en proyecciones
+- ✅ Post-filtrado adicional con `filtraPorMarca()` en línea 118 (presupuestos) y línea 175 (proyecciones)
+- ✅ El componente se re-renderiza cuando cambia `marcaSeleccionada` (dependencia del useEffect línea 269)
 
-## **Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+**Corrección crítica - Gasto Real no estaba filtrando por marca:**
 
-### 🎯 **NUEVO**: Asignación de Múltiples Agencias por Evento
+- ❌ **Problema identificado:** `CalendarioMensual.tsx` calculaba `gastoReal` sumando TODAS las facturas del mes, sin filtrar por marca
+- 🐛 **Causa:** El prop `gastoReal` pasado a `GraficaPresupuestoVsGasto` solo filtraba por mes/año, pero no por agencia
+- ✅ **Solución aplicada:** Agregado filtro adicional `.filter((f) => filtraPorMarca(f.marca))` antes del `.reduce()`
+- ✅ Importado `useMarcaGlobal` en CalendarioMensual
+- ✅ Obtenido `filtraPorMarca` del contexto
+- ✅ Ahora el gasto real solo suma facturas de la agencia seleccionada (o agencias permitidas si "Todas")
 
-**Descripción:** Los eventos ahora pueden ser asignados a múltiples agencias simultáneamente. Esto permite registrar eventos que involucran a varias marcas del grupo (ej: evento compartido entre Toyota Chihuahua, Toyota Delicias y Subaru Chihuahua).
+**Código modificado en CalendarioMensual.tsx:**
 
-**Problema resuelto:** Antes cada evento solo podía pertenecer a una agencia, lo que causaba duplicación de eventos cuando varias marcas participaban en el mismo evento. Ahora un solo evento puede tener múltiples agencias asignadas.
+```tsx
+// Antes (línea 256-271):
+gastoReal={facturas
+  .filter(f => f.eventoId && f.fechaIngresada && ...)
+  .filter(f => { /* filtro por mes/año */ })
+  .reduce((sum, f) => sum + f.subtotal, 0)}
+//                    ↑ Sumaba TODAS las facturas del mes sin importar marca
 
-**Cambios implementados:**
+// Ahora:
+gastoReal={facturas
+  .filter(f => f.eventoId && f.fechaIngresada && ...)
+  .filter(f => { /* filtro por mes/año */ })
+  .filter((f) => filtraPorMarca(f.marca))  // ← NUEVO: Filtra por marca seleccionada
+  .reduce((sum, f) => sum + f.subtotal, 0)}
+```
 
-1. **Backend - Soporte para arrays de agencias:**
-   - Tipo de dato `marca` actualizado a `Union[str, List[str]]` en Pydantic models
-   - Serialización automática: arrays se guardan como JSON en PostgreSQL
-   - Deserialización automática: JSON se parsea de vuelta a array al leer
-   - Compatibilidad backward: eventos existentes con string único siguen funcionando
-   - Filtrado inteligente: soporta buscar eventos tanto con marca string como array JSON
+**Flujo de filtrado completo ahora funciona correctamente:**
 
-2. **Frontend - Tipos actualizados:**
-   - Interface `Evento.marca` cambiada a `string | string[]`
-   - Soporte completo para manejar tanto strings como arrays en toda la aplicación
+1. Usuario selecciona agencia en header → `MarcaContext` actualiza `marcaSeleccionada`
+2. `CalendarioMensual` recibe `eventosParaCalendarios` ya filtrados por marca (eventos/page.tsx línea 147-151)
+3. `eventosDelMes` filtra por mes/año (CalendarioMensual.tsx línea 74-81)
+4. **`gastoReal` ahora filtra facturas por marca antes de sumar (✅ CORREGIDO)**
+5. `GraficaPresupuestoVsGasto` recibe eventos + gastoReal filtrados + hace sus propias queries con `marcaSeleccionada`
+6. Presupuestos y proyecciones se filtran por agencia a través de parámetros de API + post-filtro con `filtraPorMarca()`
 
-3. **Formulario - Selector de agencias mejorado:**
-   - **Nuevo diseño tipo pills/chips:** Interfaz moderna y compacta
-   - Botones con forma de píldora (`rounded-full`) en lugar de checkboxes tradicionales
-   - **Selección visual clara:** Botones seleccionados se pintan de azul intenso con texto blanco
-   - **Contador en tiempo real:** Badge en esquina superior derecha muestra "X seleccionadas"
-   - **Tamaño optimizado:** ~60% más compacto que diseño anterior
-   - Layout flexible con `flex-wrap` que se adapta al contenido
-   - Transiciones suaves (200ms) al seleccionar/deseleccionar
-   - Validación: requiere al menos una agencia seleccionada
+**Resultado:**
 
-4. **Funciones utilitarias creadas:**
-   - `formatearMarca(marca)`: Convierte array a string legible ("Toyota, Subaru, GWM")
-   - `eventoPerteneceAMarca(eventoMarca, filtro)`: Verifica si evento pertenece a agencia filtrada
-   - `obtenerArrayMarcas(marca)`: Normaliza a formato array para procesamiento uniforme
+- ✅ Al seleccionar una agencia, el gasto real ahora muestra solo las facturas de esa agencia
+- ✅ Al seleccionar "Todas las agencias", muestra suma de facturas de agencias permitidas del usuario
+- ✅ Gráfica ahora refleja correctamente el gasto de la agencia filtrada
 
-5. **Componentes actualizados para mostrar múltiples agencias:**
-   - `ModalEventosDia.tsx`: Muestra marcas como "Toyota, Subaru"
-   - `CalendarioTrimestral.tsx`: Lista de eventos muestra todas las marcas
-   - `BriefTemplate.tsx`: Brief muestra todas las agencias en header
-   - `FormularioBrief.tsx`: Formulario de brief muestra todas las marcas
-   - `DashboardGeneral.tsx`: Dashboard filtra y muestra correctamente
-   - `eventos/page.tsx`: Tabla y cards muestran múltiples marcas
+### 3. **Archivos modificados**
 
-6. **Filtrado intelligente:**
-   - Cuando se filtra por agencia, muestra eventos que tengan esa agencia en su lista
-   - Funciona tanto con eventos de agencia única (legacy) como múltiples agencias
-   - Filtro en CalendarioMensual, Trimestral, Anual y DashboardGeneral
+- `/components/CalendarioMensual.tsx` - Fix año duplicado + **filtro de gastoReal por marca**
 
-**Flujo de uso:**
+### 4. **Archivos verificados**
 
-**Crear evento con múltiples agencias:**
+- `/components/GraficaPresupuestoVsGasto.tsx` - Filtrado por marca YA funcional (presupuestos y proyecciones)
+- `/app/eventos/page.tsx` - Eventos ya filtrados por marca antes de pasar a CalendarioMensual
 
-1. Usuario abre formulario de nuevo evento
-2. En sección "Agencias" ve selector con pills para cada marca
-3. Usuario hace click en Toyota Chihuahua → se pinta azul
-4. Usuario hace click en Subaru Chihuahua → se pinta azul
-5. Usuario hace click en GWM Chihuahua → se pinta azul
-6. Contador muestra "3 seleccionadas"
-7. Usuario guarda evento
-8. Backend guarda en DB: `["Toyota Chihuahua", "Subaru Chihuahua", "GWM Chihuahua"]` como JSON
+### 5. **Estado: FUNCIONAL ✅**
 
-**Ver evento con múltiples agencias:**
+- ✅ Header del calendario muestra año una sola vez
+- ✅ **Gasto real ahora filtra correctamente por agencia seleccionada**
+- ✅ Gráfica de eventos muestra datos precisos de la agencia filtrada
+- ✅ Sin errores de compilación
+- ✅ Listo para deploy
 
-1. Evento se muestra en calendarios de todas las agencias seleccionadas
-2. Al ver detalles: muestra "Toyota Chihuahua, Subaru Chihuahua, GWM Chihuahua"
-3. Al filtrar por Toyota Chihuahua: evento aparece
-4. Al filtrar por Subaru Chihuahua: evento aparece
-5. Al filtrar por Kia: evento NO aparece
+---
 
-**Editar evento:**
+## ✅ Rebranding: SGPME/SGPM → Metrik - 19/Feb/2026
 
-1. Usuario abre evento existente
-2. Formulario muestra pills azules para las agencias ya seleccionadas
-3. Usuario puede agregar o quitar agencias con un click
-4. Contador se actualiza en tiempo real
+**Cambio de marca en toda la aplicación:** Todos los textos de "SGPME" y "SGPM" han sido reemplazados por "Metrik" para unificar la identidad de marca.
 
-**Archivos backend modificados:**
+### 1. **Headers de todas las páginas actualizados**
 
-- `/HGApp/routers/eventos.py`:
-  - `EventoRequest.marca`: Union[str, List[str]]
-  - `EventoResponse.marca`: Union[str, List[str]]
-  - `deserialize_marca()`: función de deserialización JSON
-  - `create_evento()`: serializa array a JSON
-  - `update_evento()`: serializa array a JSON
-  - `read_all_eventos()`: deserializa y filtra correctamente
-  - `read_evento()`: deserializa marca
+Cambio en el título principal del header de todas las páginas:
 
-**Archivos frontend modificados:**
+```tsx
+// Antes:
+<h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
 
-- `/sgpme_app/src/types/index.ts`: `marca: string | string[]`
-- `/sgpme_app/src/lib/evento-utils.ts`: Funciones utilitarias (nuevo archivo)
-- `/sgpme_app/src/components/FormularioEvento.tsx`: Selector de pills interactivo
-- `/sgpme_app/src/components/ModalEventosDia.tsx`: Usa `formatearMarca()`
-- `/sgpme_app/src/components/CalendarioTrimestral.tsx`: Usa `formatearMarca()`
-- `/sgpme_app/src/components/BriefTemplate.tsx`: Usa `formatearMarca()`
-- `/sgpme_app/src/components/FormularioBrief.tsx`: Usa `formatearMarca()`
-- `/sgpme_app/src/components/DashboardGeneral.tsx`: Usa `eventoPerteneceAMarca()` y `formatearMarca()`
-- `/sgpme_app/src/app/eventos/page.tsx`: Usa ambas funciones utilitarias
+// Ahora:
+<h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
+```
 
-**Notas técnicas:**
+**Páginas modificadas:**
 
-- No requiere migración de base de datos (columna `marca` es Text, soporta JSON)
-- Eventos existentes con string único siguen funcionando sin cambios
-- Frontend maneja automáticamente conversión entre string y array
-- Validación asegura al menos una agencia seleccionada
+- ✅ `/app/dashboard/page.tsx` (ya tenía "Metrik")
+- ✅ `/app/configuracion/page.tsx` (ya tenía "Metrik")
+- ✅ `/app/eventos/page.tsx` - SGPME → Metrik
+- ✅ `/app/facturas/page.tsx` - SGPME → Metrik
+- ✅ `/app/digital/page.tsx` - SGPME → Metrik (2 headers)
+- ✅ `/app/estrategia/page.tsx` - SGPME → Metrik
+- ✅ `/app/campanas/page.tsx` - SGPME → Metrik
+- ✅ `/app/campanas/[id]/anuncios/page.tsx` - SGPME → Metrik
+- ✅ `/app/presencias/page.tsx` - SGPME → Metrik (2 headers)
+- ✅ `/app/presupuesto/page.tsx` - SGPME → Metrik
 
-**Estado:** ✅ Implementado localmente, pendiente de deploy a producción
+### 2. **Página de Login actualizada**
+
+```tsx
+// Antes:
+<h1 className="text-4xl font-bold text-blue-800 text-center tracking-wide mb-1">
+  SGPME
+</h1>
+
+// Ahora:
+<h1 className="text-4xl font-bold text-blue-800 text-center tracking-wide mb-1">
+  Metrik
+</h1>
+```
+
+**Archivo modificado:**
+
+- ✅ `/app/login/page.tsx` - Título principal cambiado a "Metrik"
+
+### 3. **Página de carga/redirección actualizada**
+
+```tsx
+// Antes:
+<h1 className="text-4xl font-bold text-blue-800 mb-2">SGPM</h1>
+
+// Ahora:
+<h1 className="text-4xl font-bold text-blue-800 mb-2">Metrik</h1>
+```
+
+**Archivo modificado:**
+
+- ✅ `/app/page.tsx` - Pantalla de carga ahora muestra "Metrik"
+
+### 4. **Metadatos de la aplicación actualizados**
+
+```tsx
+// Antes:
+export const metadata: Metadata = {
+  title: "GRUPO HG - SGPME",
+  appleWebApp: {
+    title: "SGPME",
+  },
+};
+
+// Ahora:
+export const metadata: Metadata = {
+  title: "GRUPO HG - Metrik",
+  appleWebApp: {
+    title: "Metrik",
+  },
+};
+```
+
+**Archivo modificado:**
+
+- ✅ `/app/layout.tsx` - Título del navegador y PWA actualizados
+  - `title`: "GRUPO HG - SGPME" → "GRUPO HG - Metrik"
+  - `appleWebApp.title`: "SGPME" → "Metrik"
+
+### 5. **Usuario de prueba actualizado**
+
+```tsx
+// Antes:
+grupo: "SGPME Sistema",
+
+// Ahora:
+grupo: "Grupo HG",
+```
+
+**Archivo modificado:**
+
+- ✅ `/hooks/useAuth.tsx` - Usuario de prueba ahora muestra "Grupo HG" en vez de "SGPME Sistema"
+
+### 6. **Resumen de cambios**
+
+**Total de archivos modificados:** 14
+
+**Cambios aplicados:**
+
+- ✅ 12 headers de páginas: SGPME → Metrik
+- ✅ 1 título de login: SGPME → Metrik
+- ✅ 1 pantalla de carga: SGPM → Metrik
+- ✅ 2 metadatos (navegador + PWA): SGPME → Metrik
+- ✅ 1 grupo de usuario de prueba: "SGPME Sistema" → "Grupo HG"
+
+**Archivos NO modificados intencionalmente:**
+
+- `/hooks/useAutoSave.tsx` - Prefijo de localStorage `sgpme_draft_` se mantiene por compatibilidad con datos almacenados
+
+### 7. **Resultado visual**
+
+- ✅ **Navegador:** Pestaña ahora muestra "GRUPO HG - Metrik"
+- ✅ **PWA (iOS):** App instalada muestra "Metrik" como título
+- ✅ **Headers:** Todas las páginas muestran "Metrik" en el header principal
+- ✅ **Login:** Título principal es "Metrik"
+- ✅ **Carga inicial:** Pantalla de carga muestra "Metrik"
+- ✅ **Consistencia:** Branding unificado en toda la aplicación
+
+### 8. **Estado: FUNCIONAL ✅**
+
+- ✅ Rebranding completado en 14 archivos
+- ✅ Sin errores de compilación
+- ✅ Identidad de marca unificada como "Metrik"
+- ✅ Listo para deploy
+
+---

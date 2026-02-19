@@ -7,6 +7,26 @@ import { UserPlusIcon } from "@heroicons/react/24/solid";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+// Función para ordenar usuarios: administrador > coordinador > auditor, alfabéticamente
+const ordenarUsuarios = (usuarios: Usuario[]): Usuario[] => {
+  const orden: Record<string, number> = {
+    administrador: 1,
+    coordinador: 2,
+    auditor: 3,
+  };
+
+  return [...usuarios].sort((a, b) => {
+    // Primero ordenar por rol
+    const ordenA = orden[a.role] || 999;
+    const ordenB = orden[b.role] || 999;
+    if (ordenA !== ordenB) {
+      return ordenA - ordenB;
+    }
+    // Luego alfabéticamente por nombre
+    return a.full_name.localeCompare(b.full_name);
+  });
+};
+
 interface Usuario {
   id: number;
   username: string;
@@ -24,7 +44,7 @@ interface FormularioUsuario {
 }
 
 interface GestionAccesosProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export default function GestionAccesos({ onClose }: GestionAccesosProps) {
@@ -63,11 +83,11 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
         // Si es coordinador, solo mostrar su propio usuario
         if (usuario?.tipo === "coordinador") {
           const usuarioActual = data.filter(
-            (u: Usuario) => u.id === Number(usuario.id)
+            (u: Usuario) => u.id === Number(usuario.id),
           );
-          setUsuarios(usuarioActual);
+          setUsuarios(ordenarUsuarios(usuarioActual));
         } else {
-          setUsuarios(data);
+          setUsuarios(ordenarUsuarios(data));
         }
       } else {
         console.error("Error al cargar usuarios:", response.status);
@@ -177,7 +197,13 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+      <div
+        className={
+          onClose
+            ? "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+            : "flex items-center justify-center p-8"
+        }
+      >
         <div className="bg-white p-8 rounded-lg">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -188,9 +214,24 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
     );
   }
 
+  // Contenedor principal: con overlay si es popup, sin overlay si es integrado
+  const Wrapper = onClose
+    ? ({ children }: { children: React.ReactNode }) => (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+          {children}
+        </div>
+      )
+    : ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-full flex flex-col">
+    <Wrapper>
+      <div
+        className={
+          onClose
+            ? "bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-full flex flex-col"
+            : "bg-white w-full flex flex-col"
+        }
+      >
         <div className="overflow-y-auto flex-1 p-6">
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -208,13 +249,15 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
               </div>
 
               <div className="flex items-center space-x-4">
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-md transition-colors"
-                  title="Volver"
-                >
-                  ✕
-                </button>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-600 p-2 rounded-md transition-colors"
+                    title="Volver"
+                  >
+                    ✕
+                  </button>
+                )}
                 {usuario?.tipo === "administrador" && (
                   <button
                     onClick={() => abrirModal()}
@@ -423,6 +466,6 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
           )}
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }

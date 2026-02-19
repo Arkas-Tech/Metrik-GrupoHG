@@ -51,7 +51,7 @@ export const useMetricas = () => {
   const [metricas, setMetricas] = useState<Metrica[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
 
   const cargarMetricas = useCallback(
     async (mes?: number, anio?: number) => {
@@ -71,7 +71,7 @@ export const useMetricas = () => {
         }
 
         const response = await fetchConToken(
-          `${API_URL}/metricas?${params.toString()}`
+          `${API_URL}/metricas?${params.toString()}`,
         );
 
         if (!response.ok) {
@@ -79,7 +79,18 @@ export const useMetricas = () => {
         }
 
         const data = await response.json();
-        setMetricas(data);
+        // Si no hay marca específica, filtrar por marcas permitidas del usuario
+        if (!marcaSeleccionada && marcasPermitidas.length > 0) {
+          const permitidas = marcasPermitidas.map((m) => m.toLowerCase());
+          setMetricas(
+            data.filter(
+              (m: Metrica) =>
+                m.marca && permitidas.includes(m.marca.toLowerCase()),
+            ),
+          );
+        } else {
+          setMetricas(data);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
         console.error("Error al cargar métricas:", err);
@@ -87,11 +98,11 @@ export const useMetricas = () => {
         setLoading(false);
       }
     },
-    [marcaSeleccionada]
+    [marcaSeleccionada, marcasPermitidas],
   );
 
   const crearMetrica = async (
-    metricaData: MetricaFormData
+    metricaData: MetricaFormData,
   ): Promise<boolean> => {
     try {
       setLoading(true);
@@ -120,7 +131,7 @@ export const useMetricas = () => {
 
   const actualizarMetrica = async (
     id: number,
-    metricaData: MetricaFormData
+    metricaData: MetricaFormData,
   ): Promise<boolean> => {
     try {
       setLoading(true);

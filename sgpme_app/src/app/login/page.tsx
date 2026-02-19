@@ -33,7 +33,7 @@ export default function LoginPage() {
         </p>
 
         <h1 className="text-4xl font-bold text-blue-800 text-center tracking-wide mb-1">
-          SGPME
+          Metrik
         </h1>
 
         <p className="text-gray-600 text-center text-sm mb-6 leading-relaxed">

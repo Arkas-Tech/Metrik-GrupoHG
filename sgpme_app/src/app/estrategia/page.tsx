@@ -16,13 +16,12 @@ import {
   FiltrosPanel,
 } from "@/components";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 
 export default function ProyeccionesPage() {
   console.log("🚀 [INICIO] ProyeccionesPage se está renderizando");
@@ -33,7 +32,7 @@ export default function ProyeccionesPage() {
     loading: authLoading,
     tienePermiso,
   } = useAuth();
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { filtraPorMarca } = useMarcaGlobal();
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva" | "editar"
   >("dashboard");
@@ -47,6 +46,11 @@ export default function ProyeccionesPage() {
   const mostrarMenu = isAdmin || isCoordinador;
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -115,10 +119,7 @@ export default function ProyeccionesPage() {
   console.log("✅ [ESTRATEGIA] Array de proyecciones:", proyecciones);
 
   const proyeccionesFiltradas = obtenerProyeccionesPorFiltros(filtros)
-    .filter(
-      (proyeccion) =>
-        !marcaSeleccionada || proyeccion.marca === marcaSeleccionada,
-    )
+    .filter((proyeccion) => filtraPorMarca(proyeccion.marca))
     .sort((a, b) => {
       // Ordenar por año primero
       if (a.año !== b.año) {
@@ -274,7 +275,7 @@ export default function ProyeccionesPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -310,39 +311,7 @@ export default function ProyeccionesPage() {
           </div>
         </div>
       </header>
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800"
-            >
-              📊 Dashboard
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button
-              onClick={() => router.push("/metricas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="estrategia" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {vistaActual === "dashboard" && (
           <>
@@ -502,9 +471,6 @@ export default function ProyeccionesPage() {
             onClose={() => setConfigSidebarOpen(false)}
             onNavigate={handleMenuClick}
           />
-          {activeConfigView === "accesos" && (
-            <GestionAccesos onClose={() => setActiveConfigView("")} />
-          )}
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
@@ -512,14 +478,7 @@ export default function ProyeccionesPage() {
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
             />
-          )}{" "}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
-            />
-          )}{" "}
+          )}
         </>
       )}
 

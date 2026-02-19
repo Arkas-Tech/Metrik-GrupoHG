@@ -39,7 +39,7 @@ export const usePresencias = () => {
   const [presencias, setPresencias] = useState<Presencia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
 
   const cargarPresencias = useCallback(async () => {
     try {
@@ -48,7 +48,7 @@ export const usePresencias = () => {
 
       const url = marcaSeleccionada
         ? `${API_URL}/presencia-tradicional/?agencia=${encodeURIComponent(
-            marcaSeleccionada
+            marcaSeleccionada,
           )}`
         : `${API_URL}/presencia-tradicional/`;
 
@@ -59,14 +59,23 @@ export const usePresencias = () => {
       }
 
       const data = await response.json();
-      setPresencias(data);
+      // Si no hay marca específica, filtrar por marcas permitidas del usuario
+      if (!marcaSeleccionada && marcasPermitidas.length > 0) {
+        setPresencias(
+          data.filter((p: Presencia) =>
+            p.agencia ? marcasPermitidas.includes(p.agencia) : false,
+          ),
+        );
+      } else {
+        setPresencias(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
       console.error("Error cargando presencias:", err);
     } finally {
       setCargando(false);
     }
-  }, [marcaSeleccionada]);
+  }, [marcaSeleccionada, marcasPermitidas]);
 
   const crearPresencia = async (presenciaData: {
     tipo: string;
@@ -106,7 +115,7 @@ export const usePresencias = () => {
         presenciaData.imagenes?.map((img: { url: string }) => img.url) || [];
 
       const formatDate = (
-        dateStr: string | null | undefined
+        dateStr: string | null | undefined,
       ): string | null => {
         if (!dateStr) return null;
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
@@ -158,7 +167,7 @@ export const usePresencias = () => {
             imagenes_json: JSON.stringify(imagenesUrls),
             observaciones: presenciaData.observaciones || null,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -172,7 +181,7 @@ export const usePresencias = () => {
             errorMessage = errorData.detail
               .map(
                 (err: { loc?: string[]; msg: string }) =>
-                  `${err.loc?.join(".") || "campo"}: ${err.msg}`
+                  `${err.loc?.join(".") || "campo"}: ${err.msg}`,
               )
               .join(", ");
           } else if (typeof errorData.detail === "object") {
@@ -228,14 +237,14 @@ export const usePresencias = () => {
         url: string;
         descripcion: string;
       }>;
-    }
+    },
   ) => {
     try {
       const imagenesUrls =
         presenciaData.imagenes?.map((img: { url: string }) => img.url) || [];
 
       const formatDate = (
-        dateStr: string | null | undefined
+        dateStr: string | null | undefined,
       ): string | null => {
         if (!dateStr) return null;
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
@@ -287,7 +296,7 @@ export const usePresencias = () => {
             imagenes_json: JSON.stringify(imagenesUrls),
             observaciones: presenciaData.observaciones || null,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -301,7 +310,7 @@ export const usePresencias = () => {
             errorMessage = errorData.detail
               .map(
                 (err: { loc?: string[]; msg: string }) =>
-                  `${err.loc?.join(".") || "campo"}: ${err.msg}`
+                  `${err.loc?.join(".") || "campo"}: ${err.msg}`,
               )
               .join(", ");
           } else if (typeof errorData.detail === "object") {
@@ -329,7 +338,7 @@ export const usePresencias = () => {
         `${API_URL}/presencia-tradicional/${id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {

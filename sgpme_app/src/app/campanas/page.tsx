@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import FormularioCampana from "@/components/FormularioCampana";
 import { useCampanas } from "@/hooks/useCampanas";
 import type { CampanaFormData } from "@/hooks/useCampanas";
@@ -26,10 +27,8 @@ import {
 } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 
 interface CampanaDetallada {
   id: number;
@@ -57,7 +56,7 @@ const CampanasPage = () => {
     cerrarSesion: cerrarSesionAuth,
     loading: authLoading,
   } = useAuth();
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
   const [modalFormulario, setModalFormulario] = useState(false);
@@ -169,6 +168,11 @@ const CampanasPage = () => {
   };
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -304,6 +308,9 @@ const CampanasPage = () => {
   // Filtrar campañas por mes, año y plataforma
   const campanasFiltradas = campanasDb
     .filter((campana) => {
+      // Filtrar por marcas permitidas del usuario
+      if (!filtraPorMarca(campana.marca)) return false;
+
       const fechaInicio = new Date(campana.fecha_inicio);
       const mesCampana = fechaInicio.getMonth() + 1;
       const añoCampana = fechaInicio.getFullYear();
@@ -368,7 +375,7 @@ const CampanasPage = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -404,42 +411,7 @@ const CampanasPage = () => {
           </div>
         </div>
       </header>
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => router.push("/estrategia")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button
-              onClick={() => router.push("/metricas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="dashboard" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           <div className="flex items-center justify-between mb-8">
@@ -752,9 +724,6 @@ const CampanasPage = () => {
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
       />
-      {activeConfigView === "accesos" && (
-        <GestionAccesos onClose={() => setActiveConfigView("")} />
-      )}
 
       {/* Modales para administradores */}
       {isAdmin && (
@@ -765,13 +734,6 @@ const CampanasPage = () => {
           {activeConfigView === "cambiar-contrasena" && (
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
-            />
-          )}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
             />
           )}
         </>

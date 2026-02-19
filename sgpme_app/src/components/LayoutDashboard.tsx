@@ -131,10 +131,10 @@ export default function LayoutDashboard({
               active={pathname === "/facturas"}
             />
             <NavLink
-              href="/metricas"
+              href="/digital"
               icon="📊"
-              label="Métricas"
-              active={pathname === "/metricas"}
+              label="Digital"
+              active={pathname === "/digital"}
             />
           </div>
         </div>

@@ -3,12 +3,7 @@
 import { Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import {
-  UsersIcon,
-  CogIcon,
-  UserCircleIcon,
-  KeyIcon,
-} from "@heroicons/react/24/solid";
+import { CogIcon, UserCircleIcon, KeyIcon } from "@heroicons/react/24/solid";
 
 interface ConfigSidebarProps {
   isOpen: boolean;
@@ -17,12 +12,6 @@ interface ConfigSidebarProps {
 }
 
 const menuItems = [
-  {
-    id: "accesos",
-    name: "Accesos",
-    icon: UsersIcon,
-    description: "Gestionar usuarios y permisos",
-  },
   {
     id: "mi-perfil",
     name: "Mi Perfil",

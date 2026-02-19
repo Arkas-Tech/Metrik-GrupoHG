@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 import random
 import string
+import json
 from email_service import send_password_reset_email
 
 router = APIRouter(
@@ -253,12 +254,44 @@ async def read_user(user: user_dependency, db: db_dependency):
     if user_info is None:
         raise HTTPException(status_code=404, detail='User not found')
     
+    # Parsear permisos JSON
+    permisos = {}
+    if user_info.permisos:
+        try:
+            permisos = json.loads(user_info.permisos)
+        except:
+            permisos = {
+                "dashboard": True,
+                "estrategia": True,
+                "facturas": True,
+                "eventos": True,
+                "digital": True
+            }
+    else:
+        permisos = {
+            "dashboard": True,
+            "estrategia": True,
+            "facturas": True,
+            "eventos": True,
+            "digital": True
+        }
+    
+    # Parsear permisos_agencias JSON
+    permisos_agencias = {}
+    if hasattr(user_info, 'permisos_agencias') and user_info.permisos_agencias:
+        try:
+            permisos_agencias = json.loads(user_info.permisos_agencias)
+        except:
+            permisos_agencias = {}
+    
     return {
         'id': user_info.id,
         'username': user_info.username,
         'email': user_info.email,
         'full_name': user_info.full_name,
-        'role': user_info.role
+        'role': user_info.role,
+        'permisos': permisos,
+        'permisos_agencias': permisos_agencias
     }
 
 @router.post("/change-password", status_code=status.HTTP_200_OK)

@@ -63,7 +63,7 @@ export default function GraficaProyeccionVsGasto({
   mes,
   refreshTrigger,
 }: GraficaProyeccionVsGastoProps) {
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const {
     nombresCategorias,
     subcategoriasPorCategoria,
@@ -109,7 +109,13 @@ export default function GraficaProyeccionVsGasto({
         const presupuestosRes = await fetchConToken(
           `${API_URL}/presupuesto?${presupuestosParams.toString()}`,
         );
-        const presupuestosData = await presupuestosRes.json();
+        const presupuestosDataRaw = await presupuestosRes.json();
+        // Filtrar por agencias permitidas del usuario
+        const presupuestosData = Array.isArray(presupuestosDataRaw)
+          ? presupuestosDataRaw.filter((p: any) =>
+              filtraPorMarca(p.marca_nombre),
+            )
+          : presupuestosDataRaw;
         // Estructura: [{categoria, monto, mes, anio, marca_id, ...}]
 
         // Mapear y sumar presupuestos por categoría
@@ -129,7 +135,7 @@ export default function GraficaProyeccionVsGasto({
         );
         const proyeccionesData = await resProyecciones.json();
         let proyecciones: Proyeccion[] = Array.isArray(proyeccionesData)
-          ? proyeccionesData
+          ? proyeccionesData.filter((p: Proyeccion) => filtraPorMarca(p.marca))
           : [];
 
         // Filtrar proyecciones por mes/año
@@ -148,9 +154,9 @@ export default function GraficaProyeccionVsGasto({
           `${API_URL}/facturas?${params.toString()}`,
         );
         const facturasData = await resFacturas.json();
-        let facturas: FacturaBackend[] = Array.isArray(facturasData)
-          ? facturasData
-          : [];
+        let facturas: FacturaBackend[] = (
+          Array.isArray(facturasData) ? facturasData : []
+        ).filter((f: any) => filtraPorMarca(f.marca));
 
         // Filtrar facturas por mes/año usando mes_asignado y año_asignado
         if (mes || año) {
@@ -235,8 +241,7 @@ export default function GraficaProyeccionVsGasto({
         setLoading(false);
       }
     };
-
-    cargarDatos();
+    (filtraPorMarca, cargarDatos());
   }, [marcaSeleccionada, año, mes, refreshTrigger]);
 
   // Inicializar subcategorías seleccionadas cuando cambien las categorías

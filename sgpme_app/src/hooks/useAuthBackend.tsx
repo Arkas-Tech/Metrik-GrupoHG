@@ -137,13 +137,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               grupo: "Grupo HG",
               fechaCreacion: new Date().toISOString().split("T")[0],
               activo: true,
+              permisos: userData.permisos || {
+                dashboard: true,
+                estrategia: true,
+                facturas: true,
+                eventos: true,
+                digital: true,
+              },
+              permisos_agencias: userData.permisos_agencias || {},
             };
-
-            console.log(
-              "useAuthBackend - Usuario del backend:",
-              usuarioMapeado
-            );
-            console.log("useAuthBackend - Tipo:", usuarioMapeado.tipo);
 
             setUsuario(usuarioMapeado);
             setPermisos(PERMISOS_POR_TIPO[usuarioMapeado.tipo]);
@@ -151,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.setItem("usuario", JSON.stringify(usuarioMapeado));
           } else {
             console.error(
-              "useAuthBackend - Error en verificación, limpiando sesión"
+              "useAuthBackend - Error en verificación, limpiando sesión",
             );
             localStorage.removeItem("token");
             localStorage.removeItem("usuario");
@@ -170,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const iniciarSesion = async (
     username: string,
-    password: string
+    password: string,
   ): Promise<boolean> => {
     setLoading(true);
 
@@ -211,6 +213,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             grupo: "Grupo HG",
             fechaCreacion: new Date().toISOString().split("T")[0],
             activo: true,
+            permisos: userData.permisos || {
+              dashboard: true,
+              estrategia: true,
+              facturas: true,
+              eventos: true,
+              digital: true,
+            },
+            permisos_agencias: userData.permisos_agencias || {},
           };
 
           setUsuario(usuarioMapeado);
@@ -238,7 +248,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const tienePermiso = (
     modulo: keyof PermisosUsuario,
-    accion: string
+    accion: string,
   ): boolean => {
     if (!permisos || !permisos[modulo]) return false;
 

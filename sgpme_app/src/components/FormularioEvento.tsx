@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Evento, GastoEvento, MARCAS, TIPOS_EVENTO } from "@/types";
+import { Evento, GastoEvento, TIPOS_EVENTO } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { fetchConToken } from "@/lib/auth-utils";
 import DateInput from "./DateInput";
 
@@ -22,6 +23,7 @@ export default function FormularioEvento({
   onCancel,
   loading = false,
 }: FormularioEventoProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const getFormularioInicial = () => {
     if (eventoInicial) {
       return {
@@ -268,7 +270,7 @@ export default function FormularioEvento({
               }`}
             >
               <div className="flex flex-wrap gap-2">
-                {MARCAS.map((marca) => {
+                {marcasPermitidas.map((marca) => {
                   const marcasArray = Array.isArray(formData.marca)
                     ? formData.marca
                     : [];

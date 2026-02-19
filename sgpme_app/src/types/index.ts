@@ -9,6 +9,14 @@ export interface Usuario {
   avatar?: string;
   fechaCreacion: string;
   activo: boolean;
+  permisos?: {
+    dashboard?: boolean;
+    estrategia?: boolean;
+    facturas?: boolean;
+    eventos?: boolean;
+    digital?: boolean;
+  };
+  permisos_agencias?: Record<string, boolean>;
 }
 
 export interface PermisosUsuario {

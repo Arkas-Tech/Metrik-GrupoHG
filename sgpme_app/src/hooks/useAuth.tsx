@@ -313,7 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const iniciarSesion = async (
     username: string,
-    password: string
+    password: string,
   ): Promise<boolean> => {
     setLoading(true);
 
@@ -338,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nombre: username === "yosch" ? "Yosmar Chavez" : username,
           email: username.includes("@") ? username : `${username}@grupohg.com`,
           tipo: "administrador" as TipoUsuario,
-          grupo: "SGPME Sistema",
+          grupo: "Grupo HG",
           fechaCreacion: new Date().toISOString().split("T")[0],
           activo: true,
         };
@@ -356,7 +356,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const credencialEncontrada = USUARIOS_SISTEMA.find(
-      (cred) => cred.username === username && cred.password === password
+      (cred) => cred.username === username && cred.password === password,
     );
 
     if (credencialEncontrada) {
@@ -390,7 +390,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const tienePermiso = (
     modulo: keyof PermisosUsuario,
-    accion: string
+    accion: string,
   ): boolean => {
     if (!permisos) return false;
     const moduloPermisos = permisos[modulo] as Record<string, boolean>;

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import ImageUpload from "./ImageUpload";
-import { MARCAS } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DateInput from "./DateInput";
 
 interface FormularioCampanaProps {
@@ -43,6 +43,7 @@ export default function FormularioCampana({
   initialData,
   loading = false,
 }: FormularioCampanaProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const [formData, setFormData] = useState<CampanaFormData>({
     nombre: initialData?.nombre || "",
     estado: initialData?.estado || "Activa",
@@ -136,7 +137,7 @@ export default function FormularioCampana({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
           >
             <option value="">Seleccionar agencia</option>
-            {MARCAS.map((marca) => (
+            {marcasPermitidas.map((marca) => (
               <option key={marca} value={marca}>
                 {marca}
               </option>

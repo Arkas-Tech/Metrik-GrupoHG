@@ -9,13 +9,13 @@ import {
 } from "@/hooks/useAuthUnified";
 import ListaPresupuestosMensuales from "@/components/ListaPresupuestosMensuales";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
 import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 
 const AÑOS_DISPONIBLES = Array.from(
   { length: 10 },
@@ -39,6 +39,11 @@ export default function PresupuestoPage() {
   const mostrarMenu = isAdmin || isCoordinador;
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -113,7 +118,7 @@ export default function PresupuestoPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -150,39 +155,7 @@ export default function PresupuestoPage() {
         </div>
       </header>
 
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button
-              onClick={() => router.push("/metricas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="estrategia" />
 
       {isAdmin && (
         <>
@@ -210,13 +183,6 @@ export default function PresupuestoPage() {
           {activeConfigView === "cambiar-contrasena" && (
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
-            />
-          )}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
             />
           )}
         </>

@@ -25,12 +25,11 @@ import ListaFacturas from "@/components/ListaFacturas";
 import ListaProveedores from "@/components/ListaProveedores";
 import FiltrosFacturas from "@/components/FiltrosFacturas";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import GraficaProyeccionVsGasto from "@/components/GraficaProyeccionVsGasto";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 
@@ -43,7 +42,7 @@ function FacturasPageContent() {
     cerrarSesion: cerrarSesionAuth,
     loading: authLoading,
   } = useAuth();
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { filtraPorMarca } = useMarcaGlobal();
   // Función para obtener la vista inicial basada en parámetros de URL
   const getInitialView = () => {
     if (typeof window !== "undefined") {
@@ -120,10 +119,18 @@ function FacturasPageContent() {
     mostrarMenu,
   });
 
-  const handleMenuClick = useCallback((item: string) => {
-    setActiveConfigView(item);
-    setConfigSidebarOpen(false);
-  }, []);
+  const handleMenuClick = useCallback(
+    (item: string) => {
+      if (item === "configuracion") {
+        router.push("/configuracion");
+        setConfigSidebarOpen(false);
+        return;
+      }
+      setActiveConfigView(item);
+      setConfigSidebarOpen(false);
+    },
+    [router],
+  );
 
   const {
     facturas,
@@ -186,7 +193,7 @@ function FacturasPageContent() {
   }, [usuario, vistaActual, filtros]);
 
   const facturasFiltradasMemo = obtenerFacturasPorFiltros(filtros).filter(
-    (factura) => !marcaSeleccionada || factura.marca === marcaSeleccionada,
+    (factura) => filtraPorMarca(factura.marca),
   );
 
   // Filtrar facturas con eventos que han sido ingresadas
@@ -198,9 +205,7 @@ function FacturasPageContent() {
           factura.fechaIngresada &&
           factura.fechaIngresada.trim() !== "",
       )
-      .filter(
-        (factura) => !marcaSeleccionada || factura.marca === marcaSeleccionada,
-      )
+      .filter((factura) => filtraPorMarca(factura.marca))
       .map((factura) => {
         const evento = eventos.find((e) => e.id === factura.eventoId);
         return {
@@ -208,7 +213,7 @@ function FacturasPageContent() {
           eventoData: evento,
         };
       });
-  }, [facturas, eventos, marcaSeleccionada]);
+  }, [facturas, eventos, filtraPorMarca]);
 
   // Filtrar facturas con eventos por mes y año del evento
   const facturasEventosPorPeriodo = useMemo(() => {
@@ -322,7 +327,7 @@ function FacturasPageContent() {
       };
       const resultado = await guardarFactura(nuevaFactura);
       if (resultado.success) {
-        setVistaActual("dashboard");
+        // NO cambiar vista aquí, dejar que FormularioFactura lo maneje después de subir archivos
         return resultado.facturaId;
       }
     } catch (error) {
@@ -345,8 +350,9 @@ function FacturasPageContent() {
         };
         const resultado = await guardarFactura(facturaActualizada);
         if (resultado.success) {
-          setVistaActual("dashboard");
+          // NO cambiar vista aquí, dejar que FormularioFactura lo maneje después de subir archivos
           setFacturaEditando(null);
+          return resultado.facturaId;
         }
       } catch (error) {
         console.error("Error al actualizar factura:", error);
@@ -710,7 +716,7 @@ function FacturasPageContent() {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -746,39 +752,7 @@ function FacturasPageContent() {
           </div>
         </div>
       </header>
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => router.push("/estrategia")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎯 Estrategia
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button
-              onClick={() => router.push("/metricas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="facturas" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {vistaActual === "dashboard" && (
           <>
@@ -937,7 +911,7 @@ function FacturasPageContent() {
                     onClick={() => setVistaActual("dashboard")}
                     className="text-blue-600 hover:text-blue-800 mb-4"
                   >
-                    ← Volver al Dashboard de Facturas
+                    ← Volver a Facturas
                   </button>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     Gestión de Proveedores
@@ -1033,22 +1007,12 @@ function FacturasPageContent() {
               setConfigSidebarOpen(false);
             }}
           />
-          {activeConfigView === "accesos" && (
-            <GestionAccesos onClose={() => setActiveConfigView("")} />
-          )}
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
           {activeConfigView === "cambiar-contrasena" && (
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
-            />
-          )}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
             />
           )}
         </>

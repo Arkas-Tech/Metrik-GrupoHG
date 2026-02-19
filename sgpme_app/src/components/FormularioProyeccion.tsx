@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { usePartidas } from "@/hooks/useProyecciones";
 import { useCategoriasAPI } from "@/hooks/useCategoriasAPI";
-import { Proyeccion, Partida, MESES, MARCAS, AÑOS } from "@/types";
+import { Proyeccion, Partida, MESES, AÑOS } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 interface FormularioProyeccionProps {
   proyeccionInicial?: Proyeccion;
@@ -20,6 +21,7 @@ export default function FormularioProyeccion({
   loading = false,
   proyeccionesExistentes = [],
 }: FormularioProyeccionProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const [año, setAño] = useState(
     proyeccionInicial?.año || new Date().getFullYear(),
   );
@@ -326,7 +328,7 @@ export default function FormularioProyeccion({
               disabled={enviando || !!proyeccionInicial}
             >
               <option value="">Seleccionar agencia</option>
-              {MARCAS.map((m) => (
+              {marcasPermitidas.map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>

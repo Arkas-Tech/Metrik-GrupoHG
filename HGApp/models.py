@@ -11,6 +11,8 @@ class Users(Base):
     full_name = Column(String)
     hashed_password = Column(String)
     role = Column(String)
+    permisos = Column(Text, nullable=True)  # JSON string con permisos de navegación
+    permisos_agencias = Column(Text, nullable=True)  # JSON string con permisos de agencias
 
 
 class Marcas(Base):

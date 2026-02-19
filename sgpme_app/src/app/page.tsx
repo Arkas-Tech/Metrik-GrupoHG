@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-white">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-blue-800 mb-2">SGPM</h1>
+        <h1 className="text-4xl font-bold text-blue-800 mb-2">Metrik</h1>
         <p className="text-gray-600">Redirigiendo...</p>
       </div>
     </div>

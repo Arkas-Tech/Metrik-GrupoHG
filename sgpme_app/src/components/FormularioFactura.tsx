@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Factura, MARCAS, METODOS_PAGO, MESES, AÑOS } from "@/types";
+import { Factura, METODOS_PAGO, MESES, AÑOS } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { useProveedoresAPI } from "@/hooks/useProveedoresAPI";
 import { useFacturasAPI } from "@/hooks/useFacturasAPI";
 import { useCategoriasAPI } from "@/hooks/useCategoriasAPI";
@@ -38,6 +39,7 @@ export default function FormularioFactura({
   onAbrirModalProveedor,
   proveedorRecienCreado,
 }: FormularioFacturaProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const {
     proveedores,
     loading: proveedoresLoading,
@@ -662,7 +664,9 @@ export default function FormularioFactura({
         }
       }
 
+      // Limpiar formulario o llamar a onCancel después de subir todo
       if (!facturaInicial) {
+        // Si es una factura nueva, resetear campos
         setFolio("");
         setProveedor("");
         setRfc("");
@@ -684,6 +688,12 @@ export default function FormularioFactura({
         setArchivosExistentes([]);
         setCotizaciones([]);
       }
+
+      // Llamar a onCancel para cerrar el formulario y volver a la vista principal
+      // DESPUÉS de que todo se haya subido exitosamente
+      setTimeout(() => {
+        onCancel();
+      }, 500); // Pequeño delay para asegurar que las cargas terminen
     } catch (error) {
       console.error("Error al enviar formulario:", error);
     } finally {
@@ -755,14 +765,6 @@ export default function FormularioFactura({
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => window.open(archivo.url, "_blank")}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      disabled={enviando}
-                    >
-                      Ver
-                    </button>
                     <button
                       type="button"
                       onClick={() => eliminarArchivoExistente(archivo.id)}
@@ -1055,7 +1057,7 @@ export default function FormularioFactura({
               disabled={enviando}
             >
               <option value="">Seleccionar agencia</option>
-              {MARCAS.map((m) => (
+              {marcasPermitidas.map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>
@@ -1326,18 +1328,6 @@ export default function FormularioFactura({
                     )}
                   </div>
                   <div className="flex items-center space-x-2">
-                    {cotizacion.archivo && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          window.open(cotizacion.archivo!.url, "_blank")
-                        }
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        disabled={enviando}
-                      >
-                        Ver
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => eliminarCotizacionExistente(cotizacion.id)}

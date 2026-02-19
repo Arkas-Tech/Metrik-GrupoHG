@@ -11,6 +11,7 @@ import { useEventos } from "@/hooks/useEventos";
 import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import FormularioEvento from "@/components/FormularioEvento";
 import FormularioBrief from "@/components/FormularioBrief";
 import BriefTemplate from "@/components/BriefTemplate";
@@ -18,14 +19,16 @@ import CalendarioTrimestral from "@/components/CalendarioTrimestral";
 import CalendarioAnual from "@/components/CalendarioAnual";
 import CalendarioMensual from "@/components/CalendarioMensual";
 import { Evento, FiltrosEvento, BriefEvento } from "@/types";
-import { eventoPerteneceAMarca, formatearMarca } from "@/lib/evento-utils";
+import {
+  eventoPerteneceAMarca,
+  eventoPerteneceAMarcas,
+  formatearMarca,
+} from "@/lib/evento-utils";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 
 export default function EventosPage() {
   const router = useRouter();
@@ -48,7 +51,7 @@ export default function EventosPage() {
     exportarBriefPDF,
   } = useEventos();
   const { facturas } = useFacturas();
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
 
   const [vistaActual, setVistaActual] = useState<
     | "dashboard"
@@ -83,6 +86,11 @@ export default function EventosPage() {
   const mostrarMenu = isAdmin || isCoordinador;
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -95,11 +103,13 @@ export default function EventosPage() {
   const eventosFiltrados = useMemo(() => {
     return eventos
       .filter((evento) => {
-        if (
-          marcaSeleccionada &&
-          !eventoPerteneceAMarca(evento.marca, marcaSeleccionada)
-        ) {
-          return false;
+        // Filtrar por marca: si hay selección específica usar esa, sino por marcas permitidas
+        if (marcaSeleccionada) {
+          if (!eventoPerteneceAMarca(evento.marca, marcaSeleccionada))
+            return false;
+        } else {
+          if (!eventoPerteneceAMarcas(evento.marca, marcasPermitidas))
+            return false;
         }
 
         if (filtros.año) {
@@ -125,20 +135,17 @@ export default function EventosPage() {
         const diff = fechaA.getTime() - fechaB.getTime();
         return ordenAscendente ? diff : -diff;
       });
-  }, [eventos, filtros, marcaSeleccionada, ordenAscendente]);
+  }, [eventos, filtros, marcaSeleccionada, marcasPermitidas, ordenAscendente]);
 
   // Eventos solo filtrados por marca para calendarios (sin filtros de mes/año)
   const eventosParaCalendarios = useMemo(() => {
     return eventos.filter((evento) => {
-      if (
-        marcaSeleccionada &&
-        !eventoPerteneceAMarca(evento.marca, marcaSeleccionada)
-      ) {
-        return false;
+      if (marcaSeleccionada) {
+        return eventoPerteneceAMarca(evento.marca, marcaSeleccionada);
       }
-      return true;
+      return eventoPerteneceAMarcas(evento.marca, marcasPermitidas);
     });
-  }, [eventos, marcaSeleccionada]);
+  }, [eventos, marcaSeleccionada, marcasPermitidas]);
 
   const calcularMetricasBriefs = useMemo(() => {
     const eventosConBrief = eventosFiltrados.filter((evento) => evento.brief);
@@ -354,7 +361,7 @@ export default function EventosPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -390,39 +397,7 @@ export default function EventosPage() {
           </div>
         </div>
       </header>
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => router.push("/estrategia")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-              🎉 Eventos
-            </button>
-            <button
-              onClick={() => router.push("/metricas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="eventos" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {vistaActual === "dashboard" && (
           <>
@@ -1622,7 +1597,7 @@ export default function EventosPage() {
                 onClick={() => setVistaActual("dashboard")}
                 className="text-blue-600 hover:text-blue-800 mb-4"
               >
-                ← Volver al Dashboard
+                ← Volver a Eventos
               </button>
               <h2 className="text-2xl font-bold text-gray-900">
                 Crear Nuevo Evento
@@ -1646,7 +1621,7 @@ export default function EventosPage() {
                 onClick={() => setVistaActual("dashboard")}
                 className="text-blue-600 hover:text-blue-800 mb-4"
               >
-                ← Volver al Dashboard
+                ← Volver a Eventos
               </button>
               <h2 className="text-2xl font-bold text-gray-900">
                 Editar Evento
@@ -1674,7 +1649,7 @@ export default function EventosPage() {
                 onClick={() => setVistaActual("dashboard")}
                 className="text-blue-600 hover:text-blue-800 mb-4"
               >
-                ← Volver al Dashboard
+                ← Volver a Eventos
               </button>
               <h2 className="text-2xl font-bold text-gray-900">
                 Brief del Evento: {eventoEditando.nombre}
@@ -1701,7 +1676,7 @@ export default function EventosPage() {
                   onClick={() => setVistaActual("dashboard")}
                   className="text-blue-600 hover:text-blue-800 mb-4"
                 >
-                  ← Volver al Dashboard
+                  ← Volver a Eventos
                 </button>
               </div>
               <BriefTemplate
@@ -1720,7 +1695,7 @@ export default function EventosPage() {
                   onClick={() => setVistaActual("dashboard")}
                   className="text-blue-600 hover:text-blue-800 mb-4"
                 >
-                  ← Volver al Dashboard
+                  ← Volver a Eventos
                 </button>
               </div>
               <BriefTemplate
@@ -1737,9 +1712,6 @@ export default function EventosPage() {
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
       />
-      {activeConfigView === "accesos" && (
-        <GestionAccesos onClose={() => setActiveConfigView("")} />
-      )}
 
       {/* Sidebar para coordinadores y administradores */}
       {isAdmin && (
@@ -1750,13 +1722,6 @@ export default function EventosPage() {
           {activeConfigView === "cambiar-contrasena" && (
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
-            />
-          )}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
             />
           )}
         </>

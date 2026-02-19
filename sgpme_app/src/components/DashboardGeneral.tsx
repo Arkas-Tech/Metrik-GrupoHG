@@ -10,8 +10,13 @@ import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import FormularioPresencia from "@/components/FormularioPresencia";
 import { AÑOS, Evento } from "@/types";
-import { eventoPerteneceAMarca, formatearMarca } from "@/lib/evento-utils";
+import {
+  eventoPerteneceAMarca,
+  eventoPerteneceAMarcas,
+  formatearMarca,
+} from "@/lib/evento-utils";
 import { fetchConToken } from "@/lib/auth-utils";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 const MESES_ORDEN = [
   "Enero",
@@ -82,6 +87,8 @@ import {
   PencilIcon,
   EyeIcon,
   XMarkIcon,
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
 interface DashboardGeneralProps {
@@ -140,6 +147,7 @@ export default function DashboardGeneral({
   agenciaSeleccionada,
 }: DashboardGeneralProps) {
   const router = useRouter();
+  const { filtraPorMarca, marcasPermitidas } = useMarcaGlobal();
   const { facturas } = useFacturas();
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
   const { presencias, cargarPresencias, crearPresencia, actualizarPresencia } =
@@ -188,6 +196,17 @@ export default function DashboardGeneral({
   const [mesEventos, setMesEventos] = useState<number>(
     new Date().getMonth() + 1,
   );
+
+  // Estado para el visor de PDF
+  const [pdfViewer, setPdfViewer] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    nombre: string;
+  }>({
+    isOpen: false,
+    url: null,
+    nombre: "",
+  });
 
   // Datos organizados por mes: { [mes: number]: Array<datos> }
   const [desplazamientoPorMes, setDesplazamientoPorMes] = useState<{
@@ -441,6 +460,47 @@ export default function DashboardGeneral({
     document.body.removeChild(link);
   };
 
+  // Función para ver PDF en modal
+  const verPDF = async (pdfBase64: string, nombreArchivo: string) => {
+    try {
+      // Si es una URL base64, usarla directamente
+      if (pdfBase64.startsWith("data:")) {
+        setPdfViewer({
+          isOpen: true,
+          url: pdfBase64,
+          nombre: nombreArchivo,
+        });
+      } else {
+        // Si es una ruta de archivo, intentar cargarla
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetchConToken(`${API_URL}${pdfBase64}`);
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          setPdfViewer({
+            isOpen: true,
+            url: url,
+            nombre: nombreArchivo,
+          });
+        } else {
+          console.error("Error al cargar el PDF");
+        }
+      }
+    } catch (error) {
+      console.error("Error al abrir el PDF:", error);
+    }
+  };
+
+  // Función para cerrar el visor de PDF
+  const cerrarPdfViewer = () => {
+    if (pdfViewer.url && !pdfViewer.url.startsWith("data:")) {
+      URL.revokeObjectURL(pdfViewer.url);
+    }
+    setPdfViewer({ isOpen: false, url: null, nombre: "" });
+  };
+
   // Cargar proyecciones
   useEffect(() => {
     const cargarProyecciones = async () => {
@@ -585,10 +645,10 @@ export default function DashboardGeneral({
       return (
         añoFactura === añoSeleccionado &&
         mesesPermitidos.includes(mesFactura) &&
-        (!agenciaSeleccionada || factura.marca === agenciaSeleccionada)
+        filtraPorMarca(factura.marca)
       );
     });
-  }, [facturas, agenciaSeleccionada, añoSeleccionado, cuartoSeleccionado]);
+  }, [facturas, filtraPorMarca, añoSeleccionado, cuartoSeleccionado]);
 
   // Filtrar presupuestos por año, cuarto y agencia
   const presupuestosFiltrados = useMemo(() => {
@@ -598,11 +658,10 @@ export default function DashboardGeneral({
       return (
         presupuesto.anio === añoSeleccionado &&
         mesesPermitidos.includes(presupuesto.mes) &&
-        (!agenciaSeleccionada ||
-          presupuesto.marca_nombre === agenciaSeleccionada)
+        filtraPorMarca(presupuesto.marca_nombre)
       );
     });
-  }, [presupuestos, agenciaSeleccionada, añoSeleccionado, cuartoSeleccionado]);
+  }, [presupuestos, filtraPorMarca, añoSeleccionado, cuartoSeleccionado]);
 
   const metricas = useMemo(() => {
     // Calcular presupuesto anual desde presupuestos mensuales
@@ -686,10 +745,10 @@ export default function DashboardGeneral({
       return (
         proy.año === añoSeleccionado &&
         mesesPeriodo.includes(proy.mes) &&
-        (!agenciaSeleccionada || proy.marca === agenciaSeleccionada)
+        filtraPorMarca(proy.marca)
       );
     });
-  }, [proyecciones, añoSeleccionado, mesesPeriodo, agenciaSeleccionada]);
+  }, [proyecciones, añoSeleccionado, mesesPeriodo, filtraPorMarca]);
 
   // Calcular datos para barra de progreso (proyección, presupuesto, gasto)
   const datosBarraProgreso = useMemo(() => {
@@ -698,7 +757,7 @@ export default function DashboardGeneral({
         return (
           p.anio === añoSeleccionado &&
           mesesPeriodo.includes(p.mes) &&
-          (!agenciaSeleccionada || p.marca_nombre === agenciaSeleccionada)
+          filtraPorMarca(p.marca_nombre)
         );
       })
       .reduce((sum, p) => sum + p.monto, 0);
@@ -731,7 +790,7 @@ export default function DashboardGeneral({
           fechaEmision.getFullYear() === añoSeleccionado &&
           mesesPeriodo.includes(mesFactura) &&
           (f.estado === "Pagada" || f.estado === "Ingresada") &&
-          (!agenciaSeleccionada || f.marca === agenciaSeleccionada)
+          filtraPorMarca(f.marca)
         );
       })
       .reduce((sum, f) => sum + f.total, 0);
@@ -747,7 +806,7 @@ export default function DashboardGeneral({
     facturas,
     añoSeleccionado,
     mesesPeriodo,
-    agenciaSeleccionada,
+    filtraPorMarca,
   ]);
 
   // Calcular total de reembolsos
@@ -827,12 +886,13 @@ export default function DashboardGeneral({
   // Filtrar eventos por mes y agencia seleccionada del header
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((evento) => {
-      // Filtrar por agencia (del header)
-      if (
-        agenciaSeleccionada &&
-        !eventoPerteneceAMarca(evento.marca, agenciaSeleccionada)
-      ) {
-        return false;
+      // Filtrar por agencia (global o por marcas permitidas)
+      if (agenciaSeleccionada) {
+        if (!eventoPerteneceAMarca(evento.marca, agenciaSeleccionada))
+          return false;
+      } else {
+        if (!eventoPerteneceAMarcas(evento.marca, marcasPermitidas))
+          return false;
       }
 
       // Filtrar por mes
@@ -840,7 +900,7 @@ export default function DashboardGeneral({
       const mesEvento = fechaEvento.getMonth() + 1;
       return mesEvento === mesEventos;
     });
-  }, [eventos, agenciaSeleccionada, mesEventos]);
+  }, [eventos, agenciaSeleccionada, marcasPermitidas, mesEventos]);
 
   const formatearMiles = (valor: number) => {
     if (valor >= 1000000) {
@@ -863,6 +923,7 @@ export default function DashboardGeneral({
 
     const campanasActivas = campanasDb.filter((c) => {
       if (c.plataforma !== plataforma || c.estado !== "Activa") return false;
+      if (!filtraPorMarca(c.marca)) return false;
 
       // Parsear fecha de inicio (formato "YYYY-MM-DD")
       const fechaInicio = new Date(c.fecha_inicio);
@@ -904,10 +965,9 @@ export default function DashboardGeneral({
 
   const presenciaTradicionalData = presencias.filter((presencia) => {
     // Filtro por agencia
-    const cumpleAgencia =
-      !agenciaSeleccionada ||
-      agenciaSeleccionada === "" ||
-      presencia.agencia?.toLowerCase() === agenciaSeleccionada.toLowerCase();
+    const cumpleAgencia = presencia.agencia
+      ? filtraPorMarca(presencia.agencia)
+      : false;
 
     if (!cumpleAgencia) return false;
 
@@ -1636,7 +1696,7 @@ export default function DashboardGeneral({
                     e.target.value === "todas" ? null : e.target.value;
                   setAgenciaDesplazamiento(valor);
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors text-gray-900"
               >
                 <option value="todas">Todas las agencias</option>
                 {marcas.map((marca) => (
@@ -1654,7 +1714,7 @@ export default function DashboardGeneral({
               <select
                 value={mesDesplazamiento}
                 onChange={(e) => setMesDesplazamiento(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors text-gray-900"
               >
                 {MESES_ORDEN.map((mes, idx) => (
                   <option key={idx} value={idx + 1}>
@@ -1756,7 +1816,7 @@ export default function DashboardGeneral({
                                     updated,
                                   );
                                 }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
                             ) : (
                               <span className="text-gray-900 font-medium">
@@ -1779,7 +1839,7 @@ export default function DashboardGeneral({
                                     updated,
                                   );
                                 }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
                             ) : (
                               <span className="text-gray-900 font-medium">
@@ -1802,7 +1862,7 @@ export default function DashboardGeneral({
                                     updated,
                                   );
                                 }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               />
                             ) : (
                               <span className="text-gray-900 font-medium">
@@ -1829,24 +1889,44 @@ export default function DashboardGeneral({
                                     }}
                                     className="hidden"
                                   />
-                                  <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 inline-block">
-                                    📎 {item.pdf ? "Cambiar" : "Subir"}
-                                  </span>
+                                  <button
+                                    type="button"
+                                    className="text-orange-600 hover:text-orange-800 p-1"
+                                    title={
+                                      item.pdf ? "Cambiar PDF" : "Subir PDF"
+                                    }
+                                  >
+                                    <ArrowPathIcon className="h-5 w-5" />
+                                  </button>
                                 </label>
                               )}
                               {item.pdf && (
-                                <button
-                                  onClick={() =>
-                                    handlePdfDownload(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-                                  title="Descargar PDF"
-                                >
-                                  ⬇️
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      verPDF(
+                                        item.pdf!,
+                                        item.pdfNombre || "documento.pdf",
+                                      )
+                                    }
+                                    className="text-blue-600 hover:text-blue-800 p-1"
+                                    title="Ver PDF"
+                                  >
+                                    <EyeIcon className="h-5 w-5" />
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handlePdfDownload(
+                                        item.pdf!,
+                                        item.pdfNombre || "documento.pdf",
+                                      )
+                                    }
+                                    className="text-green-600 hover:text-green-800 p-1"
+                                    title="Descargar PDF"
+                                  >
+                                    <ArrowDownTrayIcon className="h-5 w-5" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -1950,7 +2030,7 @@ export default function DashboardGeneral({
                                   updated,
                                 );
                               }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -1973,7 +2053,7 @@ export default function DashboardGeneral({
                                   updated,
                                 );
                               }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -1996,7 +2076,7 @@ export default function DashboardGeneral({
                                   updated,
                                 );
                               }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2019,24 +2099,42 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <span className="inline-flex items-center justify-center w-7 h-7 bg-amber-500 hover:bg-amber-600 text-white rounded text-sm transition-colors">
-                                  📎
-                                </span>
+                                <button
+                                  type="button"
+                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                >
+                                  <ArrowPathIcon className="h-5 w-5" />
+                                </button>
                               </label>
                             )}
                             {item.pdf && (
-                              <button
-                                onClick={() =>
-                                  handlePdfDownload(
-                                    item.pdf!,
-                                    item.pdfNombre || "documento.pdf",
-                                  )
-                                }
-                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
-                                title="Descargar PDF"
-                              >
-                                ⬇️
-                              </button>
+                              <>
+                                <button
+                                  onClick={() =>
+                                    verPDF(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  title="Ver PDF"
+                                >
+                                  <EyeIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handlePdfDownload(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Descargar PDF"
+                                >
+                                  <ArrowDownTrayIcon className="h-5 w-5" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -2136,7 +2234,7 @@ export default function DashboardGeneral({
                                 updated[idx].unidad = e.target.value;
                                 actualizarDatosDesplazamiento("demos", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2156,7 +2254,7 @@ export default function DashboardGeneral({
                                 updated[idx].porcentaje = e.target.value;
                                 actualizarDatosDesplazamiento("demos", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2176,7 +2274,7 @@ export default function DashboardGeneral({
                                 updated[idx].oc = e.target.value;
                                 actualizarDatosDesplazamiento("demos", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2199,24 +2297,42 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <span className="inline-flex items-center justify-center w-7 h-7 bg-purple-500 hover:bg-purple-600 text-white rounded text-sm transition-colors">
-                                  📎
-                                </span>
+                                <button
+                                  type="button"
+                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                >
+                                  <ArrowPathIcon className="h-5 w-5" />
+                                </button>
                               </label>
                             )}
                             {item.pdf && (
-                              <button
-                                onClick={() =>
-                                  handlePdfDownload(
-                                    item.pdf!,
-                                    item.pdfNombre || "documento.pdf",
-                                  )
-                                }
-                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
-                                title="Descargar PDF"
-                              >
-                                ⬇️
-                              </button>
+                              <>
+                                <button
+                                  onClick={() =>
+                                    verPDF(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  title="Ver PDF"
+                                >
+                                  <EyeIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handlePdfDownload(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Descargar PDF"
+                                >
+                                  <ArrowDownTrayIcon className="h-5 w-5" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -2313,7 +2429,7 @@ export default function DashboardGeneral({
                                 updated[idx].unidad = e.target.value;
                                 actualizarDatosDesplazamiento("otros", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2333,7 +2449,7 @@ export default function DashboardGeneral({
                                 updated[idx].porcentaje = e.target.value;
                                 actualizarDatosDesplazamiento("otros", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2353,7 +2469,7 @@ export default function DashboardGeneral({
                                 updated[idx].oc = e.target.value;
                                 actualizarDatosDesplazamiento("otros", updated);
                               }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                           ) : (
                             <span className="text-gray-900 font-medium">
@@ -2376,24 +2492,42 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-sm transition-colors">
-                                  📎
-                                </span>
+                                <button
+                                  type="button"
+                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                >
+                                  <ArrowPathIcon className="h-5 w-5" />
+                                </button>
                               </label>
                             )}
                             {item.pdf && (
-                              <button
-                                onClick={() =>
-                                  handlePdfDownload(
-                                    item.pdf!,
-                                    item.pdfNombre || "documento.pdf",
-                                  )
-                                }
-                                className="inline-flex items-center justify-center w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
-                                title="Descargar PDF"
-                              >
-                                ⬇️
-                              </button>
+                              <>
+                                <button
+                                  onClick={() =>
+                                    verPDF(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  title="Ver PDF"
+                                >
+                                  <EyeIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handlePdfDownload(
+                                      item.pdf!,
+                                      item.pdfNombre || "documento.pdf",
+                                    )
+                                  }
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Descargar PDF"
+                                >
+                                  <ArrowDownTrayIcon className="h-5 w-5" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -3428,6 +3562,40 @@ export default function DashboardGeneral({
                     return null;
                   })()}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visor de PDF */}
+      {pdfViewer.isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={cerrarPdfViewer}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {pdfViewer.nombre}
+              </h3>
+              <button
+                onClick={cerrarPdfViewer}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 p-4 overflow-auto">
+              {pdfViewer.url && (
+                <iframe
+                  src={pdfViewer.url}
+                  className="w-full h-full min-h-[90vh] border-0"
+                  title={pdfViewer.nombre}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -23,7 +23,6 @@ import {
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 
@@ -80,11 +79,11 @@ export default function PresenciasPage() {
 
   const [modalFormulario, setModalFormulario] = useState(false);
   const [presenciaEditando, setPresenciaEditando] = useState<Presencia | null>(
-    null
+    null,
   );
   const [modalImagenes, setModalImagenes] = useState(false);
   const [imagenesVisualizacion, setImagenesVisualizacion] = useState<string[]>(
-    []
+    [],
   );
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
@@ -99,6 +98,11 @@ export default function PresenciasPage() {
   };
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -194,7 +198,9 @@ export default function PresenciasPage() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Metrik
+                  </h1>
                   <p className="text-sm text-gray-600 font-medium">
                     {usuario.grupo}
                   </p>
@@ -211,7 +217,7 @@ export default function PresenciasPage() {
                     <div className="flex items-center space-x-2">
                       <span
                         className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                          usuario.tipo
+                          usuario.tipo,
                         )}`}
                       >
                         {obtenerNombreRol(usuario.tipo)}
@@ -262,7 +268,7 @@ export default function PresenciasPage() {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -279,7 +285,7 @@ export default function PresenciasPage() {
                   <div className="flex items-center space-x-2">
                     <span
                       className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo
+                        usuario.tipo,
                       )}`}
                     >
                       {obtenerNombreRol(usuario.tipo)}
@@ -306,9 +312,6 @@ export default function PresenciasPage() {
             onClose={() => setConfigSidebarOpen(false)}
             onNavigate={handleMenuClick}
           />
-          {activeConfigView === "accesos" && (
-            <GestionAccesos onClose={() => setActiveConfigView("")} />
-          )}
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
@@ -434,7 +437,7 @@ export default function PresenciasPage() {
                   const parsed = JSON.parse(presencia.imagenes_json);
                   if (Array.isArray(parsed)) {
                     imagenes = parsed.map((item: string | { url: string }) =>
-                      typeof item === "string" ? item : item.url
+                      typeof item === "string" ? item : item.url,
                     );
                   }
                 } catch (error) {
@@ -464,7 +467,7 @@ export default function PresenciasPage() {
                   <div className="p-4">
                     <span
                       className={`inline-block px-2 py-1 rounded-full text-xs font-semibold mb-2 ${getTipoColor(
-                        presencia.tipo
+                        presencia.tipo,
                       )}`}
                     >
                       {presencia.tipo}
@@ -484,7 +487,7 @@ export default function PresenciasPage() {
                       <FaCalendarAlt className="mr-2" />
                       <span>
                         {new Date(
-                          presencia.fecha_instalacion
+                          presencia.fecha_instalacion,
                         ).toLocaleDateString("es-MX")}
                         {presencia.duracion && ` - ${presencia.duracion}`}
                       </span>

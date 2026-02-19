@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Factura, Archivo, Cotizacion } from "@/types";
+import { fetchConToken } from "@/lib/auth-utils";
 
 interface ListaFacturasProps {
   facturas: Factura[];
@@ -69,6 +70,11 @@ export default function ListaFacturas({
   const [ordenFechaIngreso, setOrdenFechaIngreso] = useState<"asc" | "desc">(
     "asc",
   );
+  const [pdfViewer, setPdfViewer] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    nombre: string;
+  }>({ isOpen: false, url: null, nombre: "" });
 
   const formatearMonto = (monto: number) => {
     if (typeof monto !== "number" || isNaN(monto)) {
@@ -171,6 +177,43 @@ export default function ListaFacturas({
     } else {
       alert("Función de descarga no disponible");
     }
+  };
+
+  const verPDF = async (
+    facturaId: string,
+    archivoId: string,
+    nombreArchivo: string,
+    tipo: "archivo" | "cotizacion",
+  ) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+      const endpoint =
+        tipo === "archivo"
+          ? `${API_URL}/facturas/${facturaId}/archivos/${archivoId}/descargar`
+          : `${API_URL}/facturas/${facturaId}/cotizaciones/${archivoId}/descargar`;
+
+      const response = await fetchConToken(endpoint);
+
+      if (!response.ok) {
+        throw new Error(`Error al cargar PDF: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      setPdfViewer({ isOpen: true, url, nombre: nombreArchivo });
+    } catch (error) {
+      console.error("Error cargando PDF:", error);
+      alert("Error al cargar el PDF para visualización");
+    }
+  };
+
+  const cerrarPdfViewer = () => {
+    if (pdfViewer.url) {
+      window.URL.revokeObjectURL(pdfViewer.url);
+    }
+    setPdfViewer({ isOpen: false, url: null, nombre: "" });
   };
 
   const abrirPopupIngreso = (facturaId: string) => {
@@ -601,18 +644,35 @@ export default function ListaFacturas({
                                         {archivo.tipo}
                                       </span>
                                     </div>
-                                    <button
-                                      onClick={() =>
-                                        descargarArchivo(
-                                          factura.id,
-                                          archivo.id,
-                                          archivo.nombre,
-                                        )
-                                      }
-                                      className="text-blue-600 hover:text-blue-900 text-xs font-medium ml-2"
-                                    >
-                                      Descargar
-                                    </button>
+                                    <div className="flex items-center space-x-2">
+                                      {archivo.tipo === "PDF" && (
+                                        <button
+                                          onClick={() =>
+                                            verPDF(
+                                              factura.id,
+                                              archivo.id,
+                                              archivo.nombre,
+                                              "archivo",
+                                            )
+                                          }
+                                          className="text-purple-600 hover:text-purple-900 text-xs font-medium"
+                                        >
+                                          Ver
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() =>
+                                          descargarArchivo(
+                                            factura.id,
+                                            archivo.id,
+                                            archivo.nombre,
+                                          )
+                                        }
+                                        className="text-blue-600 hover:text-blue-900 text-xs font-medium"
+                                      >
+                                        Descargar
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -650,21 +710,37 @@ export default function ListaFacturas({
                                               <span className="text-xs text-gray-600">
                                                 Cotización PDF
                                               </span>
-                                              <button
-                                                onClick={() => {
-                                                  if (onDescargarCotizacion) {
-                                                    onDescargarCotizacion(
+                                              <div className="flex items-center space-x-2">
+                                                <button
+                                                  onClick={() =>
+                                                    verPDF(
                                                       factura.id,
                                                       cotizacion.id,
                                                       cotizacion.archivo!
                                                         .nombre,
-                                                    );
+                                                      "cotizacion",
+                                                    )
                                                   }
-                                                }}
-                                                className="text-blue-600 hover:text-blue-900 text-xs font-medium"
-                                              >
-                                                Descargar
-                                              </button>
+                                                  className="text-purple-600 hover:text-purple-900 text-xs font-medium"
+                                                >
+                                                  Ver
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    if (onDescargarCotizacion) {
+                                                      onDescargarCotizacion(
+                                                        factura.id,
+                                                        cotizacion.id,
+                                                        cotizacion.archivo!
+                                                          .nombre,
+                                                      );
+                                                    }
+                                                  }}
+                                                  className="text-blue-600 hover:text-blue-900 text-xs font-medium"
+                                                >
+                                                  Descargar
+                                                </button>
+                                              </div>
                                             </div>
                                           )}
                                         </div>
@@ -796,6 +872,44 @@ export default function ListaFacturas({
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal visor de PDF */}
+      {pdfViewer.isOpen && pdfViewer.url && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {pdfViewer.nombre}
+              </h3>
+              <button
+                onClick={cerrarPdfViewer}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={pdfViewer.url}
+                className="w-full h-full border-0"
+                title={pdfViewer.nombre}
+              />
             </div>
           </div>
         </div>

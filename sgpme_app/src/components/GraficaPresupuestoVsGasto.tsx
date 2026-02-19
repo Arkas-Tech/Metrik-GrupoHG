@@ -32,7 +32,7 @@ export default function GraficaPresupuestoVsGasto({
   mes,
   trimestre,
 }: GraficaPresupuestoVsGastoProps) {
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const [presupuestoEventos, setPresupuestoEventos] = useState<number>(0);
   const [proyeccionEventos, setProyeccionEventos] = useState<number>(0);
   const [loading, setLoading] = useState(false);
@@ -111,7 +111,13 @@ export default function GraficaPresupuestoVsGasto({
 
         let presupuestoTotal = 0;
         if (presupuestoResponse && presupuestoResponse.ok) {
-          const presupuestoData = await presupuestoResponse.json();
+          const presupuestoDataRaw = await presupuestoResponse.json();
+          // Filtrar por agencias permitidas del usuario
+          const presupuestoData = Array.isArray(presupuestoDataRaw)
+            ? presupuestoDataRaw.filter((p: any) =>
+                filtraPorMarca(p.marca_nombre),
+              )
+            : presupuestoDataRaw;
           console.log(`📋 Datos de presupuesto recibidos:`, presupuestoData);
 
           if (tipoCalendario === "trimestral" && trimestre) {
@@ -165,7 +171,9 @@ export default function GraficaPresupuestoVsGasto({
           const proyeccionesData = await proyeccionesResponse.json();
           console.log(`📋 Datos de proyecciones recibidos:`, proyeccionesData);
           let proyecciones: Proyeccion[] = Array.isArray(proyeccionesData)
-            ? proyeccionesData
+            ? proyeccionesData.filter((p: Proyeccion) =>
+                filtraPorMarca(p.marca),
+              )
             : [];
 
           // Filtrar proyecciones según el tipo de calendario
@@ -249,6 +257,7 @@ export default function GraficaPresupuestoVsGasto({
     cargarDatosEventos();
   }, [
     marcaSeleccionada,
+    filtraPorMarca,
     año,
     mes,
     trimestre,

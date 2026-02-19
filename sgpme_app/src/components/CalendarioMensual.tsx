@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import ModalEventosDia from "./ModalEventosDia";
 import GraficaPresupuestoVsGasto from "./GraficaPresupuestoVsGasto";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 interface CalendarioMensualProps {
   eventos: Evento[];
@@ -24,6 +25,7 @@ export default function CalendarioMensual({
   onCrearBrief,
   onVerBrief,
 }: CalendarioMensualProps) {
+  const { filtraPorMarca } = useMarcaGlobal();
   const [fechaActual, setFechaActual] = useState(new Date());
   const [modalAbierto, setModalAbierto] = useState(false);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date | null>(null);
@@ -142,7 +144,6 @@ export default function CalendarioMensual({
 
   const nombreMes = fechaActual.toLocaleDateString("es-ES", {
     month: "long",
-    year: "numeric",
   });
 
   // Capitalizar primera letra del mes
@@ -157,7 +158,8 @@ export default function CalendarioMensual({
         <div className="flex items-center space-x-3">
           <CalendarDaysIcon className="h-8 w-8 text-white" />
           <h3 className="text-2xl font-bold text-white">
-            {nombreMesCapitalizado} {fechaActual.getFullYear()} - Vista Mensual
+            {nombreMesCapitalizado} de {fechaActual.getFullYear()} - Vista
+            Mensual
           </h3>
         </div>
         <div className="flex items-center space-x-2">
@@ -268,6 +270,7 @@ export default function CalendarioMensual({
                 parseInt(mes) === fechaActual.getMonth() + 1
               );
             })
+            .filter((f) => filtraPorMarca(f.marca))
             .reduce((sum, f) => sum + f.subtotal, 0)}
           titulo={`Presupuesto vs Gasto - ${nombreMesCapitalizado}`}
           tipoCalendario="mensual"

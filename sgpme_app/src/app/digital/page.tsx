@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
+import NavBar from "@/components/NavBar";
 import {
   ArrowTrendingUpIcon,
   CalendarIcon,
@@ -20,10 +21,8 @@ import {
 } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
-import GestionAccesos from "@/components/GestionAccesos";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
-import PopupConfiguracion from "@/components/PopupConfiguracion";
 import { useCampanas } from "@/hooks/useCampanas";
 import FormularioPresencia from "@/components/FormularioPresencia";
 import { usePresencias, Presencia } from "@/hooks/usePresencias";
@@ -52,7 +51,7 @@ const MetricasPage = () => {
     cerrarSesion: cerrarSesionAuth,
     loading: authLoading,
   } = useAuth();
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva-presencia"
   >("dashboard");
@@ -138,6 +137,11 @@ const MetricasPage = () => {
   };
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      setConfigSidebarOpen(false);
+      return;
+    }
     setActiveConfigView(item);
     setConfigSidebarOpen(false);
   };
@@ -222,10 +226,6 @@ const MetricasPage = () => {
     metricaActual?.citas || 0,
     metricaMesAnterior?.citas,
   );
-  const pisosCambio = calcularCambio(
-    metricaActual?.pisos || 0,
-    metricaMesAnterior?.pisos,
-  );
   const utilidadesCambio = calcularCambio(
     metricaActual?.utilidades || 0,
     metricaMesAnterior?.utilidades,
@@ -245,13 +245,6 @@ const MetricasPage = () => {
       change: citasCambio.valor,
       changeType: citasCambio.tipo,
       icon: CalendarIcon,
-    },
-    {
-      title: "Pisos",
-      value: (metricaActual?.pisos || 0).toLocaleString(),
-      change: pisosCambio.valor,
-      changeType: pisosCambio.tipo,
-      icon: BuildingOfficeIcon,
     },
     {
       title: "Ventas",
@@ -276,7 +269,10 @@ const MetricasPage = () => {
   // Calcular métricas por plataforma
   const calcularMetricasPlataforma = (plataforma: string) => {
     const campanasActivas = campanasDb.filter(
-      (c) => c.plataforma === plataforma && c.estado === "Activa",
+      (c) =>
+        c.plataforma === plataforma &&
+        c.estado === "Activa" &&
+        filtraPorMarca(c.marca),
     );
 
     const leadsTotal = campanasActivas.reduce(
@@ -327,7 +323,9 @@ const MetricasPage = () => {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Metrik
+                  </h1>
                   <p className="text-sm text-gray-600 font-medium">
                     {usuario.grupo}
                   </p>
@@ -395,7 +393,7 @@ const MetricasPage = () => {
                 onClick={() => setVistaActual("dashboard")}
                 className="py-4 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm"
               >
-                📈 Métricas
+                📈 Digital
               </button>
             </div>
           </div>
@@ -466,14 +464,6 @@ const MetricasPage = () => {
               onNavigate={handleMenuClick}
             />
 
-            {activeConfigView === "accesos" && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                  <GestionAccesos onClose={() => setActiveConfigView("")} />
-                </div>
-              </div>
-            )}
-
             {activeConfigView === "mi-perfil" && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -542,7 +532,7 @@ const MetricasPage = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -579,44 +569,12 @@ const MetricasPage = () => {
         </div>
       </header>
 
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => router.push("/estrategia")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-              📈 Métricas
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar usuario={usuario} paginaActiva="digital" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Métricas</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Digital</h1>
             <p className="text-gray-600">
               Panel de control de rendimiento y campañas
             </p>
@@ -669,9 +627,7 @@ const MetricasPage = () => {
 
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Funnel Digital
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900">Funnel</h2>
               {!isAuditor && (
                 <button
                   onClick={() => {
@@ -684,7 +640,7 @@ const MetricasPage = () => {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {metrics.map((metric, index) => {
                 const IconComponent = metric.icon;
                 return (
@@ -756,9 +712,6 @@ const MetricasPage = () => {
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                             Citas
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Pisos
-                          </th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                             Ventas
                           </th>
@@ -792,9 +745,6 @@ const MetricasPage = () => {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
                               {metrica.citas.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                              {metrica.pisos.toLocaleString()}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
                               {metrica.utilidades.toLocaleString()}
@@ -841,6 +791,61 @@ const MetricasPage = () => {
               </div>
             )}
           </div>
+
+          {/* Sección Conciliación con BDC */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Conciliación con BDC
+                </h2>
+                <p className="text-gray-600">Próximamente</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección Diagramas de Conversión */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                  <svg
+                    className="w-8 h-8 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Diagramas de Conversión
+                </h2>
+                <p className="text-gray-600">Próximamente</p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">
@@ -850,7 +855,7 @@ const MetricasPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Meta */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
+              <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-blue-900">Meta</h3>
                   <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
@@ -903,7 +908,7 @@ const MetricasPage = () => {
               </div>
 
               {/* Google */}
-              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
+              <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-red-900">Google</h3>
                   <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
@@ -959,7 +964,7 @@ const MetricasPage = () => {
               </div>
 
               {/* TikTok */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
+              <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
                   <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
@@ -1012,6 +1017,172 @@ const MetricasPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Sección Embajadores */}
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Embajadores
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Embajador 1 */}
+              <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-6 border-2 border-purple-200 hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-purple-900">
+                    @mariana_fitness
+                  </h3>
+                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-7 h-7 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Presupuesto:
+                    </span>
+                    <span className="text-lg font-bold text-purple-900">
+                      $25,000
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Leads:
+                    </span>
+                    <span className="text-lg font-bold text-purple-900">
+                      342
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Audiencia:
+                    </span>
+                    <span className="text-lg font-bold text-purple-900">
+                      85.4K
+                    </span>
+                  </div>
+                </div>
+                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                  Ver detalles
+                </button>
+              </div>
+
+              {/* Embajador 2 */}
+              <div className="bg-linear-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-pink-200 hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-pink-900">
+                    @carlos_tech
+                  </h3>
+                  <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-7 h-7 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Presupuesto:
+                    </span>
+                    <span className="text-lg font-bold text-pink-900">
+                      $18,500
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Leads:
+                    </span>
+                    <span className="text-lg font-bold text-pink-900">276</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Audiencia:
+                    </span>
+                    <span className="text-lg font-bold text-pink-900">
+                      62.1K
+                    </span>
+                  </div>
+                </div>
+                <button className="w-full bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                  Ver detalles
+                </button>
+              </div>
+
+              {/* Embajador 3 */}
+              <div className="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border-2 border-indigo-200 hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-indigo-900">
+                    @sofia_lifestyle
+                  </h3>
+                  <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-7 h-7 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Presupuesto:
+                    </span>
+                    <span className="text-lg font-bold text-indigo-900">
+                      $32,000
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Leads:
+                    </span>
+                    <span className="text-lg font-bold text-indigo-900">
+                      418
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Audiencia:
+                    </span>
+                    <span className="text-lg font-bold text-indigo-900">
+                      127.8K
+                    </span>
+                  </div>
+                </div>
+                <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                  Ver detalles
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -1020,10 +1191,6 @@ const MetricasPage = () => {
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
       />
-
-      {activeConfigView === "accesos" && (
-        <GestionAccesos onClose={() => setActiveConfigView("")} />
-      )}
 
       {/* Modales para administradores */}
       {isAdmin && (
@@ -1034,13 +1201,6 @@ const MetricasPage = () => {
           {activeConfigView === "cambiar-contrasena" && (
             <CambiarContrasenaCoordinador
               onClose={() => setActiveConfigView("")}
-            />
-          )}
-          {activeConfigView === "configuracion" && (
-            <PopupConfiguracion
-              isOpen={true}
-              onClose={() => setActiveConfigView("")}
-              onRefresh={() => window.location.reload()}
             />
           )}
         </>

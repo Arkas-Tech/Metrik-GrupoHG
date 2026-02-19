@@ -30,7 +30,7 @@ export default function PresupuestoAnual({
   año,
   esAdmin,
 }: PresupuestoAnualProps) {
-  const { marcaSeleccionada } = useMarcaGlobal();
+  const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const [presupuesto, setPresupuesto] = useState<number | null>(null);
   const [presupuestos, setPresupuestos] = useState<PresupuestoData[]>([]);
   const [marcasDisponibles, setMarcasDisponibles] = useState<MarcaOption[]>([]);
@@ -97,39 +97,35 @@ export default function PresupuestoAnual({
           setPresupuestos([]);
         }
       } else {
-        // Sin filtro: obtener suma total
-        const responseSuma = await fetchConToken(
-          `${API_URL}/presupuesto/${año}/suma`,
+        // Sin filtro específico: obtener todos y filtrar por agencias permitidas
+        const responseAll = await fetchConToken(
+          `${API_URL}/presupuesto/${año}`,
         );
 
-        if (responseSuma.ok) {
-          const data = await responseSuma.json();
-          console.log(`✅ Suma total cargada:`, data);
+        if (responseAll.ok) {
+          const allData = await responseAll.json();
+          // Filtrar por agencias permitidas del usuario
+          const filteredData = allData.filter((p: { marca_nombre?: string }) =>
+            filtraPorMarca(p.marca_nombre || ""),
+          );
+          const sumaTotal = filteredData.reduce(
+            (s: number, p: { monto?: number }) => s + (p.monto || 0),
+            0,
+          );
 
-          // Si monto_total es 0, significa que no hay presupuestos
-          if (data.monto_total === 0) {
-            console.log(`⚠️ No hay presupuestos para ${año}`);
+          if (sumaTotal === 0) {
+            console.log(`⚠️ No hay presupuestos permitidos para ${año}`);
             setPresupuesto(null);
             setPresupuestos([]);
           } else {
-            setPresupuesto(data.monto_total);
-
-            // Solo admins pueden cargar todos los presupuestos para el desglose
-            if (esAdmin) {
-              const responseAll = await fetchConToken(
-                `${API_URL}/presupuesto/${año}`,
-              );
-              if (responseAll.ok) {
-                const allData = await responseAll.json();
-                setPresupuestos(allData);
-              }
-            } else {
-              // No-admins no ven el desglose
-              setPresupuestos([]);
-            }
+            console.log(`✅ Suma filtrada cargada: $${sumaTotal}`);
+            setPresupuesto(sumaTotal);
+            setPresupuestos(esAdmin ? filteredData : []);
           }
         } else {
-          console.error(`❌ Error cargando suma: ${responseSuma.status}`);
+          console.error(
+            `❌ Error cargando presupuestos: ${responseAll.status}`,
+          );
           setPresupuesto(null);
           setPresupuestos([]);
         }
@@ -137,7 +133,7 @@ export default function PresupuestoAnual({
     } catch (error) {
       console.error("❌ Error cargando presupuesto:", error);
     }
-  }, [año, marcaSeleccionada, marcasDisponibles, esAdmin]);
+  }, [año, marcaSeleccionada, filtraPorMarca, marcasDisponibles, esAdmin]);
 
   useEffect(() => {
     if (marcasDisponibles.length > 0) {
@@ -290,11 +286,13 @@ export default function PresupuestoAnual({
                 disabled={loading}
               >
                 <option value="">Seleccionar agencia</option>
-                {marcasDisponibles.map((marca) => (
-                  <option key={marca.id} value={marca.id}>
-                    {marca.cuenta}
-                  </option>
-                ))}
+                {marcasDisponibles
+                  .filter((marca) => filtraPorMarca(marca.cuenta))
+                  .map((marca) => (
+                    <option key={marca.id} value={marca.id}>
+                      {marca.cuenta}
+                    </option>
+                  ))}
               </select>
               <input
                 type="number"

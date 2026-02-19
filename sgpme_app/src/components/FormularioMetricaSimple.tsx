@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { MetricaFormData } from "@/hooks/useMetricas";
-import { MARCAS } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 interface FormularioMetricaSimpleProps {
   onSubmit: (data: MetricaFormData) => Promise<boolean>;
@@ -32,6 +32,7 @@ export default function FormularioMetricaSimple({
   metricaInicial,
   metricasExistentes = [],
 }: FormularioMetricaSimpleProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const [formData, setFormData] = useState<MetricaFormData>({
     leads: 0,
     citas: 0,
@@ -60,7 +61,7 @@ export default function FormularioMetricaSimple({
   }, [metricaInicial]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -105,7 +106,7 @@ export default function FormularioMetricaSimple({
         (m) =>
           m.mes === formData.mes &&
           m.anio === formData.anio &&
-          m.marca === formData.marca
+          m.marca === formData.marca,
       );
 
       if (mesYaRegistrado) {
@@ -277,7 +278,7 @@ export default function FormularioMetricaSimple({
           required
         >
           <option value="">Seleccionar agencia</option>
-          {MARCAS.map((marca) => (
+          {marcasPermitidas.map((marca) => (
             <option key={marca} value={marca}>
               {marca}
             </option>
@@ -305,8 +306,8 @@ export default function FormularioMetricaSimple({
           {loading
             ? "Guardando..."
             : metricaInicial
-            ? "Actualizar"
-            : "Guardar Métricas"}
+              ? "Actualizar"
+              : "Guardar Métricas"}
         </button>
       </div>
     </form>

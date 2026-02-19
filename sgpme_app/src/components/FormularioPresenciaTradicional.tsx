@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import ImageUpload from "./ImageUpload";
-import { MARCAS, Proveedor } from "@/types";
+import { Proveedor } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DateInput from "./DateInput";
 
 interface FormularioPresenciaTradicionalProps {
@@ -45,6 +46,7 @@ export default function FormularioPresenciaTradicional({
   loading = false,
   proveedores = [],
 }: FormularioPresenciaTradicionalProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const [formData, setFormData] = useState<PresenciaFormData>({
     tipo: initialData?.tipo || "Espectacular",
     nombre: initialData?.nombre || "",
@@ -89,7 +91,7 @@ export default function FormularioPresenciaTradicional({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -182,7 +184,7 @@ export default function FormularioPresenciaTradicional({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
           >
             <option value="">Seleccionar agencia</option>
-            {MARCAS.map((marca) => (
+            {marcasPermitidas.map((marca) => (
               <option key={marca} value={marca}>
                 {marca}
               </option>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { fetchConToken } from "@/lib/auth-utils";
 import FormularioPresupuestoMensual from "./FormularioPresupuestoMensual";
 import { useCategorias } from "@/hooks/useCategorias";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 interface PresupuestoMensual {
   id: number;
@@ -91,6 +92,7 @@ export default function ListaPresupuestosMensuales({
   onPresupuestoEliminado,
 }: ListaPresupuestosMensualesProps) {
   const { nombresCategorias, loading: loadingCategorias } = useCategorias();
+  const { filtraPorMarca } = useMarcaGlobal();
   const [presupuestos, setPresupuestos] = useState<PresupuestoMensual[]>([]);
   const [presupuestosAgrupados, setPresupuestosAgrupados] = useState<
     PresupuestoAgrupado[]
@@ -100,6 +102,12 @@ export default function ListaPresupuestosMensuales({
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
+
+  // Filtrar marcas por agencias permitidas del usuario
+  const marcasFiltradas = useMemo(
+    () => marcas.filter((m) => filtraPorMarca(m.cuenta)),
+    [marcas, filtraPorMarca],
+  );
 
   // Estados para el modal de detalle
   const [modalAgenciaAbierto, setModalAgenciaAbierto] = useState(false);
@@ -131,8 +139,8 @@ export default function ListaPresupuestosMensuales({
     (presupuestosData: PresupuestoMensual[]) => {
       const agrupados: { [key: number]: PresupuestoAgrupado } = {};
 
-      // Primero inicializar TODAS las marcas con monto 0
-      marcas.forEach((marca) => {
+      // Primero inicializar solo las marcas permitidas con monto 0
+      marcasFiltradas.forEach((marca) => {
         agrupados[marca.id] = {
           marca_id: marca.id,
           marca_nombre: marca.cuenta,
@@ -192,7 +200,7 @@ export default function ListaPresupuestosMensuales({
         return a.marca_nombre.localeCompare(b.marca_nombre);
       });
     },
-    [marcas],
+    [marcasFiltradas],
   );
 
   const cargarDatos = useCallback(async () => {
@@ -262,12 +270,12 @@ export default function ListaPresupuestosMensuales({
     cargarMarcasYCategorias();
   }, []);
 
-  // Reagrupar cuando cambien las marcas o presupuestos
+  // Reagrupar cuando cambien las marcas filtradas o presupuestos
   useEffect(() => {
-    if (marcas.length > 0) {
+    if (marcasFiltradas.length > 0) {
       setPresupuestosAgrupados(agruparPorAgencia(presupuestos));
     }
-  }, [marcas, presupuestos, agruparPorAgencia]);
+  }, [marcasFiltradas, presupuestos, agruparPorAgencia]);
 
   // Actualizar agenciaSeleccionada cuando presupuestosAgrupados cambie
   useEffect(() => {
@@ -1096,7 +1104,7 @@ export default function ListaPresupuestosMensuales({
                 </h3>
 
                 <FormularioPresupuestoMensual
-                  marcas={marcas}
+                  marcas={marcasFiltradas}
                   categorias={categorias}
                   onPresupuestoCreado={handlePresupuestoActualizado}
                   onCancelar={() => setEditandoId(null)}

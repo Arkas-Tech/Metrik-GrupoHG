@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 import ImageUpload from "./ImageUpload";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { MARCAS, Proveedor } from "@/types";
+import { Proveedor } from "@/types";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DateInput from "./DateInput";
 
 const libraries: ("places" | "geometry")[] = ["places"];
@@ -89,6 +90,7 @@ export default function FormularioPresencia({
   onNavigateToProveedores,
   presenciaInicial,
 }: FormularioPresenciaProps) {
+  const { marcasPermitidas } = useMarcaGlobal();
   const [autocomplete, setAutocomplete] =
     useState<google.maps.places.Autocomplete | null>(null);
 
@@ -143,7 +145,7 @@ export default function FormularioPresencia({
     string | null
   >(null);
   const [direccionProveedor, setDireccionProveedor] = useState(
-    presenciaInicial?.codigo_proveedor || ""
+    presenciaInicial?.codigo_proveedor || "",
   );
 
   const handleProveedorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -197,7 +199,7 @@ export default function FormularioPresencia({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
 
@@ -328,7 +330,7 @@ export default function FormularioPresencia({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
             >
               <option value="">Seleccionar agencia</option>
-              {MARCAS.map((marca) => (
+              {marcasPermitidas.map((marca) => (
                 <option key={marca} value={marca}>
                   {marca}
                 </option>

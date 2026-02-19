@@ -16,7 +16,6 @@ import {
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
-import GestionAccesos from "@/components/GestionAccesos";
 
 interface CampanyaInfo {
   id: number;
@@ -329,7 +328,7 @@ const AnunciosPage = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">SGPME</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
                 <p className="text-sm text-gray-600 font-medium">
                   {usuario.grupo}
                 </p>
@@ -387,10 +386,10 @@ const AnunciosPage = () => {
               📋 Facturas
             </button>
             <button
-              onClick={() => router.push("/metricas")}
+              onClick={() => router.push("/digital")}
               className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
             >
-              📈 Métricas
+              📈 Digital
             </button>
             <button
               onClick={() => router.push("/eventos")}
@@ -518,9 +517,6 @@ const AnunciosPage = () => {
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
       />
-      {activeConfigView === "accesos" && (
-        <GestionAccesos onClose={() => setActiveConfigView("")} />
-      )}
     </div>
   );
 };
