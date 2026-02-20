@@ -281,8 +281,12 @@ export default function EventosPage() {
     >,
   ) => {
     if (eventoEditando) {
-      await guardarBrief(eventoEditando.id, briefData);
-      setVistaActual("dashboard");
+      const resultado = await guardarBrief(eventoEditando.id, briefData);
+      if (resultado) {
+        setVistaActual("dashboard");
+      } else {
+        alert("Error al guardar el brief. Por favor intenta de nuevo.");
+      }
     }
   };
 

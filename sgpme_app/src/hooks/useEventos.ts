@@ -411,8 +411,12 @@ export function useEventos() {
           })),
           cronograma: brief.cronograma.map((cron) => ({
             actividad: cron.actividad,
-            fecha_inicio: new Date(cron.fechaInicio).toISOString(),
-            fecha_fin: new Date(cron.fechaFin).toISOString(),
+            fecha_inicio: new Date(
+              cron.fechaInicio.split(".")[0].replace(" ", "T"),
+            ).toISOString(),
+            fecha_fin: new Date(
+              cron.fechaFin.split(".")[0].replace(" ", "T"),
+            ).toISOString(),
             responsable: cron.responsable,
             estado: cron.estado || "Pendiente",
             orden: 0,
@@ -428,21 +432,32 @@ export function useEventos() {
             : null,
         };
 
-        const esActualizacion = evento.brief !== undefined;
-        const method = esActualizacion ? "PUT" : "POST";
-
-        const response = await fetchConToken(
+        // Intentar PUT primero (actualizar). Si devuelve 404 (no existe aún), usar POST.
+        let response = await fetchConToken(
           `${API_URL}/eventos/${eventoId}/brief`,
           {
-            method,
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(briefParaBackend),
           },
         );
 
+        if (response.status === 404) {
+          // Brief no existe todavía → crearlo
+          response = await fetchConToken(
+            `${API_URL}/eventos/${eventoId}/brief`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(briefParaBackend),
+            },
+          );
+        }
+
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
           throw new Error(
-            `Error al ${esActualizacion ? "actualizar" : "crear"} brief`,
+            `Error al guardar brief: ${response.status} - ${JSON.stringify(errorData)}`,
           );
         }
 
