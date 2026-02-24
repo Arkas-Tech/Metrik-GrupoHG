@@ -51,6 +51,8 @@ class PresenciaTradicionalRequest(BaseModel):
     imagenes_json: Optional[str] = None
     observaciones: Optional[str] = None
     datos_extra_json: Optional[str] = None
+
+class PresenciaTradicionalResponse(BaseModel):
     id: int
     tipo: str
     nombre: str
