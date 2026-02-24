@@ -584,7 +584,9 @@ export default function ConfiguracionFormularios({
         const data: { subcategoria: string; template: FormTemplateData } =
           await res.json();
         // Merge saved template with any missing default sections
-        const savedIds = new Set((data.template?.secciones ?? []).map((s) => s.id));
+        const savedIds = new Set(
+          (data.template?.secciones ?? []).map((s) => s.id),
+        );
         const merged = [
           ...(data.template?.secciones ?? []),
           ...DEFAULT_SECCIONES.filter((s) => !savedIds.has(s.id)),
@@ -942,7 +944,7 @@ export default function ConfiguracionFormularios({
                             <span
                               className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
                                 seccion.activo
-                                  ? "translate-x-4"
+                                  ? "translate-x-5"
                                   : "translate-x-0.5"
                               }`}
                             />

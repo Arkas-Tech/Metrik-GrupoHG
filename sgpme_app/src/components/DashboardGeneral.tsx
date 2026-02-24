@@ -8,7 +8,6 @@ import { useCampanas } from "@/hooks/useCampanas";
 import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
-import FormularioPresencia from "@/components/FormularioPresencia";
 import FormularioPresenciaDinamico from "@/components/FormularioPresenciaDinamico";
 import { AÑOS } from "@/types";
 import {
@@ -3077,7 +3076,7 @@ export default function DashboardGeneral({
                               onClick={() => {
                                 setPresenciaEditando(presencia);
                                 setSubcategoriaPresenciaModal(
-                                  presencia.tipo ?? subcategoria,
+                                  presencia.tipo || subcategoria,
                                 );
                                 setModalFormularioPresencia(true);
                               }}
@@ -3199,84 +3198,47 @@ export default function DashboardGeneral({
               </button>
             </div>
             <div className="p-6">
-              {subcategoriaPresenciaModal ? (
-                <FormularioPresenciaDinamico
-                  subcategoria={subcategoriaPresenciaModal}
-                  marcaActual={agenciaSeleccionada || ""}
-                  proveedores={proveedores}
-                  presenciaInicial={
-                    presenciaEditando as Record<string, unknown> | null
+              <FormularioPresenciaDinamico
+                subcategoria={subcategoriaPresenciaModal || "Espectaculares"}
+                marcaActual={agenciaSeleccionada || ""}
+                proveedores={proveedores}
+                presenciaInicial={
+                  presenciaEditando as Record<string, unknown> | null
+                }
+                onNavigateToProveedores={() => {
+                  router.push("/facturas?action=nuevo-proveedor");
+                }}
+                onCancel={() => {
+                  setModalFormularioPresencia(false);
+                  setPresenciaEditando(null);
+                }}
+                onSubmit={async (presencia) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const payload = presencia as any;
+                  if (presenciaEditando) {
+                    const success = await actualizarPresencia(
+                      presenciaEditando.id,
+                      payload,
+                    );
+                    if (success) {
+                      alert("Presencia actualizada exitosamente");
+                      await cargarPresencias();
+                    } else {
+                      alert("Error al actualizar la presencia");
+                    }
+                  } else {
+                    const success = await crearPresencia(payload);
+                    if (success) {
+                      alert("Presencia creada exitosamente");
+                      await cargarPresencias();
+                    } else {
+                      alert("Error al crear la presencia");
+                    }
                   }
-                  onNavigateToProveedores={() => {
-                    router.push("/facturas?action=nuevo-proveedor");
-                  }}
-                  onCancel={() => {
-                    setModalFormularioPresencia(false);
-                    setPresenciaEditando(null);
-                  }}
-                  onSubmit={async (presencia) => {
-                    if (presenciaEditando) {
-                      const success = await actualizarPresencia(
-                        presenciaEditando.id,
-                        presencia,
-                      );
-                      if (success) {
-                        alert("Presencia actualizada exitosamente");
-                        await cargarPresencias();
-                      } else {
-                        alert("Error al actualizar la presencia");
-                      }
-                    } else {
-                      const success = await crearPresencia(presencia);
-                      if (success) {
-                        alert("Presencia creada exitosamente");
-                        await cargarPresencias();
-                      } else {
-                        alert("Error al crear la presencia");
-                      }
-                    }
-                    setModalFormularioPresencia(false);
-                    setPresenciaEditando(null);
-                  }}
-                />
-              ) : (
-                <FormularioPresencia
-                  marcaActual={agenciaSeleccionada || ""}
-                  presenciaInicial={presenciaEditando}
-                  proveedores={proveedores}
-                  onNavigateToProveedores={() => {
-                    router.push("/facturas?action=nuevo-proveedor");
-                  }}
-                  onCancel={() => {
-                    setModalFormularioPresencia(false);
-                    setPresenciaEditando(null);
-                  }}
-                  onSubmit={async (presencia) => {
-                    if (presenciaEditando) {
-                      const success = await actualizarPresencia(
-                        presenciaEditando.id,
-                        presencia,
-                      );
-                      if (success) {
-                        alert("Presencia actualizada exitosamente");
-                        await cargarPresencias();
-                      } else {
-                        alert("Error al actualizar la presencia");
-                      }
-                    } else {
-                      const success = await crearPresencia(presencia);
-                      if (success) {
-                        alert("Presencia creada exitosamente");
-                        await cargarPresencias();
-                      } else {
-                        alert("Error al crear la presencia");
-                      }
-                    }
-                    setModalFormularioPresencia(false);
-                    setPresenciaEditando(null);
-                  }}
-                />
-              )}
+                  setModalFormularioPresencia(false);
+                  setPresenciaEditando(null);
+                }}
+              />
             </div>
           </div>
         </div>
