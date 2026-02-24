@@ -273,7 +273,7 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
 
     const raw = fieldValues[campo.id];
     if (raw === undefined || raw === null || raw === "")
-      return <span className="text-gray-400 italic text-sm">—</span>;
+      return <span className="text-gray-400 italic text-sm">Sin información</span>;
 
     if (campo.tipo === "dinero")
       return (
@@ -323,28 +323,26 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
 
       {hasExtras && activeSections.length > 0 ? (
         /* ── Dynamic template-based view ── */
-        <div className="space-y-6">
+        <div className="space-y-5">
           {activeSections.map((seccion) => {
-            const hasContent =
-              seccion.esProveedorEspecial ||
-              seccion.campos.some((c) => {
+            const sectionIsEmpty =
+              !seccion.esProveedorEspecial &&
+              seccion.campos.every((c) => {
                 if (c.tipo === "imagenes")
-                  return (fieldImages[c.id]?.length ?? 0) > 0;
+                  return (fieldImages[c.id]?.length ?? 0) === 0;
                 if (c.tipo === "archivos")
-                  return (fieldFiles[c.id]?.length ?? 0) > 0;
+                  return (fieldFiles[c.id]?.length ?? 0) === 0;
                 const v = fieldValues[c.id];
-                return v !== undefined && v !== null && v !== "";
+                return v === undefined || v === null || v === "";
               });
-
-            if (!hasContent && !seccion.esProveedorEspecial) return null;
 
             return (
               <div
                 key={seccion.id}
-                className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
               >
                 {/* Section header */}
-                <div className="px-5 py-3 bg-white border-b border-gray-200">
+                <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
                   <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
                     {seccion.nombre}
                   </h3>
@@ -358,29 +356,25 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
                         Proveedor
                       </label>
                       <p className="mt-1 text-sm font-semibold text-gray-900">
-                        {presencia.proveedor || proveedorNombreManual || "—"}
+                        {presencia.proveedor || proveedorNombreManual || (
+                          <span className="text-gray-400 italic">Sin información</span>
+                        )}
                       </p>
                     </div>
+                  ) : sectionIsEmpty ? (
+                    <p className="text-sm text-gray-400 italic">Sin información</p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      {seccion.campos.map((campo) => {
-                        const isWide =
-                          campo.tipo === "imagenes" ||
-                          campo.tipo === "archivos";
-                        return (
-                          <div
-                            key={campo.id}
-                            className={isWide ? "sm:col-span-2" : ""}
-                          >
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                              {campo.etiqueta}
-                            </label>
-                            <div className="text-sm text-gray-900">
-                              {renderFieldValue(campo)}
-                            </div>
+                    <div className="flex flex-col gap-4">
+                      {seccion.campos.map((campo) => (
+                        <div key={campo.id}>
+                          <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                            {campo.etiqueta}
+                          </label>
+                          <div className="text-sm text-gray-900">
+                            {renderFieldValue(campo)}
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
