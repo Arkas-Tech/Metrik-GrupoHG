@@ -568,26 +568,35 @@ export default function ConfiguracionFormularios({
   // ── Load template when selectedSubcat changes ──
   const loadTemplate = useCallback(async (subcat: string) => {
     setLoadingTemplate(true);
+
+    const fallback: FormTemplateData = {
+      subcategoria: subcat,
+      secciones: DEFAULT_SECCIONES.map((s) => ({ ...s, campos: [] })),
+    };
+
     try {
       const res = await fetch(
         `${API_BASE}/form-templates/${encodeURIComponent(subcat)}/`,
-        {
-          headers: getHeaders(),
-        },
+        { headers: getHeaders() },
       );
+
       if (res.ok) {
         const data: { subcategoria: string; template: FormTemplateData } =
           await res.json();
-        // Ensure all 8 default sections exist (merge: saved + missing defaults)
-        const savedIds = new Set(data.template.secciones.map((s) => s.id));
+        // Merge saved template with any missing default sections
+        const savedIds = new Set((data.template?.secciones ?? []).map((s) => s.id));
         const merged = [
-          ...data.template.secciones,
+          ...(data.template?.secciones ?? []),
           ...DEFAULT_SECCIONES.filter((s) => !savedIds.has(s.id)),
         ];
-        setTemplate({ ...data.template, secciones: merged });
+        setTemplate({ subcategoria: subcat, secciones: merged });
+      } else {
+        // API not ready yet or error → show defaults so user can still configure
+        setTemplate(fallback);
       }
     } catch (err) {
       console.error("Error cargando plantilla:", err);
+      setTemplate(fallback);
     } finally {
       setLoadingTemplate(false);
     }
