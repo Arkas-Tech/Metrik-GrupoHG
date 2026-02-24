@@ -958,7 +958,13 @@ export default function DashboardGeneral({
         fechaEvento.getMonth() + 1 === filtroMesGlobal
       );
     });
-  }, [eventos, agenciaSeleccionada, marcasPermitidas, añoSeleccionado, filtroMesGlobal]);
+  }, [
+    eventos,
+    agenciaSeleccionada,
+    marcasPermitidas,
+    añoSeleccionado,
+    filtroMesGlobal,
+  ]);
 
   const formatearMiles = (valor: number) => {
     if (valor >= 1000000) {
@@ -1272,12 +1278,20 @@ export default function DashboardGeneral({
             {/* Barra de progreso */}
             <div className="bg-white rounded-lg shadow p-6">
               <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Proyección vs Presupuesto vs Gasto
+                Proyección vs Gasto
               </h4>
 
               <div className="space-y-6">
                 {/* Valores */}
                 <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-1">
+                      GASTO
+                    </p>
+                    <p className="text-lg font-bold text-green-600">
+                      {formatearMiles(datosBarraProgreso.gasto)}
+                    </p>
+                  </div>
                   <div>
                     <p className="text-xs text-gray-600 font-medium mb-1">
                       PROYECCIÓN
@@ -1292,14 +1306,6 @@ export default function DashboardGeneral({
                     </p>
                     <p className="text-lg font-bold text-gray-900">
                       {formatearMiles(datosBarraProgreso.presupuesto)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium mb-1">
-                      GASTO
-                    </p>
-                    <p className="text-lg font-bold text-green-600">
-                      {formatearMiles(datosBarraProgreso.gasto)}
                     </p>
                   </div>
                 </div>
