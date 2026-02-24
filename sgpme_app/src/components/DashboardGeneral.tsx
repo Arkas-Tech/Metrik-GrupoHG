@@ -116,6 +116,7 @@ import {
   XMarkIcon,
   ArrowDownTrayIcon,
   ArrowPathIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 
 interface DashboardGeneralProps {
@@ -177,7 +178,7 @@ export default function DashboardGeneral({
   const { filtraPorMarca, marcasPermitidas } = useMarcaGlobal();
   const { facturas } = useFacturas();
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
-  const { presencias, cargarPresencias, crearPresencia, actualizarPresencia } =
+  const { presencias, cargarPresencias, crearPresencia, actualizarPresencia, eliminarPresencia } =
     usePresencias();
   const { proveedores } = useProveedores();
   const { eventos } = useEventos();
@@ -3063,9 +3064,17 @@ export default function DashboardGeneral({
                         try {
                           // Try datos_extra_json.fieldImages first
                           if (presencia.datos_extra_json) {
-                            const extras = JSON.parse(presencia.datos_extra_json);
-                            const allImgs: Array<{ url: string; nombre: string }> = Object.values(
-                              (extras.fieldImages ?? {}) as Record<string, Array<{ url: string; nombre: string }>>
+                            const extras = JSON.parse(
+                              presencia.datos_extra_json,
+                            );
+                            const allImgs: Array<{
+                              url: string;
+                              nombre: string;
+                            }> = Object.values(
+                              (extras.fieldImages ?? {}) as Record<
+                                string,
+                                Array<{ url: string; nombre: string }>
+                              >,
                             ).flat();
                             if (allImgs.length > 0) return allImgs[0].url;
                           }
@@ -3074,68 +3083,84 @@ export default function DashboardGeneral({
                             const parsed = JSON.parse(presencia.imagenes_json);
                             if (Array.isArray(parsed) && parsed.length > 0) {
                               const first = parsed[0];
-                              return typeof first === "string" ? first : (first?.url ?? null);
+                              return typeof first === "string"
+                                ? first
+                                : (first?.url ?? null);
                             }
                           }
-                        } catch { /* ignore */ }
+                        } catch {
+                          /* ignore */
+                        }
                         return null;
                       })();
 
                       return (
-                      <div
-                        key={presencia.id}
-                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="mb-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-gray-900 leading-tight">
-                              {presencia.nombre}
-                            </h4>
-                            <button
-                              onClick={() => {
-                                setPresenciaEditando(presencia);
-                                setSubcategoriaPresenciaModal(
-                                  presencia.tipo || subcategoria,
-                                );
-                                setModalFormularioPresencia(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 transition-colors shrink-0 ml-2"
-                              title="Editar"
-                            >
-                              <PencilIcon className="h-5 w-5" />
-                            </button>
-                          </div>
-                          {presencia.fecha_instalacion && (
-                            <p className="text-xs text-gray-500 mb-1">
-                              📅{" "}
-                              {new Date(
-                                presencia.fecha_instalacion + "T00:00:00",
-                              ).toLocaleDateString("es-MX", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </p>
-                          )}
-                        </div>
-                        {firstImage && (
-                          <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                            <Image
-                              src={firstImage}
-                              alt={presencia.nombre}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => setModalPresencia(presencia)}
-                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        <div
+                          key={presencia.id}
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                         >
-                          <EyeIcon className="h-4 w-4" />
-                          Ver detalles
-                        </button>
-                      </div>
+                          <div className="mb-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-semibold text-gray-900 leading-tight">
+                                {presencia.nombre}
+                              </h4>
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                <button
+                                  onClick={() => {
+                                    setPresenciaEditando(presencia);
+                                    setSubcategoriaPresenciaModal(
+                                      presencia.tipo || subcategoria,
+                                    );
+                                    setModalFormularioPresencia(true);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                                  title="Editar"
+                                >
+                                  <PencilIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm(`¿Eliminar "${presencia.nombre}"? Esta acción no se puede deshacer.`)) return;
+                                    await eliminarPresencia(presencia.id);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <XCircleIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </div>
+                            {presencia.fecha_instalacion && (
+                              <p className="text-xs text-gray-500 mb-1">
+                                📅{" "}
+                                {new Date(
+                                  presencia.fecha_instalacion + "T00:00:00",
+                                ).toLocaleDateString("es-MX", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            )}
+                          </div>
+                          {firstImage && (
+                            <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
+                              <Image
+                                src={firstImage}
+                                alt={presencia.nombre}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setModalPresencia(presencia)}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                            Ver detalles
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
