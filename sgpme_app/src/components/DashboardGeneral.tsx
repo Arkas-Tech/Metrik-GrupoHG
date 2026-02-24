@@ -173,9 +173,9 @@ export default function DashboardGeneral({
   const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
     new Date().getFullYear(),
   );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<
-    "YTD" | "Mes"
-  >("YTD");
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<"YTD" | "Mes">(
+    "YTD",
+  );
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
@@ -939,7 +939,7 @@ export default function DashboardGeneral({
     "#f97316", // orange
   ];
 
-  // Filtrar eventos por mes y agencia seleccionada del header
+  // Filtrar eventos por año + mes global y agencia seleccionada del header
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((evento) => {
       // Filtrar por agencia (global o por marcas permitidas)
@@ -951,12 +951,14 @@ export default function DashboardGeneral({
           return false;
       }
 
-      // Filtrar por mes
+      // Filtrar por año y mes
       const fechaEvento = new Date(evento.fechaInicio);
-      const mesEvento = fechaEvento.getMonth() + 1;
-      return mesEvento === filtroMesGlobal;
+      return (
+        fechaEvento.getFullYear() === añoSeleccionado &&
+        fechaEvento.getMonth() + 1 === filtroMesGlobal
+      );
     });
-  }, [eventos, agenciaSeleccionada, marcasPermitidas, filtroMesGlobal]);
+  }, [eventos, agenciaSeleccionada, marcasPermitidas, añoSeleccionado, filtroMesGlobal]);
 
   const formatearMiles = (valor: number) => {
     if (valor >= 1000000) {
@@ -1101,7 +1103,6 @@ export default function DashboardGeneral({
               ))}
             </select>
           </div>
-
         </div>
       </div>
       {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
@@ -1262,7 +1263,6 @@ export default function DashboardGeneral({
                 </select>
               </div>
             )}
-
           </div>
         </div>
 
