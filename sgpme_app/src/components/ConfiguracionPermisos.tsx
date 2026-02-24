@@ -71,9 +71,7 @@ export default function ConfiguracionPermisos() {
   const { showToast, ToastContainer } = useToast();
   const authContext = useAuth();
   const currentUserId = authContext.usuario?.id;
-  const refreshUser = (authContext as Record<string, unknown>).refreshUser as
-    | (() => Promise<void>)
-    | undefined;
+  const refreshUser = (authContext as unknown as { refreshUser?: () => Promise<void> }).refreshUser;
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] =
     useState<Usuario | null>(null);
