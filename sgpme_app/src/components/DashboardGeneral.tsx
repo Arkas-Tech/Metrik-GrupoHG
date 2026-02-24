@@ -9,6 +9,7 @@ import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import FormularioPresenciaDinamico from "@/components/FormularioPresenciaDinamico";
+import PresenciaDetallesDinamico from "@/components/PresenciaDetallesDinamico";
 import { AÑOS } from "@/types";
 import {
   eventoPerteneceAMarca,
@@ -958,12 +959,6 @@ export default function DashboardGeneral({
       return `$${(valor / 1000).toFixed(0)}K`;
     }
     return `$${valor}`;
-  };
-
-  // Funciones helper
-  const capitalize = (str: string | null | undefined) => {
-    if (!str) return "N/A";
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
   // Calcular métricas por plataforma
@@ -3062,14 +3057,38 @@ export default function DashboardGeneral({
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {visibles.map((presencia) => (
+                    {visibles.map((presencia) => {
+                      // Extract first image (handles new ImageItem format and old base64 format)
+                      const firstImage = (() => {
+                        try {
+                          // Try datos_extra_json.fieldImages first
+                          if (presencia.datos_extra_json) {
+                            const extras = JSON.parse(presencia.datos_extra_json);
+                            const allImgs: Array<{ url: string; nombre: string }> = Object.values(
+                              (extras.fieldImages ?? {}) as Record<string, Array<{ url: string; nombre: string }>>
+                            ).flat();
+                            if (allImgs.length > 0) return allImgs[0].url;
+                          }
+                          // Fallback to imagenes_json
+                          if (presencia.imagenes_json) {
+                            const parsed = JSON.parse(presencia.imagenes_json);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                              const first = parsed[0];
+                              return typeof first === "string" ? first : (first?.url ?? null);
+                            }
+                          }
+                        } catch { /* ignore */ }
+                        return null;
+                      })();
+
+                      return (
                       <div
                         key={presencia.id}
                         className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                       >
                         <div className="mb-3">
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-gray-900">
+                            <h4 className="font-semibold text-gray-900 leading-tight">
                               {presencia.nombre}
                             </h4>
                             <button
@@ -3080,49 +3099,35 @@ export default function DashboardGeneral({
                                 );
                                 setModalFormularioPresencia(true);
                               }}
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                              className="text-blue-600 hover:text-blue-800 transition-colors shrink-0 ml-2"
                               title="Editar"
                             >
                               <PencilIcon className="h-5 w-5" />
                             </button>
                           </div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-gray-600">Ubicación:</span>
-                            <span className="text-gray-900">
-                              {presencia.ubicacion || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Dimensiones:</span>
-                            <span className="text-gray-900">
-                              {presencia.dimensiones || "N/A"}
-                            </span>
-                          </div>
+                          {presencia.fecha_instalacion && (
+                            <p className="text-xs text-gray-500 mb-1">
+                              📅{" "}
+                              {new Date(
+                                presencia.fecha_instalacion + "T00:00:00",
+                              ).toLocaleDateString("es-MX", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </p>
+                          )}
                         </div>
-                        {presencia.imagenes_json &&
-                          (() => {
-                            try {
-                              const imagenes = JSON.parse(
-                                presencia.imagenes_json,
-                              );
-                              const primeraImagen =
-                                Array.isArray(imagenes) && imagenes.length > 0
-                                  ? imagenes[0]
-                                  : null;
-                              return primeraImagen ? (
-                                <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                                  <Image
-                                    src={primeraImagen}
-                                    alt={presencia.nombre}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : null;
-                            } catch {
-                              return null;
-                            }
-                          })()}
+                        {firstImage && (
+                          <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
+                            <Image
+                              src={firstImage}
+                              alt={presencia.nombre}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
                         <button
                           onClick={() => setModalPresencia(presencia)}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -3131,7 +3136,8 @@ export default function DashboardGeneral({
                           Ver detalles
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -3269,165 +3275,8 @@ export default function DashboardGeneral({
                 </button>
               </div>
 
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                <div className="mb-8 bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-                    INFORMACIÓN GENERAL
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        AGENCIA:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {capitalize(modalPresencia.agencia)}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        CIUDAD:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.ciudad || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        CAMPAÑA:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.campana || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        UBICACIÓN:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.ubicacion || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        CONTENIDO:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.contenido || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        NOTAS:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.notas || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        FECHA DE INSTALACIÓN:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.fecha_instalacion
-                          ? new Date(
-                              modalPresencia.fecha_instalacion,
-                            ).toLocaleDateString("es-MX")
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        DURACIÓN:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.duracion || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        DIMENSIONES:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.dimensiones || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        PROVEEDOR:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.proveedor || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        COSTO MENSUAL:
-                      </label>
-                      <p className="text-sm font-semibold text-green-600">
-                        {modalPresencia.costo_mensual
-                          ? `$${new Intl.NumberFormat("es-MX").format(modalPresencia.costo_mensual)}`
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 uppercase">
-                        DURACIÓN DEL CONTRATO:
-                      </label>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {modalPresencia.duracion_contrato || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {modalPresencia.imagenes_json &&
-                  (() => {
-                    try {
-                      const imagenes = JSON.parse(modalPresencia.imagenes_json);
-                      if (Array.isArray(imagenes) && imagenes.length > 0) {
-                        return (
-                          <div className="bg-gray-50 p-6 rounded-lg">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-                              IMÁGENES
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                              {imagenes.map((img: string, idx: number) => (
-                                <div
-                                  key={idx}
-                                  className="relative h-64 rounded-lg overflow-hidden"
-                                >
-                                  <Image
-                                    src={img}
-                                    alt={`${modalPresencia.nombre} ${idx + 1}`}
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-                    } catch {
-                      return null;
-                    }
-                    return null;
-                  })()}
+              <div className="p-6 max-h-[75vh] overflow-y-auto">
+                <PresenciaDetallesDinamico presencia={modalPresencia} />
               </div>
             </div>
           </div>

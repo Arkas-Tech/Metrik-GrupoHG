@@ -32,6 +32,7 @@ export interface Presencia {
   instalacion: string | null;
   imagenes_json: string | null;
   observaciones: string | null;
+  datos_extra_json: string | null;
   creado_por: string;
 }
 
