@@ -18,6 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 import DateInput from "./DateInput";
 import ImageUploadMultiple from "./ImageUploadMultiple";
+import FormularioProveedor from "./FormularioProveedor";
 import { compressImage } from "@/lib/imageCompression";
 import type { Proveedor } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
@@ -109,7 +110,6 @@ export default function FormularioPresenciaDinamico({
   presenciaInicial = null,
   onSubmit,
   onCancel,
-  onNavigateToProveedores,
   loading = false,
 }: FormularioPresenciaDinamicoProps) {
   const { marcasPermitidas } = useMarcaGlobal();
@@ -137,6 +137,9 @@ export default function FormularioPresenciaDinamico({
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Proveedor state
+  const [proveedoresLocales, setProveedoresLocales] = useState<Proveedor[]>(proveedores);
+  const [mostrarModalProveedor, setMostrarModalProveedor] = useState(false);
+  const [cargandoProveedor, setCargandoProveedor] = useState(false);
   const [proveedorSelId, setProveedorSelId] = useState<string>("");
   const [proveedorNombreManual, setProveedorNombreManual] = useState("");
 
@@ -145,7 +148,12 @@ export default function FormularioPresenciaDinamico({
     marcaActual || (marcasPermitidas[0] ?? ""),
   );
 
-  // ── Load template ────────────────────────────────────────────────────────
+  // Sync local providers when prop changes
+  useEffect(() => {
+    setProveedoresLocales(proveedores);
+  }, [proveedores]);
+
+  // ── Load template ───────────────────────────────────────────────────────
   useEffect(() => {
     const cargar = async () => {
       setLoadingTemplate(true);
@@ -275,6 +283,71 @@ export default function FormularioPresenciaDinamico({
     }));
   }
 
+  // ── Create provider inline ───────────────────────────────────────────────
+  async function crearProveedorInline(
+    datos: Omit<Proveedor, "id" | "fechaCreacion">,
+  ) {
+    setCargandoProveedor(true);
+    try {
+      const res = await fetch(`${API_BASE}/proveedores/`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          nombre: datos.nombre,
+          razon_social: datos.razonSocial || "",
+          contacto: datos.contacto,
+          email: datos.email,
+          rfc: datos.rfc || "",
+          telefono: datos.telefono || "",
+          direccion: datos.direccion || "",
+          calle: datos.calle || "",
+          numero_exterior: datos.numeroExterior || "",
+          numero_interior: datos.numeroInterior || "",
+          colonia: datos.colonia || "",
+          ciudad: datos.ciudad || "",
+          estado: datos.estado || "",
+          codigo_postal: datos.codigoPostal || "",
+          categoria: datos.categoria || "",
+          activo: datos.activo ?? true,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al crear proveedor");
+      // Backend returns snake_case — transform to Proveedor shape
+      const raw = await res.json();
+      const nuevo: Proveedor = {
+        id: String(raw.id),
+        nombre: raw.nombre || "",
+        razonSocial: raw.razon_social || undefined,
+        contacto: raw.contacto || "",
+        email: raw.email || "",
+        rfc: raw.rfc || "",
+        telefono: raw.telefono || "",
+        direccion: raw.direccion || "",
+        calle: raw.calle || "",
+        numeroExterior: raw.numero_exterior || "",
+        numeroInterior: raw.numero_interior || "",
+        colonia: raw.colonia || "",
+        ciudad: raw.ciudad || "",
+        estado: raw.estado || "",
+        codigoPostal: raw.codigo_postal || "",
+        categoria: raw.categoria || "",
+        activo: raw.activo ?? true,
+        fechaCreacion: raw.fecha_creacion
+          ? raw.fecha_creacion.split("T")[0]
+          : new Date().toISOString().split("T")[0],
+      };
+      setProveedoresLocales((prev) => [...prev, nuevo]);
+      setProveedorSelId(String(nuevo.id));
+      setProveedorNombreManual(nuevo.nombre);
+      setMostrarModalProveedor(false);
+    } catch (err) {
+      console.error(err);
+      alert("Error al crear el proveedor");
+    } finally {
+      setCargandoProveedor(false);
+    }
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -311,7 +384,7 @@ export default function FormularioPresenciaDinamico({
     // Resolve proveedor name
     let proveedorNombre = proveedorNombreManual;
     if (proveedorSelId) {
-      const prov = proveedores.find((p) => String(p.id) === proveedorSelId);
+      const prov = proveedoresLocales.find((p) => String(p.id) === proveedorSelId);
       if (prov) proveedorNombre = prov.nombre;
     }
 
@@ -619,7 +692,7 @@ export default function FormularioPresenciaDinamico({
 
   // ─── Render proveedor section ───────────────────────────────────────────
   function renderProveedorSection(seccion: SeccionConfig) {
-    const selectedProv = proveedores.find(
+    const selectedProv = proveedoresLocales.find(
       (p) => String(p.id) === proveedorSelId,
     );
     return (
@@ -634,7 +707,7 @@ export default function FormularioPresenciaDinamico({
               value={proveedorSelId}
               onChange={(e) => {
                 setProveedorSelId(e.target.value);
-                const p = proveedores.find(
+                const p = proveedoresLocales.find(
                   (p) => String(p.id) === e.target.value,
                 );
                 if (p) setProveedorNombreManual(p.nombre);
@@ -643,23 +716,21 @@ export default function FormularioPresenciaDinamico({
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">— Seleccionar proveedor —</option>
-              {proveedores.map((p) => (
+              {proveedoresLocales.map((p) => (
                 <option key={p.id} value={String(p.id)}>
                   {p.nombre}
                 </option>
               ))}
             </select>
-            {onNavigateToProveedores && (
-              <button
-                type="button"
-                onClick={onNavigateToProveedores}
-                className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm whitespace-nowrap"
-                title="Agregar nuevo proveedor"
-              >
-                <UserPlusIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Nuevo</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setMostrarModalProveedor(true)}
+              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 text-sm whitespace-nowrap"
+              title="Agregar nuevo proveedor"
+            >
+              <UserPlusIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Nuevo</span>
+            </button>
           </div>
           {selectedProv?.direccion && (
             <p className="text-xs text-gray-500 mt-1 ml-1">
@@ -729,6 +800,7 @@ export default function FormularioPresenciaDinamico({
 
   // ─── Full form ────────────────────────────────────────────────────────
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Marca selector (always shown) */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
@@ -814,5 +886,31 @@ export default function FormularioPresenciaDinamico({
         </button>
       </div>
     </form>
+
+      {/* Modal: nuevo proveedor */}
+      {mostrarModalProveedor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-xl font-semibold text-gray-900">Agregar Nuevo Proveedor</h3>
+              <button
+                type="button"
+                onClick={() => setMostrarModalProveedor(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <FormularioProveedor
+                onSubmit={crearProveedorInline}
+                onCancelar={() => setMostrarModalProveedor(false)}
+                loading={cargandoProveedor}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
