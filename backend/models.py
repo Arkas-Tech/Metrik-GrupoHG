@@ -269,6 +269,7 @@ class PresenciaTradicional(Base):
     instalacion = Column(String, nullable=True)
     imagenes_json = Column(Text)  # JSON con array de imágenes (primera es vista previa)
     observaciones = Column(Text, nullable=True)
+    datos_extra_json = Column(Text, nullable=True)  # JSON dinámico del formulario configurado
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String)

@@ -50,6 +50,7 @@ class PresenciaTradicionalRequest(BaseModel):
     instalacion: Optional[str] = None
     imagenes_json: Optional[str] = None
     observaciones: Optional[str] = None
+    datos_extra_json: Optional[str] = None
 
 class PresenciaTradicionalResponse(BaseModel):
     id: int
@@ -79,6 +80,7 @@ class PresenciaTradicionalResponse(BaseModel):
     instalacion: Optional[str]
     imagenes_json: Optional[str]
     observaciones: Optional[str]
+    datos_extra_json: Optional[str] = None
     creado_por: str
 
 @router.get("/", response_model=list[PresenciaTradicionalResponse], status_code=status.HTTP_200_OK)
@@ -145,6 +147,7 @@ async def create_presencia(user: user_dependency, db: db_dependency, presencia_r
         instalacion=presencia_request.instalacion,
         imagenes_json=presencia_request.imagenes_json,
         observaciones=presencia_request.observaciones,
+        datos_extra_json=presencia_request.datos_extra_json,
         creado_por=user.get('username'),
         user_id=user.get('id')
     )
@@ -193,6 +196,7 @@ async def update_presencia(user: user_dependency, db: db_dependency,
     presencia_model.instalacion = presencia_request.instalacion
     presencia_model.imagenes_json = presencia_request.imagenes_json
     presencia_model.observaciones = presencia_request.observaciones
+    presencia_model.datos_extra_json = presencia_request.datos_extra_json
     
     db.commit()
 

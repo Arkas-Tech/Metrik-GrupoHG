@@ -9,6 +9,7 @@ import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import FormularioPresencia from "@/components/FormularioPresencia";
+import FormularioPresenciaDinamico from "@/components/FormularioPresenciaDinamico";
 import { AÑOS } from "@/types";
 import {
   eventoPerteneceAMarca,
@@ -203,6 +204,8 @@ export default function DashboardGeneral({
   const [marcaActual, setMarcaActual] = useState(agenciaSeleccionada);
   const [modalFormularioPresencia, setModalFormularioPresencia] =
     useState(false);
+  const [subcategoriaPresenciaModal, setSubcategoriaPresenciaModal] =
+    useState<string>("");
   const [presenciaEditando, setPresenciaEditando] = useState<Presencia | null>(
     null,
   );
@@ -3015,6 +3018,7 @@ export default function DashboardGeneral({
                     <button
                       onClick={() => {
                         setPresenciaEditando(null);
+                        setSubcategoriaPresenciaModal(subcategoria);
                         setModalFormularioPresencia(true);
                       }}
                       className="text-blue-600 hover:text-blue-800 transition-colors"
@@ -3072,6 +3076,9 @@ export default function DashboardGeneral({
                             <button
                               onClick={() => {
                                 setPresenciaEditando(presencia);
+                                setSubcategoriaPresenciaModal(
+                                  presencia.tipo ?? subcategoria,
+                                );
                                 setModalFormularioPresencia(true);
                               }}
                               className="text-blue-600 hover:text-blue-800 transition-colors"
@@ -3163,6 +3170,11 @@ export default function DashboardGeneral({
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">
                 {presenciaEditando ? "Editar Presencia" : "Nueva Presencia"}
+                {subcategoriaPresenciaModal && (
+                  <span className="ml-2 text-blue-600 text-xl">
+                    — {subcategoriaPresenciaModal}
+                  </span>
+                )}
               </h2>
               <button
                 onClick={() => {
@@ -3187,42 +3199,84 @@ export default function DashboardGeneral({
               </button>
             </div>
             <div className="p-6">
-              <FormularioPresencia
-                marcaActual={agenciaSeleccionada || ""}
-                presenciaInicial={presenciaEditando}
-                proveedores={proveedores}
-                onNavigateToProveedores={() => {
-                  router.push("/facturas?action=nuevo-proveedor");
-                }}
-                onCancel={() => {
-                  setModalFormularioPresencia(false);
-                  setPresenciaEditando(null);
-                }}
-                onSubmit={async (presencia) => {
-                  if (presenciaEditando) {
-                    const success = await actualizarPresencia(
-                      presenciaEditando.id,
-                      presencia,
-                    );
-                    if (success) {
-                      alert("Presencia actualizada exitosamente");
-                      await cargarPresencias();
-                    } else {
-                      alert("Error al actualizar la presencia");
-                    }
-                  } else {
-                    const success = await crearPresencia(presencia);
-                    if (success) {
-                      alert("Presencia creada exitosamente");
-                      await cargarPresencias();
-                    } else {
-                      alert("Error al crear la presencia");
-                    }
+              {subcategoriaPresenciaModal ? (
+                <FormularioPresenciaDinamico
+                  subcategoria={subcategoriaPresenciaModal}
+                  marcaActual={agenciaSeleccionada || ""}
+                  proveedores={proveedores}
+                  presenciaInicial={
+                    presenciaEditando as Record<string, unknown> | null
                   }
-                  setModalFormularioPresencia(false);
-                  setPresenciaEditando(null);
-                }}
-              />
+                  onNavigateToProveedores={() => {
+                    router.push("/facturas?action=nuevo-proveedor");
+                  }}
+                  onCancel={() => {
+                    setModalFormularioPresencia(false);
+                    setPresenciaEditando(null);
+                  }}
+                  onSubmit={async (presencia) => {
+                    if (presenciaEditando) {
+                      const success = await actualizarPresencia(
+                        presenciaEditando.id,
+                        presencia,
+                      );
+                      if (success) {
+                        alert("Presencia actualizada exitosamente");
+                        await cargarPresencias();
+                      } else {
+                        alert("Error al actualizar la presencia");
+                      }
+                    } else {
+                      const success = await crearPresencia(presencia);
+                      if (success) {
+                        alert("Presencia creada exitosamente");
+                        await cargarPresencias();
+                      } else {
+                        alert("Error al crear la presencia");
+                      }
+                    }
+                    setModalFormularioPresencia(false);
+                    setPresenciaEditando(null);
+                  }}
+                />
+              ) : (
+                <FormularioPresencia
+                  marcaActual={agenciaSeleccionada || ""}
+                  presenciaInicial={presenciaEditando}
+                  proveedores={proveedores}
+                  onNavigateToProveedores={() => {
+                    router.push("/facturas?action=nuevo-proveedor");
+                  }}
+                  onCancel={() => {
+                    setModalFormularioPresencia(false);
+                    setPresenciaEditando(null);
+                  }}
+                  onSubmit={async (presencia) => {
+                    if (presenciaEditando) {
+                      const success = await actualizarPresencia(
+                        presenciaEditando.id,
+                        presencia,
+                      );
+                      if (success) {
+                        alert("Presencia actualizada exitosamente");
+                        await cargarPresencias();
+                      } else {
+                        alert("Error al actualizar la presencia");
+                      }
+                    } else {
+                      const success = await crearPresencia(presencia);
+                      if (success) {
+                        alert("Presencia creada exitosamente");
+                        await cargarPresencias();
+                      } else {
+                        alert("Error al crear la presencia");
+                      }
+                    }
+                    setModalFormularioPresencia(false);
+                    setPresenciaEditando(null);
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
