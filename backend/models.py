@@ -369,3 +369,14 @@ class Desplazamiento(Base):
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     modificado_por = Column(String)
+
+
+class FormTemplate(Base):
+    """Plantilla de formulario dinámica para cada tipo de Presencia Tradicional (subcategoría)."""
+    __tablename__ = 'form_templates'
+
+    id = Column(Integer, primary_key=True, index=True)
+    subcategoria = Column(String, unique=True, nullable=False)  # e.g. "Espectacular"
+    template_json = Column(Text, nullable=False)               # JSON con secciones y campos
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())

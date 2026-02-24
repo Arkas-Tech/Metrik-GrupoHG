@@ -15,10 +15,12 @@ import {
   FolderIcon,
   UserGroupIcon,
   UsersIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/solid";
 import ConfiguracionCategorias from "@/components/ConfiguracionCategorias";
 import ConfiguracionPermisos from "@/components/ConfiguracionPermisos";
 import GestionAccesos from "@/components/GestionAccesos";
+import ConfiguracionFormularios from "@/components/ConfiguracionFormularios";
 import dynamic from "next/dynamic";
 
 const ConfigSidebar = dynamic(() => import("@/components/ConfigSidebar"));
@@ -50,6 +52,12 @@ const menuConfiguracion = [
     name: "Categorías",
     icon: FolderIcon,
     description: "Gestionar categorías y subcategorías",
+  },
+  {
+    id: "formularios",
+    name: "Formularios",
+    icon: DocumentTextIcon,
+    description: "Campos de Presencia Tradicional",
   },
   // Aquí se pueden agregar más opciones de configuración en el futuro
 ];
@@ -231,6 +239,7 @@ export default function ConfiguracionPage() {
                 onRefresh={() => window.location.reload()}
               />
             )}
+            {seccionActiva === "formularios" && <ConfiguracionFormularios />}
           </div>
         </div>
       </main>
