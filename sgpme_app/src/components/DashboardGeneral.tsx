@@ -193,9 +193,8 @@ export default function DashboardGeneral({
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
-  const [espectacularIndex, setEspectacularIndex] = useState(0);
-  const [revistaIndex, setRevistaIndex] = useState(0);
-  const [periodicoIndex, setPeriodicoIndex] = useState(0);
+  const [presenciaIndices, setPresenciaIndices] = useState<Record<string, number>>({});
+  const [subcategoriasMediosTradicionales, setSubcategoriasMediosTradicionales] = useState<string[]>([]);
   const [marcaActual, setMarcaActual] = useState(agenciaSeleccionada);
   const [modalFormularioPresencia, setModalFormularioPresencia] =
     useState(false);
@@ -626,6 +625,26 @@ export default function DashboardGeneral({
     cargarMarcas();
   }, []);
 
+  // Cargar subcategorías de Medios Tradicionales (categoría id=3)
+  useEffect(() => {
+    const cargarSubcategorias = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetchConToken(`${API_URL}/categorias/`);
+        if (response.ok) {
+          const data: { id: number; nombre: string; subcategorias: string[] }[] = await response.json();
+          const mediosTradicionales = data.find((c) => c.id === 3);
+          if (mediosTradicionales) {
+            setSubcategoriasMediosTradicionales(mediosTradicionales.subcategorias);
+          }
+        }
+      } catch (error) {
+        console.error("Error cargando subcategorías de medios tradicionales:", error);
+      }
+    };
+    cargarSubcategorias();
+  }, []);
+
   // Cargar datos de desplazamiento cuando cambie el mes, año o agencia
   useEffect(() => {
     if (marcas.length === 0) return;
@@ -643,9 +662,7 @@ export default function DashboardGeneral({
 
   // Resetear índices cuando cambia la marca
   if (marcaActual !== agenciaSeleccionada) {
-    setEspectacularIndex(0);
-    setRevistaIndex(0);
-    setPeriodicoIndex(0);
+    setPresenciaIndices({});
     setMarcaActual(agenciaSeleccionada);
   }
 
@@ -996,56 +1013,19 @@ export default function DashboardGeneral({
     );
   });
 
-  const todosLosEspectaculares = presenciaTradicionalData.filter(
-    (p) => p.tipo === "espectacular",
-  );
-  const todasLasRevistas = presenciaTradicionalData.filter(
-    (p) => p.tipo === "revista",
-  );
-  const todosLosPeriodicos = presenciaTradicionalData.filter(
-    (p) => p.tipo === "periodico",
-  );
+  // Presencias por subcategoría (comparación case-insensitive)
+  const presenciasPorSubcategoria = (subcategoria: string) =>
+    presenciaTradicionalData.filter(
+      (p) => p.tipo.toLowerCase() === subcategoria.toLowerCase(),
+    );
 
-  const espectacularesFiltrados = todosLosEspectaculares.slice(
-    espectacularIndex,
-    espectacularIndex + 3,
-  );
-  const revistasFiltradas = todasLasRevistas.slice(
-    revistaIndex,
-    revistaIndex + 3,
-  );
-  const periodicosFiltrados = todosLosPeriodicos.slice(
-    periodicoIndex,
-    periodicoIndex + 3,
-  );
-
-  const navegarEspectacular = (direccion: "prev" | "next") => {
-    if (
-      direccion === "next" &&
-      espectacularIndex + 3 < todosLosEspectaculares.length
-    ) {
-      setEspectacularIndex(espectacularIndex + 1);
-    } else if (direccion === "prev" && espectacularIndex > 0) {
-      setEspectacularIndex(espectacularIndex - 1);
-    }
-  };
-
-  const navegarRevista = (direccion: "prev" | "next") => {
-    if (direccion === "next" && revistaIndex + 3 < todasLasRevistas.length) {
-      setRevistaIndex(revistaIndex + 1);
-    } else if (direccion === "prev" && revistaIndex > 0) {
-      setRevistaIndex(revistaIndex - 1);
-    }
-  };
-
-  const navegarPeriodico = (direccion: "prev" | "next") => {
-    if (
-      direccion === "next" &&
-      periodicoIndex + 3 < todosLosPeriodicos.length
-    ) {
-      setPeriodicoIndex(periodicoIndex + 1);
-    } else if (direccion === "prev" && periodicoIndex > 0) {
-      setPeriodicoIndex(periodicoIndex - 1);
+  const navegarPresencia = (tipo: string, direccion: "prev" | "next") => {
+    const total = presenciasPorSubcategoria(tipo).length;
+    const current = presenciaIndices[tipo] ?? 0;
+    if (direccion === "next" && current + 3 < total) {
+      setPresenciaIndices((prev) => ({ ...prev, [tipo]: current + 1 }));
+    } else if (direccion === "prev" && current > 0) {
+      setPresenciaIndices((prev) => ({ ...prev, [tipo]: current - 1 }));
     }
   };
 
@@ -3009,303 +2989,131 @@ export default function DashboardGeneral({
           </button>
         </div>
 
-        {/* Espectaculares */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Espectaculares
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navegarEspectacular("prev")}
-                disabled={espectacularIndex === 0}
-                className={`p-2 rounded-lg ${
-                  espectacularIndex === 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => navegarEspectacular("next")}
-                disabled={
-                  espectacularIndex + 3 >= todosLosEspectaculares.length
-                }
-                className={`p-2 rounded-lg ${
-                  espectacularIndex + 3 >= todosLosEspectaculares.length
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-            </div>
+        {subcategoriasMediosTradicionales.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No hay subcategorías configuradas en Medios Tradicionales.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {espectacularesFiltrados.map((presencia) => (
-              <div
-                key={presencia.id}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="mb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-900">
-                      {presencia.nombre}
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setPresenciaEditando(presencia);
-                        setModalFormularioPresencia(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Editar"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Ubicación:</span>
-                    <span className="text-gray-900">
-                      {presencia.ubicacion || "N/A"}
+        ) : (
+          subcategoriasMediosTradicionales.map((subcategoria, subIdx) => {
+            const todas = presenciasPorSubcategoria(subcategoria);
+            const idx = presenciaIndices[subcategoria] ?? 0;
+            const visibles = todas.slice(idx, idx + 3);
+            const isLast = subIdx === subcategoriasMediosTradicionales.length - 1;
+            return (
+              <div key={subcategoria} className={isLast ? "" : "mb-8"}>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {subcategoria}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500">
+                      {todas.length} registro{todas.length !== 1 ? "s" : ""}
                     </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Dimensiones:</span>
-                    <span className="text-gray-900">
-                      {presencia.dimensiones || "N/A"}
-                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => navegarPresencia(subcategoria, "prev")}
+                        disabled={idx === 0}
+                        className={`p-2 rounded-lg ${
+                          idx === 0
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
+                      >
+                        <ChevronLeftIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => navegarPresencia(subcategoria, "next")}
+                        disabled={idx + 3 >= todas.length}
+                        className={`p-2 rounded-lg ${
+                          idx + 3 >= todas.length
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
+                      >
+                        <ChevronRightIcon className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {presencia.imagenes_json &&
-                  (() => {
-                    try {
-                      const imagenes = JSON.parse(presencia.imagenes_json);
-                      const primeraImagen =
-                        Array.isArray(imagenes) && imagenes.length > 0
-                          ? imagenes[0]
-                          : null;
-                      return primeraImagen ? (
-                        <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                          <Image
-                            src={primeraImagen}
-                            alt={presencia.nombre}
-                            fill
-                            className="object-cover"
-                          />
+                {visibles.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic py-2">
+                    Sin registros para este período.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {visibles.map((presencia) => (
+                      <div
+                        key={presencia.id}
+                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="mb-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-gray-900">
+                              {presencia.nombre}
+                            </h4>
+                            <button
+                              onClick={() => {
+                                setPresenciaEditando(presencia);
+                                setModalFormularioPresencia(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                              title="Editar"
+                            >
+                              <PencilIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-600">Ubicación:</span>
+                            <span className="text-gray-900">
+                              {presencia.ubicacion || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Dimensiones:</span>
+                            <span className="text-gray-900">
+                              {presencia.dimensiones || "N/A"}
+                            </span>
+                          </div>
                         </div>
-                      ) : null;
-                    } catch {
-                      return null;
-                    }
-                  })()}
-                <button
-                  onClick={() => setModalPresencia(presencia)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  <EyeIcon className="h-4 w-4" />
-                  Ver detalles
-                </button>
+                        {presencia.imagenes_json &&
+                          (() => {
+                            try {
+                              const imagenes = JSON.parse(
+                                presencia.imagenes_json,
+                              );
+                              const primeraImagen =
+                                Array.isArray(imagenes) && imagenes.length > 0
+                                  ? imagenes[0]
+                                  : null;
+                              return primeraImagen ? (
+                                <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
+                                  <Image
+                                    src={primeraImagen}
+                                    alt={presencia.nombre}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : null;
+                            } catch {
+                              return null;
+                            }
+                          })()}
+                        <button
+                          onClick={() => setModalPresencia(presencia)}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                          Ver detalles
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Revistas */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Revistas</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navegarRevista("prev")}
-                disabled={revistaIndex === 0}
-                className={`p-2 rounded-lg ${
-                  revistaIndex === 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => navegarRevista("next")}
-                disabled={revistaIndex + 3 >= todasLasRevistas.length}
-                className={`p-2 rounded-lg ${
-                  revistaIndex + 3 >= todasLasRevistas.length
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {revistasFiltradas.map((presencia) => (
-              <div
-                key={presencia.id}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="mb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-900">
-                      {presencia.nombre}
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setPresenciaEditando(presencia);
-                        setModalFormularioPresencia(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Editar"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Ubicación:</span>
-                    <span className="text-gray-900">
-                      {presencia.ubicacion || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Dimensiones:</span>
-                    <span className="text-gray-900">
-                      {presencia.dimensiones || "N/A"}
-                    </span>
-                  </div>
-                </div>
-                {presencia.imagenes_json &&
-                  (() => {
-                    try {
-                      const imagenes = JSON.parse(presencia.imagenes_json);
-                      const primeraImagen =
-                        Array.isArray(imagenes) && imagenes.length > 0
-                          ? imagenes[0]
-                          : null;
-                      return primeraImagen ? (
-                        <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                          <Image
-                            src={primeraImagen}
-                            alt={presencia.nombre}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : null;
-                    } catch {
-                      return null;
-                    }
-                  })()}
-                <button
-                  onClick={() => setModalPresencia(presencia)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  <EyeIcon className="h-4 w-4" />
-                  Ver detalles
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Periódicos */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Periódicos</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navegarPeriodico("prev")}
-                disabled={periodicoIndex === 0}
-                className={`p-2 rounded-lg ${
-                  periodicoIndex === 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => navegarPeriodico("next")}
-                disabled={periodicoIndex + 3 >= todosLosPeriodicos.length}
-                className={`p-2 rounded-lg ${
-                  periodicoIndex + 3 >= todosLosPeriodicos.length
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {periodicosFiltrados.map((presencia) => (
-              <div
-                key={presencia.id}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="mb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-900">
-                      {presencia.nombre}
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setPresenciaEditando(presencia);
-                        setModalFormularioPresencia(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Editar"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Ubicación:</span>
-                    <span className="text-gray-900">
-                      {presencia.ubicacion || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Dimensiones:</span>
-                    <span className="text-gray-900">
-                      {presencia.dimensiones || "N/A"}
-                    </span>
-                  </div>
-                </div>
-                {presencia.imagenes_json &&
-                  (() => {
-                    try {
-                      const imagenes = JSON.parse(presencia.imagenes_json);
-                      const primeraImagen =
-                        Array.isArray(imagenes) && imagenes.length > 0
-                          ? imagenes[0]
-                          : null;
-                      return primeraImagen ? (
-                        <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                          <Image
-                            src={primeraImagen}
-                            alt={presencia.nombre}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : null;
-                    } catch {
-                      return null;
-                    }
-                  })()}
-                <button
-                  onClick={() => setModalPresencia(presencia)}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  <EyeIcon className="h-4 w-4" />
-                  Ver detalles
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+            );
+          })
+        )}
       </div>
 
       {/* Sección Asesores */}
