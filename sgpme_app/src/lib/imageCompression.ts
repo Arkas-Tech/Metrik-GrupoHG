@@ -3,10 +3,10 @@
  * Límite recomendado: 500KB por imagen para evitar saturar la plataforma
  */
 
-export const MAX_FILE_SIZE = 500 * 1024;
-export const MAX_WIDTH = 1920;
-export const MAX_HEIGHT = 1080;
-export const COMPRESSION_QUALITY = 0.85;
+export const MAX_FILE_SIZE = 150 * 1024; // 150KB máximo por imagen
+export const MAX_WIDTH = 1280;
+export const MAX_HEIGHT = 720;
+export const COMPRESSION_QUALITY = 0.75;
 
 export interface CompressedImageResult {
   file: File;
@@ -22,7 +22,7 @@ export interface CompressedImageResult {
  * @returns Promesa con el resultado de la compresión
  */
 export async function compressImage(
-  file: File
+  file: File,
 ): Promise<CompressedImageResult> {
   const originalSize = file.size;
 
@@ -81,7 +81,7 @@ export async function compressImage(
               {
                 type: "image/jpeg",
                 lastModified: Date.now(),
-              }
+              },
             );
 
             resolve({
@@ -93,7 +93,7 @@ export async function compressImage(
             });
           },
           "image/jpeg",
-          COMPRESSION_QUALITY
+          COMPRESSION_QUALITY,
         );
       };
 
@@ -118,7 +118,7 @@ export async function compressImage(
  * @returns Promesa con array de resultados
  */
 export async function compressMultipleImages(
-  files: File[]
+  files: File[],
 ): Promise<CompressedImageResult[]> {
   const promises = files.map((file) => compressImage(file));
   return Promise.all(promises);
