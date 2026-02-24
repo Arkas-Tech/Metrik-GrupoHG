@@ -220,20 +220,21 @@ export default function DashboardGeneral({
   const [proyecciones, setProyecciones] = useState<Proyeccion[]>([]);
   const [marcas, setMarcas] = useState<Marca[]>([]);
 
-  // Estados para la sección de Desplazamiento - organizados por mes
-  const [mesDesplazamiento, setMesDesplazamiento] = useState<number>(
+  // Filtro global de mes — afecta Funnel, Desplazamiento, Eventos, Campañas, Embajadores, Presencia
+  const [filtroMesGlobal, setFiltroMesGlobal] = useState<number>(
     new Date().getMonth() + 1,
   );
+  // Caché de templates de presencias para filtrado por sección Temporalidad
+  const [templatesCache, setTemplatesCache] = useState<
+    Record<string, { secciones: Array<{ nombre: string; activo: boolean; campos: Array<{ id: string; tipo: string }> }> }>
+  >({});
+
+  // Estados para la sección de Desplazamiento
   const [agenciaDesplazamiento, setAgenciaDesplazamiento] = useState<
     string | null
   >(null);
   const [modoEdicionDesplazamiento, setModoEdicionDesplazamiento] =
     useState(false);
-
-  // Estado para filtro de mes en la sección de Eventos
-  const [mesEventos, setMesEventos] = useState<number>(
-    new Date().getMonth() + 1,
-  );
 
   // Estado para el visor de PDF
   const [pdfViewer, setPdfViewer] = useState<{
@@ -281,7 +282,7 @@ export default function DashboardGeneral({
   }>({});
 
   // Obtener datos del mes actual
-  const datosDesplazamientoActual = desplazamientoPorMes[mesDesplazamiento] || {
+  const datosDesplazamientoActual = desplazamientoPorMes[filtroMesGlobal] || {
     mayorExistencia: [],
     mas90Dias: [],
     demos: [],
@@ -306,7 +307,7 @@ export default function DashboardGeneral({
 
     setDesplazamientoPorMes((prev) => ({
       ...prev,
-      [mesDesplazamiento]: nuevoDatosMes,
+      [filtroMesGlobal]: nuevoDatosMes,
     }));
 
     // Guardar en la base de datos automáticamente
@@ -348,7 +349,7 @@ export default function DashboardGeneral({
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const payload = {
-        mes: mesDesplazamiento,
+        mes: filtroMesGlobal,
         anio: añoSeleccionado,
         marca_id: marca.id,
         mayorExistencia: datos.mayorExistencia,
@@ -405,7 +406,7 @@ export default function DashboardGeneral({
         agenciaDesplazamiento,
       );
       console.log("[DEBUG-CARGAR] marcas.length:", marcas.length);
-      console.log("[DEBUG-CARGAR] mes:", mesDesplazamiento);
+      console.log("[DEBUG-CARGAR] mes:", filtroMesGlobal);
       console.log("[DEBUG-CARGAR] año:", añoSeleccionado);
 
       if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
@@ -415,7 +416,7 @@ export default function DashboardGeneral({
         // Limpiar datos cuando no hay agencia o está en "todas"
         setDesplazamientoPorMes((prev) => ({
           ...prev,
-          [mesDesplazamiento]: {
+          [filtroMesGlobal]: {
             mayorExistencia: [],
             mas90Dias: [],
             demos: [],
@@ -441,7 +442,7 @@ export default function DashboardGeneral({
 
       const API_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const url = `${API_URL}/desplazamiento/obtener/${mesDesplazamiento}/${añoSeleccionado}/${marca.id}`;
+      const url = `${API_URL}/desplazamiento/obtener/${filtroMesGlobal}/${añoSeleccionado}/${marca.id}`;
       console.log("[DEBUG-CARGAR] 📡 Cargando desplazamiento desde:", url);
 
       const response = await fetchConToken(url);
@@ -451,7 +452,7 @@ export default function DashboardGeneral({
         console.log("[DEBUG-CARGAR] ✅ Datos cargados exitosamente:", data);
         setDesplazamientoPorMes((prev) => ({
           ...prev,
-          [mesDesplazamiento]: {
+          [filtroMesGlobal]: {
             mayorExistencia: data.mayorExistencia || [],
             mas90Dias: data.mas90Dias || [],
             demos: data.demos || [],
@@ -466,7 +467,7 @@ export default function DashboardGeneral({
     } catch (error) {
       console.error("[DEBUG-CARGAR] ❌ Error cargando desplazamiento:", error);
     }
-  }, [agenciaDesplazamiento, marcas, mesDesplazamiento, añoSeleccionado]);
+  }, [agenciaDesplazamiento, marcas, filtroMesGlobal, añoSeleccionado]);
 
   // Función para manejar la carga de PDF
   const handlePdfUpload = (
@@ -669,6 +670,33 @@ export default function DashboardGeneral({
     cargarSubcategorias();
   }, []);
 
+  // Cargar templates de presencias para filtrado por sección Temporalidad
+  useEffect(() => {
+    const subcats = [...new Set(presencias.map((p) => p.tipo).filter(Boolean))];
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    subcats.forEach(async (sub) => {
+      try {
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("token") : "";
+        const res = await fetch(
+          `${API_URL}/form-templates/${encodeURIComponent(sub)}/`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setTemplatesCache((prev) =>
+            prev[sub] ? prev : { ...prev, [sub]: data.template },
+          );
+        }
+      } catch { /* ignore */ }
+    });
+  }, [presencias]);
+
   // Cargar datos de desplazamiento cuando cambie el mes, año o agencia
   useEffect(() => {
     if (marcas.length === 0) return;
@@ -677,7 +705,7 @@ export default function DashboardGeneral({
     };
     void cargar();
   }, [
-    mesDesplazamiento,
+    filtroMesGlobal,
     añoSeleccionado,
     agenciaDesplazamiento,
     marcas.length,
@@ -954,9 +982,9 @@ export default function DashboardGeneral({
       // Filtrar por mes
       const fechaEvento = new Date(evento.fechaInicio);
       const mesEvento = fechaEvento.getMonth() + 1;
-      return mesEvento === mesEventos;
+      return mesEvento === filtroMesGlobal;
     });
-  }, [eventos, agenciaSeleccionada, marcasPermitidas, mesEventos]);
+  }, [eventos, agenciaSeleccionada, marcasPermitidas, filtroMesGlobal]);
 
   const formatearMiles = (valor: number) => {
     if (valor >= 1000000) {
@@ -969,19 +997,14 @@ export default function DashboardGeneral({
 
   // Calcular métricas por plataforma
   const calcularMetricasPlataforma = (plataforma: string) => {
-    const mesesPermitidos = MESES_POR_CUARTO[cuartoSeleccionado];
-
     const campanasActivas = campanasDb.filter((c) => {
       if (c.plataforma !== plataforma || c.estado !== "Activa") return false;
       if (!filtraPorMarca(c.marca)) return false;
 
-      // Parsear fecha de inicio (formato "YYYY-MM-DD")
       const fechaInicio = new Date(c.fecha_inicio);
-      const añoCampana = fechaInicio.getFullYear();
-      const mesCampana = fechaInicio.getMonth() + 1;
-
       return (
-        añoCampana === añoSeleccionado && mesesPermitidos.includes(mesCampana)
+        fechaInicio.getFullYear() === añoSeleccionado &&
+        fechaInicio.getMonth() + 1 === filtroMesGlobal
       );
     });
 
@@ -1010,25 +1033,45 @@ export default function DashboardGeneral({
   const metricasGoogle = calcularMetricasPlataforma("Google Ads");
   const metricasTikTok = calcularMetricasPlataforma("TikTok Ads");
 
-  // Datos para Presencia Tradicional
-  const mesesPermitidos = MESES_POR_CUARTO[cuartoSeleccionado];
-
+  // Datos para Presencia Tradicional — filtra por año + mes global
+  // El mes se extrae del primer campo fecha en sección Temporalidad (si existe),
+  // con fallback a cualquier fecha en fieldValues, y último fallback a fecha_instalacion.
   const presenciaTradicionalData = presencias.filter((presencia) => {
-    // Filtro por agencia
-    const cumpleAgencia = presencia.agencia
-      ? filtraPorMarca(presencia.agencia)
-      : false;
+    if (!presencia.agencia || !filtraPorMarca(presencia.agencia)) return false;
+    if (new Date(presencia.fecha_instalacion).getFullYear() !== añoSeleccionado) return false;
 
-    if (!cumpleAgencia) return false;
+    // Intentar extraer mes desde datos_extra_json
+    if (presencia.datos_extra_json) {
+      try {
+        const extras = JSON.parse(presencia.datos_extra_json);
+        const fv: Record<string, string | number> = extras.fieldValues ?? {};
 
-    // Filtro por año y cuarto
-    const fechaInstalacion = new Date(presencia.fecha_instalacion);
-    const añoPresencia = fechaInstalacion.getFullYear();
-    const mesPresencia = fechaInstalacion.getMonth() + 1;
+        // Buscar sección Temporalidad en el template cacheado
+        const tmpl = templatesCache[presencia.tipo];
+        if (tmpl) {
+          const sec = tmpl.secciones?.find(
+            (s) => s.activo && s.nombre?.toLowerCase().includes("temporal"),
+          );
+          const campoDB = sec?.campos?.find((c) => c.tipo === "fecha");
+          if (campoDB && fv[campoDB.id]) {
+            const d = new Date(String(fv[campoDB.id]) + "T00:00:00");
+            return d.getMonth() + 1 === filtroMesGlobal;
+          }
+        }
 
-    return (
-      añoPresencia === añoSeleccionado && mesesPermitidos.includes(mesPresencia)
-    );
+        // Fallback: cualquier valor con formato YYYY-MM-DD en fieldValues
+        const anyDate = Object.values(fv).find(
+          (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+        );
+        if (anyDate) {
+          const d = new Date(String(anyDate) + "T00:00:00");
+          return d.getMonth() + 1 === filtroMesGlobal;
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Último fallback: mes de fecha_instalacion
+    return new Date(presencia.fecha_instalacion).getMonth() + 1 === filtroMesGlobal;
   });
 
   // Presencias por subcategoría (comparación case-insensitive)
@@ -1544,6 +1587,30 @@ export default function DashboardGeneral({
         </div>
       </div>
 
+      {/* Filtro global de mes */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-bold text-gray-600 uppercase tracking-wide shrink-0">
+            📅 Mes:
+          </span>
+          <div className="flex gap-2 flex-wrap">
+            {MESES_ORDEN.map((mes, idx) => (
+              <button
+                key={idx}
+                onClick={() => setFiltroMesGlobal(idx + 1)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  filtroMesGlobal === idx + 1
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {mes.substring(0, 3)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Sección Funnel */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Funnel</h2>
@@ -1725,23 +1792,6 @@ export default function DashboardGeneral({
                 {marcas.map((marca) => (
                   <option key={marca.id} value={marca.cuenta}>
                     {marca.cuenta}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Filtro de mes */}
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-              <label className="text-sm font-semibold text-gray-700">
-                📅 Mes:
-              </label>
-              <select
-                value={mesDesplazamiento}
-                onChange={(e) => setMesDesplazamiento(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors text-gray-900"
-              >
-                {MESES_ORDEN.map((mes, idx) => (
-                  <option key={idx} value={idx + 1}>
-                    {mes}
                   </option>
                 ))}
               </select>
@@ -2584,19 +2634,8 @@ export default function DashboardGeneral({
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">
-            📅 Eventos del Mes
+            📅 Eventos — {MESES_ORDEN[filtroMesGlobal - 1]}
           </h2>
-          <select
-            value={mesEventos}
-            onChange={(e) => setMesEventos(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
-            {MESES_ORDEN.map((mes, idx) => (
-              <option key={idx} value={idx + 1}>
-                {mes}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="overflow-x-auto">
