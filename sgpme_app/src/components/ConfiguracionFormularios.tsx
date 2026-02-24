@@ -847,7 +847,7 @@ export default function ConfiguracionFormularios({
                   </button>
                 </div>
 
-                <p className="text-xs text-gray-500 -mt-2">
+                <p className="text-xs text-gray-500 mt-1">
                   Activa/desactiva secciones, agrega campos y ordénalos a tu
                   gusto. Cada cambio requiere guardar.
                 </p>
