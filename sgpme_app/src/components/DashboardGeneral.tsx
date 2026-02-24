@@ -34,24 +34,6 @@ const MESES_ORDEN = [
   "Diciembre",
 ];
 
-// Función para obtener el cuarto actual
-const obtenerCuartoActual = () => {
-  const mesActual = new Date().getMonth() + 1; // 1-12
-  if (mesActual >= 1 && mesActual <= 3) return "Q1";
-  if (mesActual >= 4 && mesActual <= 6) return "Q2";
-  if (mesActual >= 7 && mesActual <= 9) return "Q3";
-  return "Q4";
-};
-
-// Meses por cuarto
-const MESES_POR_CUARTO: Record<string, number[]> = {
-  Q1: [1, 2, 3],
-  Q2: [4, 5, 6],
-  Q3: [7, 8, 9],
-  Q4: [10, 11, 12],
-  Todos: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-};
-
 interface PresupuestoMensual {
   id: number;
   mes: number;
@@ -191,12 +173,9 @@ export default function DashboardGeneral({
   const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
     new Date().getFullYear(),
   );
-  const [cuartoSeleccionado, setCuartoSeleccionado] = useState<string>(
-    obtenerCuartoActual(),
-  );
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState<
-    "YTD" | "Mes" | "Q"
-  >("Q");
+    "YTD" | "Mes"
+  >("YTD");
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
@@ -226,7 +205,16 @@ export default function DashboardGeneral({
   );
   // Caché de templates de presencias para filtrado por sección Temporalidad
   const [templatesCache, setTemplatesCache] = useState<
-    Record<string, { secciones: Array<{ nombre: string; activo: boolean; campos: Array<{ id: string; tipo: string }> }> }>
+    Record<
+      string,
+      {
+        secciones: Array<{
+          nombre: string;
+          activo: boolean;
+          campos: Array<{ id: string; tipo: string }>;
+        }>;
+      }
+    >
   >({});
 
   // Estados para la sección de Desplazamiento
@@ -693,7 +681,9 @@ export default function DashboardGeneral({
             prev[sub] ? prev : { ...prev, [sub]: data.template },
           );
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     });
   }, [presencias]);
 
@@ -719,33 +709,22 @@ export default function DashboardGeneral({
   }
 
   const facturasFiltradas = useMemo(() => {
-    const mesesPermitidos = MESES_POR_CUARTO[cuartoSeleccionado];
-
     return facturas.filter((factura) => {
       const fechaEmision = new Date(factura.fechaEmision);
       const añoFactura = fechaEmision.getFullYear();
-      const mesFactura = fechaEmision.getMonth() + 1;
-
-      return (
-        añoFactura === añoSeleccionado &&
-        mesesPermitidos.includes(mesFactura) &&
-        filtraPorMarca(factura.marca)
-      );
+      return añoFactura === añoSeleccionado && filtraPorMarca(factura.marca);
     });
-  }, [facturas, filtraPorMarca, añoSeleccionado, cuartoSeleccionado]);
+  }, [facturas, filtraPorMarca, añoSeleccionado]);
 
-  // Filtrar presupuestos por año, cuarto y agencia
+  // Filtrar presupuestos por año y agencia
   const presupuestosFiltrados = useMemo(() => {
-    const mesesPermitidos = MESES_POR_CUARTO[cuartoSeleccionado];
-
     return presupuestos.filter((presupuesto) => {
       return (
         presupuesto.anio === añoSeleccionado &&
-        mesesPermitidos.includes(presupuesto.mes) &&
         filtraPorMarca(presupuesto.marca_nombre)
       );
     });
-  }, [presupuestos, filtraPorMarca, añoSeleccionado, cuartoSeleccionado]);
+  }, [presupuestos, filtraPorMarca, añoSeleccionado]);
 
   const metricas = useMemo(() => {
     // Calcular presupuesto anual desde presupuestos mensuales
@@ -768,20 +747,19 @@ export default function DashboardGeneral({
   }, [presupuestosFiltrados, facturasFiltradas]);
 
   const datosGrafica = useMemo(() => {
-    const mesesPermitidos = MESES_POR_CUARTO[cuartoSeleccionado];
+    const todosMeses = Array.from({ length: 12 }, (_, i) => i + 1);
     const datosPorMes: {
       [mes: string]: { presupuesto: number; gastoReal: number };
     } = {};
 
-    // Inicializar solo los meses del cuarto seleccionado
-    mesesPermitidos.forEach((numMes) => {
+    // Inicializar los 12 meses del año
+    todosMeses.forEach((numMes) => {
       const nombreMes = MESES_ORDEN[numMes - 1];
       datosPorMes[nombreMes] = { presupuesto: 0, gastoReal: 0 };
     });
 
-    // Usar presupuestos mensuales en lugar de proyecciones
     presupuestosFiltrados.forEach((presupuesto) => {
-      const nombreMes = MESES_ORDEN[presupuesto.mes - 1]; // mes es 1-12, índice es 0-11
+      const nombreMes = MESES_ORDEN[presupuesto.mes - 1];
       if (datosPorMes[nombreMes]) {
         datosPorMes[nombreMes].presupuesto += presupuesto.monto;
       }
@@ -797,8 +775,7 @@ export default function DashboardGeneral({
         }
       });
 
-    // Retornar solo los meses del cuarto seleccionado
-    return mesesPermitidos.map((numMes) => {
+    return todosMeses.map((numMes) => {
       const nombreMes = MESES_ORDEN[numMes - 1];
       return {
         mes: nombreMes.substring(0, 3),
@@ -806,22 +783,17 @@ export default function DashboardGeneral({
         gastoReal: Math.round(datosPorMes[nombreMes].gastoReal / 1000),
       };
     });
-  }, [presupuestosFiltrados, facturasFiltradas, cuartoSeleccionado]);
+  }, [presupuestosFiltrados, facturasFiltradas]);
 
   // Calcular meses permitidos según el período seleccionado
   const mesesPeriodo = useMemo(() => {
     if (periodoSeleccionado === "YTD") {
-      // Año hasta la fecha
       const mesActual = new Date().getMonth() + 1;
       return Array.from({ length: mesActual }, (_, i) => i + 1);
-    } else if (periodoSeleccionado === "Mes") {
-      // Solo el mes seleccionado
-      return [mesSeleccionado];
     } else {
-      // Q (Quarter)
-      return MESES_POR_CUARTO[cuartoSeleccionado];
+      return [mesSeleccionado];
     }
-  }, [periodoSeleccionado, mesSeleccionado, cuartoSeleccionado]);
+  }, [periodoSeleccionado, mesSeleccionado]);
 
   // Filtrar proyecciones según período
   const proyeccionesFiltradas = useMemo(() => {
@@ -1038,7 +1010,8 @@ export default function DashboardGeneral({
   // con fallback a cualquier fecha en fieldValues, y último fallback a fecha_instalacion.
   const presenciaTradicionalData = presencias.filter((presencia) => {
     if (!presencia.agencia || !filtraPorMarca(presencia.agencia)) return false;
-    if (new Date(presencia.fecha_instalacion).getFullYear() !== añoSeleccionado) return false;
+    if (new Date(presencia.fecha_instalacion).getFullYear() !== añoSeleccionado)
+      return false;
 
     // Intentar extraer mes desde datos_extra_json
     if (presencia.datos_extra_json) {
@@ -1067,11 +1040,15 @@ export default function DashboardGeneral({
           const d = new Date(String(anyDate) + "T00:00:00");
           return d.getMonth() + 1 === filtroMesGlobal;
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     // Último fallback: mes de fecha_instalacion
-    return new Date(presencia.fecha_instalacion).getMonth() + 1 === filtroMesGlobal;
+    return (
+      new Date(presencia.fecha_instalacion).getMonth() + 1 === filtroMesGlobal
+    );
   });
 
   // Presencias por subcategoría (comparación case-insensitive)
@@ -1125,26 +1102,6 @@ export default function DashboardGeneral({
             </select>
           </div>
 
-          <div>
-            <label
-              htmlFor="cuarto-selector"
-              className="block text-sm font-medium text-gray-900 mb-2"
-            >
-              Cuarto:
-            </label>
-            <select
-              id="cuarto-selector"
-              value={cuartoSeleccionado}
-              onChange={(e) => setCuartoSeleccionado(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-            >
-              <option value="Todos">Todos</option>
-              <option value="Q1">Q1 (Ene-Mar)</option>
-              <option value="Q2">Q2 (Abr-Jun)</option>
-              <option value="Q3">Q3 (Jul-Sep)</option>
-              <option value="Q4">Q4 (Oct-Dic)</option>
-            </select>
-          </div>
         </div>
       </div>
       {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
@@ -1162,11 +1119,7 @@ export default function DashboardGeneral({
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-700 truncate">
-                      Presupuesto{" "}
-                      {cuartoSeleccionado === "Todos"
-                        ? "Anual"
-                        : cuartoSeleccionado}{" "}
-                      {añoSeleccionado}
+                      Presupuesto Anual {añoSeleccionado}
                     </dt>
                     <dd className="text-3xl font-bold text-gray-900">
                       {formatearMiles(metricas.presupuestoAnual)}
@@ -1220,10 +1173,7 @@ export default function DashboardGeneral({
           {/* Gráfica a la derecha */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Presupuesto vs. Gasto Real -{" "}
-              {cuartoSeleccionado === "Todos"
-                ? añoSeleccionado
-                : `${cuartoSeleccionado} ${añoSeleccionado}`}
+              Presupuesto vs. Gasto Real — {añoSeleccionado}
             </h3>
             <div className="h-70">
               <ResponsiveContainer width="100%" height="100%">
@@ -1282,13 +1232,12 @@ export default function DashboardGeneral({
                 id="periodo-selector"
                 value={periodoSeleccionado}
                 onChange={(e) =>
-                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes" | "Q")
+                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes")
                 }
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
               >
                 <option value="YTD">YTD (Year to Date)</option>
                 <option value="Mes">Mes</option>
-                <option value="Q">Quarter</option>
               </select>
             </div>
             {periodoSeleccionado === "Mes" && (
@@ -1313,27 +1262,7 @@ export default function DashboardGeneral({
                 </select>
               </div>
             )}
-            {periodoSeleccionado === "Q" && (
-              <div>
-                <label
-                  htmlFor="quarter-selector"
-                  className="block text-sm font-medium text-gray-900 mb-2"
-                >
-                  Quarter:
-                </label>
-                <select
-                  id="quarter-selector"
-                  value={cuartoSeleccionado}
-                  onChange={(e) => setCuartoSeleccionado(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                >
-                  <option value="Q1">Q1 (Ene-Mar)</option>
-                  <option value="Q2">Q2 (Abr-Jun)</option>
-                  <option value="Q3">Q3 (Jul-Sep)</option>
-                  <option value="Q4">Q4 (Oct-Dic)</option>
-                </select>
-              </div>
-            )}
+
           </div>
         </div>
 
