@@ -269,6 +269,7 @@ class PresenciaTradicional(Base):
     instalacion = Column(String, nullable=True)
     imagenes_json = Column(Text)  # JSON con array de imágenes (primera es vista previa)
     observaciones = Column(Text, nullable=True)
+    datos_extra_json = Column(Text, nullable=True)  # JSON con valores de campos dinámicos del formulario
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String)
@@ -369,3 +370,13 @@ class Desplazamiento(Base):
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     modificado_por = Column(String)
+
+
+class FormTemplate(Base):
+    __tablename__ = 'form_templates'
+
+    id = Column(Integer, primary_key=True, index=True)
+    subcategoria = Column(String, unique=True, nullable=False)
+    template_json = Column(Text, nullable=False)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
