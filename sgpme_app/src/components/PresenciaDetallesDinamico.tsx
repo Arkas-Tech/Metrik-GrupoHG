@@ -273,7 +273,9 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
 
     const raw = fieldValues[campo.id];
     if (raw === undefined || raw === null || raw === "")
-      return <span className="text-gray-400 italic text-sm">Sin información</span>;
+      return (
+        <span className="text-gray-400 italic text-sm">Sin información</span>
+      );
 
     if (campo.tipo === "dinero")
       return (
@@ -301,8 +303,6 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // If no template or no datos_extra_json, fall back to static view
-  const hasExtras = !!presencia.datos_extra_json;
   const activeSections = template?.secciones?.filter((s) => s.activo) ?? [];
 
   return (
@@ -321,7 +321,7 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
         )}
       </div>
 
-      {hasExtras && activeSections.length > 0 ? (
+      {activeSections.length > 0 ? (
         /* ── Dynamic template-based view ── */
         <div className="space-y-5">
           {activeSections.map((seccion) => {
@@ -357,12 +357,16 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
                       </label>
                       <p className="mt-1 text-sm font-semibold text-gray-900">
                         {presencia.proveedor || proveedorNombreManual || (
-                          <span className="text-gray-400 italic">Sin información</span>
+                          <span className="text-gray-400 italic">
+                            Sin información
+                          </span>
                         )}
                       </p>
                     </div>
                   ) : sectionIsEmpty ? (
-                    <p className="text-sm text-gray-400 italic">Sin información</p>
+                    <p className="text-sm text-gray-400 italic">
+                      Sin información
+                    </p>
                   ) : (
                     <div className="flex flex-col gap-4">
                       {seccion.campos.map((campo) => (
