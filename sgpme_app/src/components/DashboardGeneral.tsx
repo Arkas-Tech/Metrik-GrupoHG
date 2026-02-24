@@ -9,7 +9,7 @@ import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import FormularioPresencia from "@/components/FormularioPresencia";
-import { AÑOS, Evento } from "@/types";
+import { AÑOS } from "@/types";
 import {
   eventoPerteneceAMarca,
   eventoPerteneceAMarcas,
@@ -63,6 +63,33 @@ interface PresupuestoMensual {
   modificado_por: string;
 }
 
+interface DesplazamientoItem {
+  unidad: string;
+  porcentaje: string;
+  oc: string;
+  pdf?: string;
+  pdfNombre?: string;
+}
+
+interface Partida {
+  categoria: string;
+  monto: number;
+  esReembolso: boolean;
+}
+
+interface Proyeccion {
+  año: number;
+  mes: number;
+  marca: string;
+  partidas?: Partida[];
+  partidas_json?: string;
+}
+
+interface Marca {
+  id: number;
+  cuenta: string;
+}
+
 import {
   BarChart,
   Bar,
@@ -82,7 +109,6 @@ import {
   ExclamationTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ChartBarIcon,
   PlusIcon,
   PencilIcon,
   EyeIcon,
@@ -178,9 +204,8 @@ export default function DashboardGeneral({
   );
   const [modalPresencia, setModalPresencia] = useState<Presencia | null>(null);
   const [presupuestos, setPresupuestos] = useState<PresupuestoMensual[]>([]);
-  const [proyecciones, setProyecciones] = useState<any[]>([]);
-  const [marcas, setMarcas] = useState<any[]>([]);
-  const [totalReembolsos, setTotalReembolsos] = useState<number>(0);
+  const [proyecciones, setProyecciones] = useState<Proyeccion[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
 
   // Estados para la sección de Desplazamiento - organizados por mes
   const [mesDesplazamiento, setMesDesplazamiento] = useState<number>(
@@ -277,10 +302,10 @@ export default function DashboardGeneral({
 
   // Función para guardar datos en la base de datos
   const guardarDesplazamientoEnDB = async (datos: {
-    mayorExistencia: Array<any>;
-    mas90Dias: Array<any>;
-    demos: Array<any>;
-    otros: Array<any>;
+    mayorExistencia: DesplazamientoItem[];
+    mas90Dias: DesplazamientoItem[];
+    demos: DesplazamientoItem[];
+    otros: DesplazamientoItem[];
   }) => {
     try {
       console.log("[DEBUG-GUARDAR] Iniciando guardado...");
@@ -584,7 +609,7 @@ export default function DashboardGeneral({
           );
           console.log(
             "[DEBUG-MARCAS] Lista:",
-            data.map((m: any) => m.cuenta),
+            data.map((m: Marca) => m.cuenta),
           );
           setMarcas(data);
         } else {
@@ -614,7 +639,7 @@ export default function DashboardGeneral({
       console.log(
         "[DEBUG-EFFECT] ✅ Condiciones cumplidas, ejecutando carga de desplazamiento",
       );
-      cargarDesplazamientoDesdeDB();
+      void cargarDesplazamientoDesdeDB();
     } else {
       console.log("[DEBUG-EFFECT] ⏸️ Esperando que se carguen las marcas");
     }
@@ -775,8 +800,8 @@ export default function DashboardGeneral({
         return (
           sum +
           partidas
-            .filter((p: any) => !p.esReembolso)
-            .reduce((s: number, p: any) => s + (p.monto || 0), 0)
+            .filter((p: Partida) => !p.esReembolso)
+            .reduce((s: number, p: Partida) => s + (p.monto || 0), 0)
         );
       }
       return sum;
@@ -824,8 +849,8 @@ export default function DashboardGeneral({
         return (
           sum +
           partidas
-            .filter((p: any) => p.esReembolso)
-            .reduce((s: number, p: any) => s + (p.monto || 0), 0)
+            .filter((p: Partida) => p.esReembolso)
+            .reduce((s: number, p: Partida) => s + (p.monto || 0), 0)
         );
       }
       return sum;
@@ -849,8 +874,8 @@ export default function DashboardGeneral({
       }
       if (partidas) {
         partidas
-          .filter((p: any) => !p.esReembolso)
-          .forEach((partida: any) => {
+          .filter((p: Partida) => !p.esReembolso)
+          .forEach((partida: Partida) => {
             const cat = partida.categoria;
             if (!categorias[cat]) {
               categorias[cat] = 0;
@@ -1434,13 +1459,14 @@ export default function DashboardGeneral({
                         let partidas = p.partidas;
                         if (!partidas && p.partidas_json) {
                           try {
-                            partidas = JSON.parse(p.partidas_json);
-                          } catch (e) {
+                            partidas = JSON.parse(p.partidas_json) as Partida[];
+                          } catch {
                             return false;
                           }
                         }
                         return (
-                          partidas && partidas.some((p: any) => p.esReembolso)
+                          partidas &&
+                          partidas.some((p: Partida) => p.esReembolso)
                         );
                       }).length
                     }{" "}
@@ -1478,7 +1504,9 @@ export default function DashboardGeneral({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatearMiles(value)}
+                        formatter={(value: number | undefined) =>
+                          formatearMiles(value ?? 0)
+                        }
                         contentStyle={{
                           backgroundColor: "transparent",
                           border: "none",
@@ -1680,7 +1708,7 @@ export default function DashboardGeneral({
       </div>
 
       {/* Sección Desplazamiento */}
-      <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
+      <div className="bg-linear-to-br from-slate-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
@@ -1740,8 +1768,8 @@ export default function DashboardGeneral({
                 !agenciaDesplazamiento
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : modoEdicionDesplazamiento
-                    ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
-                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
+                    ? "bg-linear-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
+                    : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
               }`}
             >
               {modoEdicionDesplazamiento ? "💾 Guardar Cambios" : "✏️ Editar"}
@@ -1751,7 +1779,7 @@ export default function DashboardGeneral({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Mayor Existencia */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-blue-900 flex items-center gap-2">
                 <span className="text-xl">📦</span> Mayor Existencia
@@ -1764,7 +1792,7 @@ export default function DashboardGeneral({
                       { unidad: "", porcentaje: "", oc: "" },
                     ])
                   }
-                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
                 >
                   + Agregar
                 </button>
@@ -1966,7 +1994,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Más de 90 días */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-amber-900 flex items-center gap-2">
                 <span className="text-xl">⏰</span> Más de 90 días
@@ -1979,7 +2007,7 @@ export default function DashboardGeneral({
                       { unidad: "", porcentaje: "", oc: "" },
                     ])
                   }
-                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
                 >
                   + Agregar
                 </button>
@@ -2173,7 +2201,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Demos */}
-          <div className="bg-gradient-to-br from-purple-50 to-violet-50 border-2 border-purple-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-purple-50 to-violet-50 border-2 border-purple-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-purple-900 flex items-center gap-2">
                 <span className="text-xl">🎮</span> Demos
@@ -2186,7 +2214,7 @@ export default function DashboardGeneral({
                       { unidad: "", porcentaje: "", oc: "" },
                     ])
                   }
-                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
                 >
                   + Agregar
                 </button>
@@ -2368,7 +2396,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Otros */}
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-emerald-900 flex items-center gap-2">
                 <span className="text-xl">📋</span> Otros
@@ -2381,7 +2409,7 @@ export default function DashboardGeneral({
                       { unidad: "", porcentaje: "", oc: "" },
                     ])
                   }
-                  className="text-xs bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
                 >
                   + Agregar
                 </button>
@@ -2670,7 +2698,7 @@ export default function DashboardGeneral({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Meta */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-blue-900">Meta</h3>
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
@@ -2719,7 +2747,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Google */}
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-red-900">Google</h3>
               <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
@@ -2771,7 +2799,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* TikTok */}
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
               <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
@@ -2827,7 +2855,7 @@ export default function DashboardGeneral({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Embajador 1 */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border-2 border-purple-200 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-6 border-2 border-purple-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-purple-900">
                 @mariana_fitness
@@ -2876,7 +2904,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Embajador 2 */}
-          <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-pink-200 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-pink-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-pink-900">@carlos_tech</h3>
               <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center">
@@ -2921,7 +2949,7 @@ export default function DashboardGeneral({
           </div>
 
           {/* Embajador 3 */}
-          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border-2 border-indigo-200 hover:shadow-lg transition-shadow">
+          <div className="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border-2 border-indigo-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-indigo-900">
                 @sofia_lifestyle
