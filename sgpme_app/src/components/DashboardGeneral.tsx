@@ -628,21 +628,11 @@ export default function DashboardGeneral({
 
   // Cargar datos de desplazamiento cuando cambie el mes, año o agencia
   useEffect(() => {
-    console.log("[DEBUG-EFFECT] useEffect de desplazamiento ejecutado");
-    console.log("[DEBUG-EFFECT] Condiciones:", {
-      "marcas.length > 0": marcas.length > 0,
-      agenciaDesplazamiento: agenciaDesplazamiento,
-      "marcas.length": marcas.length,
-    });
-
-    if (marcas.length > 0) {
-      console.log(
-        "[DEBUG-EFFECT] ✅ Condiciones cumplidas, ejecutando carga de desplazamiento",
-      );
-      void cargarDesplazamientoDesdeDB();
-    } else {
-      console.log("[DEBUG-EFFECT] ⏸️ Esperando que se carguen las marcas");
-    }
+    if (marcas.length === 0) return;
+    const cargar = async () => {
+      await cargarDesplazamientoDesdeDB();
+    };
+    void cargar();
   }, [
     mesDesplazamiento,
     añoSeleccionado,
