@@ -17,7 +17,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    const exito = await iniciarSesion(username, password);
+    const exito = await iniciarSesion(username.trim(), password.trim());
     if (exito) {
       router.push("/dashboard");
     } else {
@@ -50,6 +50,10 @@ export default function LoginPage() {
               placeholder="Ingresa tu correo"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="username"
+              inputMode="email"
               className="px-4 py-3 rounded-xl bg-white text-gray-800 placeholder-gray-400 border border-gray-300 focus:border-blue-400 outline-none transition shadow-sm"
               required
             />
@@ -64,6 +68,9 @@ export default function LoginPage() {
               placeholder="Ingresa tu contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="current-password"
               className="px-4 py-3 rounded-xl bg-white text-gray-800 placeholder-gray-400 border border-gray-300 focus:border-blue-400 outline-none transition shadow-sm"
               required
             />

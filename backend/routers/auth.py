@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from database import SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from models import Users, PasswordResetCodes
 from passlib.context import CryptContext
 from starlette import status
@@ -63,18 +64,20 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 def authenticate_user(username: str, password: str, db):
-    print(f"DEBUG authenticate_user: Buscando usuario con email {username}")
-    user = db.query(Users).filter(Users.email == username).first()
+    # Normalizar email: quitar espacios y convertir a minúsculas
+    username_clean = username.strip().lower()
+    print(f"DEBUG authenticate_user: Buscando usuario con email {username_clean}")
+    user = db.query(Users).filter(func.lower(Users.email) == username_clean).first()
     if not user:
-        print(f"DEBUG authenticate_user: Usuario con email {username} no encontrado")
+        print(f"DEBUG authenticate_user: Usuario con email {username_clean} no encontrado")
         return False
     print(f"DEBUG authenticate_user: Usuario encontrado: {user.email}")
-    verification = bcrypt_context.verify(password, user.hashed_password)
+    verification = bcrypt_context.verify(password.strip(), user.hashed_password)
     print(f"DEBUG authenticate_user: Verificación contraseña: {verification}")
     if not verification:
-        print(f"DEBUG authenticate_user: Contraseña incorrecta para {username}")
+        print(f"DEBUG authenticate_user: Contraseña incorrecta para {username_clean}")
         return False
-    print(f"DEBUG authenticate_user: Autenticación exitosa para {username}")
+    print(f"DEBUG authenticate_user: Autenticación exitosa para {username_clean}")
     return user
 
 
