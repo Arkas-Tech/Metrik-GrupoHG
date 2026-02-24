@@ -7,6 +7,8 @@ import {
   TrashIcon,
   ArrowPathIcon,
   XMarkIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import {
   useCategoriasAPI,
@@ -109,6 +111,14 @@ export default function ConfiguracionCategorias({
       ...formData,
       subcategorias: formData.subcategorias.filter((_, i) => i !== index),
     });
+  };
+
+  const moverSubcategoria = (index: number, direccion: "up" | "down") => {
+    const nuevas = [...formData.subcategorias];
+    const destino = direccion === "up" ? index - 1 : index + 1;
+    if (destino < 0 || destino >= nuevas.length) return;
+    [nuevas[index], nuevas[destino]] = [nuevas[destino], nuevas[index]];
+    setFormData({ ...formData, subcategorias: nuevas });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -317,7 +327,7 @@ export default function ConfiguracionCategorias({
                       onChange={(e) =>
                         setFormData({ ...formData, nombre: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                     />
                   </div>
@@ -336,7 +346,7 @@ export default function ConfiguracionCategorias({
                         })
                       }
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       required
                     />
                   </div>
@@ -357,7 +367,7 @@ export default function ConfiguracionCategorias({
                           }
                         }}
                         placeholder="Nueva subcategoría"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                       <button
                         type="button"
@@ -368,21 +378,40 @@ export default function ConfiguracionCategorias({
                       </button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-1">
                       {formData.subcategorias.map((sub, idx) => (
-                        <span
+                        <div
                           key={idx}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg"
                         >
-                          {sub}
+                          <span className="flex-1 text-sm text-gray-900">{sub}</span>
+                          <button
+                            type="button"
+                            onClick={() => moverSubcategoria(idx, "up")}
+                            disabled={idx === 0}
+                            className="p-0.5 text-gray-500 hover:text-gray-900 disabled:opacity-30"
+                            title="Mover arriba"
+                          >
+                            <ArrowUpIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moverSubcategoria(idx, "down")}
+                            disabled={idx === formData.subcategorias.length - 1}
+                            className="p-0.5 text-gray-500 hover:text-gray-900 disabled:opacity-30"
+                            title="Mover abajo"
+                          >
+                            <ArrowDownIcon className="w-4 h-4" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleEliminarSubcategoria(idx)}
-                            className="text-blue-700 hover:text-blue-900"
+                            className="p-0.5 text-red-500 hover:text-red-700"
+                            title="Eliminar"
                           >
                             <XMarkIcon className="w-4 h-4" />
                           </button>
-                        </span>
+                        </div>
                       ))}
                     </div>
                   </div>
