@@ -193,8 +193,13 @@ export default function DashboardGeneral({
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
-  const [presenciaIndices, setPresenciaIndices] = useState<Record<string, number>>({});
-  const [subcategoriasMediosTradicionales, setSubcategoriasMediosTradicionales] = useState<string[]>([]);
+  const [presenciaIndices, setPresenciaIndices] = useState<
+    Record<string, number>
+  >({});
+  const [
+    subcategoriasMediosTradicionales,
+    setSubcategoriasMediosTradicionales,
+  ] = useState<string[]>([]);
   const [marcaActual, setMarcaActual] = useState(agenciaSeleccionada);
   const [modalFormularioPresencia, setModalFormularioPresencia] =
     useState(false);
@@ -629,17 +634,27 @@ export default function DashboardGeneral({
   useEffect(() => {
     const cargarSubcategorias = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const response = await fetchConToken(`${API_URL}/categorias/`);
         if (response.ok) {
-          const data: { id: number; nombre: string; subcategorias: string[] }[] = await response.json();
+          const data: {
+            id: number;
+            nombre: string;
+            subcategorias: string[];
+          }[] = await response.json();
           const mediosTradicionales = data.find((c) => c.id === 3);
           if (mediosTradicionales) {
-            setSubcategoriasMediosTradicionales(mediosTradicionales.subcategorias);
+            setSubcategoriasMediosTradicionales(
+              mediosTradicionales.subcategorias,
+            );
           }
         }
       } catch (error) {
-        console.error("Error cargando subcategorías de medios tradicionales:", error);
+        console.error(
+          "Error cargando subcategorías de medios tradicionales:",
+          error,
+        );
       }
     };
     cargarSubcategorias();
@@ -2977,16 +2992,6 @@ export default function DashboardGeneral({
           <h2 className="text-xl font-bold text-gray-900">
             Presencia Tradicional
           </h2>
-          <button
-            onClick={() => {
-              setPresenciaEditando(null);
-              setModalFormularioPresencia(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Nueva Presencia
-          </button>
         </div>
 
         {subcategoriasMediosTradicionales.length === 0 ? (
@@ -2998,13 +3003,26 @@ export default function DashboardGeneral({
             const todas = presenciasPorSubcategoria(subcategoria);
             const idx = presenciaIndices[subcategoria] ?? 0;
             const visibles = todas.slice(idx, idx + 3);
-            const isLast = subIdx === subcategoriasMediosTradicionales.length - 1;
+            const isLast =
+              subIdx === subcategoriasMediosTradicionales.length - 1;
             return (
               <div key={subcategoria} className={isLast ? "" : "mb-8"}>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    {subcategoria}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {subcategoria}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setPresenciaEditando(null);
+                        setModalFormularioPresencia(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      title={`Nueva presencia: ${subcategoria}`}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-500">
                       {todas.length} registro{todas.length !== 1 ? "s" : ""}
