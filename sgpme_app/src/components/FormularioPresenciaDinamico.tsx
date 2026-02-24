@@ -137,7 +137,8 @@ export default function FormularioPresenciaDinamico({
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Proveedor state
-  const [proveedoresLocales, setProveedoresLocales] = useState<Proveedor[]>(proveedores);
+  const [proveedoresLocales, setProveedoresLocales] =
+    useState<Proveedor[]>(proveedores);
   const [mostrarModalProveedor, setMostrarModalProveedor] = useState(false);
   const [cargandoProveedor, setCargandoProveedor] = useState(false);
   const [proveedorSelId, setProveedorSelId] = useState<string>("");
@@ -368,23 +369,21 @@ export default function FormularioPresenciaDinamico({
       if (nombre !== subcategoria) break;
     }
 
-    // Find fecha_instalacion: first date field value
-    let fecha_instalacion = todayISO();
-    for (const s of secciones) {
-      if (!s.activo) continue;
-      for (const c of s.campos) {
-        if (c.tipo === "fecha" && fieldValues[c.id]) {
-          fecha_instalacion = String(fieldValues[c.id]);
-          break;
-        }
-      }
-      if (fecha_instalacion !== todayISO()) break;
-    }
+    // fecha_instalacion: preserve original when editing, use today when creating.
+    // Do NOT extract from dynamic date campos — those are for display only (datos_extra_json).
+    // Using a user-picked date here could place the presencia outside the current
+    // year/quarter filter and make it disappear from the list.
+    const fecha_instalacion =
+      presenciaInicial?.fecha_instalacion
+        ? String(presenciaInicial.fecha_instalacion)
+        : todayISO();
 
     // Resolve proveedor name
     let proveedorNombre = proveedorNombreManual;
     if (proveedorSelId) {
-      const prov = proveedoresLocales.find((p) => String(p.id) === proveedorSelId);
+      const prov = proveedoresLocales.find(
+        (p) => String(p.id) === proveedorSelId,
+      );
       if (prov) proveedorNombre = prov.nombre;
     }
 
@@ -801,98 +800,100 @@ export default function FormularioPresenciaDinamico({
   // ─── Full form ────────────────────────────────────────────────────────
   return (
     <>
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Marca selector (always shown) */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-        <label className="block text-xs font-bold text-blue-700 mb-1 uppercase">
-          Marca / Agencia
-        </label>
-        <select
-          value={marcaSeleccionada}
-          onChange={(e) => setMarcaSeleccionada(e.target.value)}
-          required
-          className="w-full px-3 py-2 border border-blue-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">— Seleccionar marca —</option>
-          {marcasPermitidas.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Dynamic sections */}
-      {activeSections.map((seccion) => (
-        <div
-          key={seccion.id}
-          className="bg-gray-50 border border-gray-200 rounded-xl p-5"
-        >
-          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4 pb-2 border-b border-gray-300">
-            {seccion.nombre}
-          </h3>
-
-          {seccion.esProveedorEspecial ? (
-            renderProveedorSection(seccion)
-          ) : seccion.campos.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">
-              Sin campos configurados en esta sección.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {seccion.campos.map((campo) => {
-                // Full-width for images, files
-                const fullWidth =
-                  campo.tipo === "imagenes" || campo.tipo === "archivos";
-                return (
-                  <div
-                    key={campo.id}
-                    className={fullWidth ? "md:col-span-2" : ""}
-                  >
-                    <label className="block text-xs font-bold text-gray-600 mb-1 uppercase">
-                      {campo.etiqueta}
-                      {campo.requerido && (
-                        <span className="text-red-500 ml-0.5">*</span>
-                      )}
-                    </label>
-                    {renderField(campo)}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Marca selector (always shown) */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <label className="block text-xs font-bold text-blue-700 mb-1 uppercase">
+            Marca / Agencia
+          </label>
+          <select
+            value={marcaSeleccionada}
+            onChange={(e) => setMarcaSeleccionada(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-blue-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">— Seleccionar marca —</option>
+            {marcasPermitidas.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
         </div>
-      ))}
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={loading || !marcaSeleccionada}
-          className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {loading
-            ? "Guardando…"
-            : presenciaInicial
-              ? "Actualizar"
-              : "Crear presencia"}
-        </button>
-      </div>
-    </form>
+        {/* Dynamic sections */}
+        {activeSections.map((seccion) => (
+          <div
+            key={seccion.id}
+            className="bg-gray-50 border border-gray-200 rounded-xl p-5"
+          >
+            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4 pb-2 border-b border-gray-300">
+              {seccion.nombre}
+            </h3>
+
+            {seccion.esProveedorEspecial ? (
+              renderProveedorSection(seccion)
+            ) : seccion.campos.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">
+                Sin campos configurados en esta sección.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {seccion.campos.map((campo) => {
+                  // Full-width for images, files
+                  const fullWidth =
+                    campo.tipo === "imagenes" || campo.tipo === "archivos";
+                  return (
+                    <div
+                      key={campo.id}
+                      className={fullWidth ? "md:col-span-2" : ""}
+                    >
+                      <label className="block text-xs font-bold text-gray-600 mb-1 uppercase">
+                        {campo.etiqueta}
+                        {campo.requerido && (
+                          <span className="text-red-500 ml-0.5">*</span>
+                        )}
+                      </label>
+                      {renderField(campo)}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading || !marcaSeleccionada}
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {loading
+              ? "Guardando…"
+              : presenciaInicial
+                ? "Actualizar"
+                : "Crear presencia"}
+          </button>
+        </div>
+      </form>
 
       {/* Modal: nuevo proveedor */}
       {mostrarModalProveedor && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <h3 className="text-xl font-semibold text-gray-900">Agregar Nuevo Proveedor</h3>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Agregar Nuevo Proveedor
+              </h3>
               <button
                 type="button"
                 onClick={() => setMostrarModalProveedor(false)}
