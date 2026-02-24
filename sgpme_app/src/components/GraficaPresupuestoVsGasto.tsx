@@ -121,21 +121,15 @@ export default function GraficaPresupuestoVsGasto({
           console.log(`📋 Datos de presupuesto recibidos:`, presupuestoData);
 
           if (tipoCalendario === "trimestral" && trimestre) {
-            // Para trimestral, sumar los 3 meses del trimestre
+            // Para trimestral, sumar todos los registros de los 3 meses del trimestre
             const mesesTrimestre = [
               (trimestre - 1) * 3 + 1,
               (trimestre - 1) * 3 + 2,
               (trimestre - 1) * 3 + 3,
             ];
-
-            for (const mesNum of mesesTrimestre) {
-              const mesPresupuesto = presupuestoData.find(
-                (p: { mes: number; monto: number }) => p.mes === mesNum,
-              );
-              if (mesPresupuesto) {
-                presupuestoTotal += mesPresupuesto.monto || 0;
-              }
-            }
+            presupuestoTotal = presupuestoData
+              .filter((p: { mes: number }) => mesesTrimestre.includes(p.mes))
+              .reduce((sum: number, p: { monto: number }) => sum + (p.monto || 0), 0);
           } else if (tipoCalendario === "anual") {
             // Para anual, sumar todos los meses del año
             presupuestoTotal = presupuestoData.reduce(
@@ -143,11 +137,13 @@ export default function GraficaPresupuestoVsGasto({
               0,
             );
           } else {
-            // Para mensual
-            presupuestoTotal =
-              Array.isArray(presupuestoData) && presupuestoData.length > 0
-                ? presupuestoData[0].monto || 0
-                : 0;
+            // Para mensual: sumar todos los registros del mes (una entrada por agencia cuando es "Todas")
+            presupuestoTotal = Array.isArray(presupuestoData)
+              ? presupuestoData.reduce(
+                  (sum: number, p: { monto: number }) => sum + (p.monto || 0),
+                  0,
+                )
+              : 0;
           }
         }
 
