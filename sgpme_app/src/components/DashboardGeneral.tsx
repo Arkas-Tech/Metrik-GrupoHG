@@ -178,8 +178,13 @@ export default function DashboardGeneral({
   const { filtraPorMarca, marcasPermitidas } = useMarcaGlobal();
   const { facturas } = useFacturas();
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
-  const { presencias, cargarPresencias, crearPresencia, actualizarPresencia, eliminarPresencia } =
-    usePresencias();
+  const {
+    presencias,
+    cargarPresencias,
+    crearPresencia,
+    actualizarPresencia,
+    eliminarPresencia,
+  } = usePresencias();
   const { proveedores } = useProveedores();
   const { eventos } = useEventos();
 
@@ -3120,7 +3125,12 @@ export default function DashboardGeneral({
                                 </button>
                                 <button
                                   onClick={async () => {
-                                    if (!window.confirm(`¿Eliminar "${presencia.nombre}"? Esta acción no se puede deshacer.`)) return;
+                                    if (
+                                      !window.confirm(
+                                        `¿Eliminar "${presencia.nombre}"? Esta acción no se puede deshacer.`,
+                                      )
+                                    )
+                                      return;
                                     await eliminarPresencia(presencia.id);
                                   }}
                                   className="text-red-500 hover:text-red-700 transition-colors"
@@ -3244,8 +3254,7 @@ export default function DashboardGeneral({
                   setPresenciaEditando(null);
                 }}
                 onSubmit={async (presencia) => {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const payload = presencia as any;
+                  const payload = presencia;
                   if (presenciaEditando) {
                     const success = await actualizarPresencia(
                       presenciaEditando.id,

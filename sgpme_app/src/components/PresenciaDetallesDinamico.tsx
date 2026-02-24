@@ -120,6 +120,7 @@ interface Props {
 export default function PresenciaDetallesDinamico({ presencia }: Props) {
   const subcategoria = presencia.tipo || "";
   const [template, setTemplate] = useState<FormTemplateData | null>(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [lightbox, setLightbox] = useState<{
     url: string;
     nombre: string;
@@ -142,8 +143,12 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
 
   // Load template
   useEffect(() => {
-    if (!subcategoria) return;
+    if (!subcategoria) {
+      setLoadingTemplate(false);
+      return;
+    }
     const cargar = async () => {
+      setLoadingTemplate(true);
       try {
         const res = await fetch(
           `${API_BASE}/form-templates/${encodeURIComponent(subcategoria)}/`,
@@ -156,6 +161,8 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
         }
       } catch {
         /* use null fallback */
+      } finally {
+        setLoadingTemplate(false);
       }
     };
     cargar();
@@ -304,6 +311,24 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const activeSections = template?.secciones?.filter((s) => s.activo) ?? [];
+
+  // Show skeleton while template is loading
+  if (loadingTemplate) {
+    return (
+      <div className="space-y-5 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="h-10 bg-gray-100 border-b border-gray-200" />
+            <div className="p-5 space-y-3">
+              <div className="h-4 bg-gray-100 rounded w-1/3" />
+              <div className="h-4 bg-gray-100 rounded w-2/3" />
+              <div className="h-4 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>

@@ -78,120 +78,46 @@ export const usePresencias = () => {
     }
   }, [marcaSeleccionada, marcasPermitidas]);
 
-  const crearPresencia = async (presenciaData: {
-    tipo: string;
-    nombre: string;
-    agencia: string;
-    marca: string;
-    ciudad: string;
-    campana: string;
-    ubicacion: string;
-    contenido: string;
-    notas: string;
-    fecha_instalacion: string;
-    duracion: string;
-    cambio_lona: string;
-    vista: string;
-    iluminacion: string;
-    dimensiones: string;
-    proveedor: string;
-    codigo_proveedor: string;
-    costo_mensual: number;
-    duracion_contrato: string;
-    inicio_contrato: string;
-    termino_contrato: string;
-    impresion: string;
-    costo_impresion: number;
-    instalacion: string;
-    observaciones: string;
-    imagenes: Array<{
-      id: string;
-      nombre: string;
-      url: string;
-      descripcion: string;
-    }>;
-  }) => {
+  const crearPresencia = async (presenciaData: Record<string, unknown>) => {
     try {
-      const imagenesUrls =
-        presenciaData.imagenes?.map((img: { url: string }) => img.url) || [];
-
-      const formatDate = (
-        dateStr: string | null | undefined,
-      ): string | null => {
+      const formatDate = (dateStr: unknown): string | null => {
         if (!dateStr) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return null;
-        return date.toISOString().split("T")[0];
+        const s = String(dateStr);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
       };
-
       const parseNumber = (value: unknown): number | null => {
         if (value === null || value === undefined || value === "") return null;
-        const num = Number(value);
-        return isNaN(num) ? null : num;
+        const n = Number(value);
+        return isNaN(n) ? null : n;
       };
 
       const fechaInstalacion = formatDate(presenciaData.fecha_instalacion);
-      if (!fechaInstalacion) {
-        throw new Error("La fecha de instalación es requerida");
-      }
+      if (!fechaInstalacion) throw new Error("La fecha de instalación es requerida");
 
-      const response = await fetchConToken(
-        `${API_URL}/presencia-tradicional/`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            tipo: presenciaData.tipo,
-            nombre: presenciaData.nombre,
-            agencia: presenciaData.agencia || null,
-            marca: presenciaData.marca,
-            ciudad: presenciaData.ciudad || null,
-            campana: presenciaData.campana || null,
-            ubicacion: presenciaData.ubicacion || null,
-            contenido: presenciaData.contenido || null,
-            notas: presenciaData.notas || null,
-            fecha_instalacion: fechaInstalacion,
-            duracion: presenciaData.duracion || null,
-            cambio_lona: formatDate(presenciaData.cambio_lona),
-            vista: presenciaData.vista || null,
-            iluminacion: presenciaData.iluminacion || null,
-            dimensiones: presenciaData.dimensiones || null,
-            proveedor: presenciaData.proveedor || null,
-            codigo_proveedor: presenciaData.codigo_proveedor || null,
-            costo_mensual: parseNumber(presenciaData.costo_mensual),
-            duracion_contrato: presenciaData.duracion_contrato || null,
-            inicio_contrato: formatDate(presenciaData.inicio_contrato),
-            termino_contrato: formatDate(presenciaData.termino_contrato),
-            impresion: presenciaData.impresion || null,
-            costo_impresion: parseNumber(presenciaData.costo_impresion),
-            instalacion: presenciaData.instalacion || null,
-            imagenes_json: JSON.stringify(imagenesUrls),
-            observaciones: presenciaData.observaciones || null,
-          }),
-        },
-      );
+      const response = await fetchConToken(`${API_URL}/presencia-tradicional/`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...presenciaData,
+          fecha_instalacion: fechaInstalacion,
+          cambio_lona: formatDate(presenciaData.cambio_lona),
+          inicio_contrato: formatDate(presenciaData.inicio_contrato),
+          termino_contrato: formatDate(presenciaData.termino_contrato),
+          costo_mensual: parseNumber(presenciaData.costo_mensual),
+          costo_impresion: parseNumber(presenciaData.costo_impresion),
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = `Error al crear presencia: ${response.status}`;
-
         if (errorData.detail) {
-          if (typeof errorData.detail === "string") {
-            errorMessage = errorData.detail;
-          } else if (Array.isArray(errorData.detail)) {
-            errorMessage = errorData.detail
-              .map(
-                (err: { loc?: string[]; msg: string }) =>
-                  `${err.loc?.join(".") || "campo"}: ${err.msg}`,
-              )
-              .join(", ");
-          } else if (typeof errorData.detail === "object") {
-            errorMessage = JSON.stringify(errorData.detail);
-          }
-        } else if (errorData.message && typeof errorData.message === "string") {
-          errorMessage = errorData.message;
-        }
-
+          if (typeof errorData.detail === "string") errorMessage = errorData.detail;
+          else if (Array.isArray(errorData.detail))
+            errorMessage = errorData.detail.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join(".") || "campo"}: ${e.msg}`).join(", ");
+          else errorMessage = JSON.stringify(errorData.detail);
+        } else if (errorData.message) errorMessage = String(errorData.message);
         throw new Error(errorMessage);
       }
 
@@ -204,123 +130,46 @@ export const usePresencias = () => {
     }
   };
 
-  const actualizarPresencia = async (
-    id: number,
-    presenciaData: {
-      tipo: string;
-      nombre: string;
-      agencia: string;
-      marca: string;
-      ciudad: string;
-      campana: string;
-      ubicacion: string;
-      contenido: string;
-      notas: string;
-      fecha_instalacion: string;
-      duracion: string;
-      cambio_lona: string;
-      vista: string;
-      iluminacion: string;
-      dimensiones: string;
-      proveedor: string;
-      codigo_proveedor: string;
-      costo_mensual: number;
-      duracion_contrato: string;
-      inicio_contrato: string;
-      termino_contrato: string;
-      impresion: string;
-      costo_impresion: number;
-      instalacion: string;
-      observaciones: string;
-      imagenes: Array<{
-        id: string;
-        nombre: string;
-        url: string;
-        descripcion: string;
-      }>;
-    },
-  ) => {
+  const actualizarPresencia = async (id: number, presenciaData: Record<string, unknown>) => {
     try {
-      const imagenesUrls =
-        presenciaData.imagenes?.map((img: { url: string }) => img.url) || [];
-
-      const formatDate = (
-        dateStr: string | null | undefined,
-      ): string | null => {
+      const formatDate = (dateStr: unknown): string | null => {
         if (!dateStr) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return null;
-        return date.toISOString().split("T")[0];
+        const s = String(dateStr);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
       };
-
       const parseNumber = (value: unknown): number | null => {
         if (value === null || value === undefined || value === "") return null;
-        const num = Number(value);
-        return isNaN(num) ? null : num;
+        const n = Number(value);
+        return isNaN(n) ? null : n;
       };
 
       const fechaInstalacion = formatDate(presenciaData.fecha_instalacion);
-      if (!fechaInstalacion) {
-        throw new Error("La fecha de instalación es requerida");
-      }
+      if (!fechaInstalacion) throw new Error("La fecha de instalación es requerida");
 
-      const response = await fetchConToken(
-        `${API_URL}/presencia-tradicional/${id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            tipo: presenciaData.tipo,
-            nombre: presenciaData.nombre,
-            agencia: presenciaData.agencia || null,
-            marca: presenciaData.marca,
-            ciudad: presenciaData.ciudad || null,
-            campana: presenciaData.campana || null,
-            ubicacion: presenciaData.ubicacion || null,
-            contenido: presenciaData.contenido || null,
-            notas: presenciaData.notas || null,
-            fecha_instalacion: fechaInstalacion,
-            duracion: presenciaData.duracion || null,
-            cambio_lona: formatDate(presenciaData.cambio_lona),
-            vista: presenciaData.vista || null,
-            iluminacion: presenciaData.iluminacion || null,
-            dimensiones: presenciaData.dimensiones || null,
-            proveedor: presenciaData.proveedor || null,
-            codigo_proveedor: presenciaData.codigo_proveedor || null,
-            costo_mensual: parseNumber(presenciaData.costo_mensual),
-            duracion_contrato: presenciaData.duracion_contrato || null,
-            inicio_contrato: formatDate(presenciaData.inicio_contrato),
-            termino_contrato: formatDate(presenciaData.termino_contrato),
-            impresion: presenciaData.impresion || null,
-            costo_impresion: parseNumber(presenciaData.costo_impresion),
-            instalacion: presenciaData.instalacion || null,
-            imagenes_json: JSON.stringify(imagenesUrls),
-            observaciones: presenciaData.observaciones || null,
-          }),
-        },
-      );
+      const response = await fetchConToken(`${API_URL}/presencia-tradicional/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...presenciaData,
+          fecha_instalacion: fechaInstalacion,
+          cambio_lona: formatDate(presenciaData.cambio_lona),
+          inicio_contrato: formatDate(presenciaData.inicio_contrato),
+          termino_contrato: formatDate(presenciaData.termino_contrato),
+          costo_mensual: parseNumber(presenciaData.costo_mensual),
+          costo_impresion: parseNumber(presenciaData.costo_impresion),
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = `Error al actualizar presencia: ${response.status}`;
-
         if (errorData.detail) {
-          if (typeof errorData.detail === "string") {
-            errorMessage = errorData.detail;
-          } else if (Array.isArray(errorData.detail)) {
-            errorMessage = errorData.detail
-              .map(
-                (err: { loc?: string[]; msg: string }) =>
-                  `${err.loc?.join(".") || "campo"}: ${err.msg}`,
-              )
-              .join(", ");
-          } else if (typeof errorData.detail === "object") {
-            errorMessage = JSON.stringify(errorData.detail);
-          }
-        } else if (errorData.message && typeof errorData.message === "string") {
-          errorMessage = errorData.message;
-        }
-
+          if (typeof errorData.detail === "string") errorMessage = errorData.detail;
+          else if (Array.isArray(errorData.detail))
+            errorMessage = errorData.detail.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join(".") || "campo"}: ${e.msg}`).join(", ");
+          else errorMessage = JSON.stringify(errorData.detail);
+        } else if (errorData.message) errorMessage = String(errorData.message);
         throw new Error(errorMessage);
       }
 
