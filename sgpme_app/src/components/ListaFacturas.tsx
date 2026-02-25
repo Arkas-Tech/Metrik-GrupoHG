@@ -738,24 +738,26 @@ export default function ListaFacturas({
                                           )}
                                           {cotizacion.archivo && (
                                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                                              <span className="text-xs text-gray-600">
-                                                Cotización PDF
+                                              <span className="text-xs text-gray-600 truncate max-w-[120px]">
+                                                {cotizacion.archivo.nombre}
                                               </span>
                                               <div className="flex items-center space-x-2">
-                                                <button
-                                                  onClick={() =>
-                                                    verPDF(
-                                                      factura.id,
-                                                      cotizacion.id,
-                                                      cotizacion.archivo!
-                                                        .nombre,
-                                                      "cotizacion",
-                                                    )
-                                                  }
-                                                  className="text-purple-600 hover:text-purple-900 text-xs font-medium"
-                                                >
-                                                  Ver
-                                                </button>
+                                                {cotizacion.archivo.tipo === "PDF" && (
+                                                  <button
+                                                    onClick={() =>
+                                                      verPDF(
+                                                        factura.id,
+                                                        cotizacion.id,
+                                                        cotizacion.archivo!
+                                                          .nombre,
+                                                        "cotizacion",
+                                                      )
+                                                    }
+                                                    className="text-purple-600 hover:text-purple-900 text-xs font-medium"
+                                                  >
+                                                    Ver
+                                                  </button>
+                                                )}
                                                 <button
                                                   onClick={() => {
                                                     if (onDescargarCotizacion) {

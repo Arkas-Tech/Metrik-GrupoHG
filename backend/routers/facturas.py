@@ -606,19 +606,16 @@ async def subir_cotizaciones_factura(
     if not factura:
         raise HTTPException(status_code=404, detail='Factura no encontrada')
     
-    # Validar tipo de archivo (solo PDF para cotizaciones)
-    if not archivo.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail='Las cotizaciones deben ser archivos PDF')
-    
     # Leer contenido del archivo
     contenido = await archivo.read()
+    nombre = archivo.filename or 'cotizacion'
     
     # Crear registro en base de datos
     cotizacion_modelo = FacturaCotizaciones(
         factura_id=factura_id,
         proveedor=proveedor,
         monto=monto,
-        nombre_archivo=archivo.filename,
+        nombre_archivo=nombre,
         contenido_archivo=contenido,
         tamaño_archivo=len(contenido),
         observaciones=observaciones,
@@ -727,9 +724,11 @@ async def descargar_cotizacion_factura(
         raise HTTPException(status_code=404, detail='Cotización no encontrada')
     
     # Preparar el archivo para descarga
+    mime_type, _ = mimetypes.guess_type(cotizacion.nombre_archivo or 'archivo')
+    media_type = mime_type or "application/octet-stream"
     return StreamingResponse(
         io.BytesIO(cotizacion.contenido_archivo),
-        media_type="application/pdf",
+        media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={cotizacion.nombre_archivo}"}
     )
 

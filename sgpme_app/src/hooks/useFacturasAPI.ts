@@ -118,15 +118,17 @@ export function useFacturasAPI() {
             id: cotizacion.id.toString(),
             proveedor: cotizacion.proveedor,
             monto: cotizacion.monto,
-            archivo: {
-              id: cotizacion.id.toString(),
-              nombre: cotizacion.nombre_archivo || "cotizacion.pdf",
-              tipo: "PDF",
-              url: `${API_URL}/facturas/${fact.id}/cotizaciones/${cotizacion.id}/descargar`,
-              fechaSubida:
-                cotizacion.fecha_subida?.split(" ")[0] ||
-                new Date().toISOString().split("T")[0],
-            },
+            archivo: cotizacion.nombre_archivo
+              ? {
+                  id: cotizacion.id.toString(),
+                  nombre: cotizacion.nombre_archivo,
+                  tipo: cotizacion.nombre_archivo.split('.').pop()?.toUpperCase() || 'ARCHIVO',
+                  url: `${API_URL}/facturas/${fact.id}/cotizaciones/${cotizacion.id}/descargar`,
+                  fechaSubida:
+                    cotizacion.fecha_subida?.split(" ")[0] ||
+                    new Date().toISOString().split("T")[0],
+                }
+              : undefined,
             observaciones: cotizacion.observaciones,
           }),
         ),
@@ -680,7 +682,9 @@ export function useFacturasAPI() {
 
         if (!response.ok) {
           const errorData = await response.text();
-          throw new Error(`Error al subir archivos de productos: ${response.status} - ${errorData}`);
+          throw new Error(
+            `Error al subir archivos de productos: ${response.status} - ${errorData}`,
+          );
         }
 
         await cargarFacturas();
