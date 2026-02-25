@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { MARCAS } from "@/types";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronRightIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface PermisosNavegacion {
   dashboard?: boolean;
@@ -27,6 +27,20 @@ interface Usuario {
   permisos?: PermisosNavegacion;
   permisos_agencias?: PermisosAgencias;
 }
+
+interface FormGestion {
+  full_name: string;
+  username: string;
+  email: string;
+  role: string;
+  password: string;
+}
+
+const ROLES = [
+  { value: "administrador", label: "Administrador" },
+  { value: "coordinador", label: "Coordinador" },
+  { value: "auditor", label: "Auditor" },
+];
 
 const PERMISOS_NAVEGACION = [
   { id: "dashboard", label: "Dashboard", emoji: "📊" },
@@ -71,7 +85,9 @@ export default function ConfiguracionPermisos() {
   const { showToast, ToastContainer } = useToast();
   const authContext = useAuth();
   const currentUserId = authContext.usuario?.id;
-  const refreshUser = (authContext as unknown as { refreshUser?: () => Promise<void> }).refreshUser;
+  const refreshUser = (
+    authContext as unknown as { refreshUser?: () => Promise<void> }
+  ).refreshUser;
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] =
     useState<Usuario | null>(null);
@@ -90,6 +106,20 @@ export default function ConfiguracionPermisos() {
   );
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+
+  // Modal gestionar usuario
+  const [modalGestion, setModalGestion] = useState(false);
+  const [formGestion, setFormGestion] = useState<FormGestion>({
+    full_name: "",
+    username: "",
+    email: "",
+    role: "",
+    password: "",
+  });
+  const [guardandoGestion, setGuardandoGestion] = useState(false);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [confirmandoGuardar, setConfirmandoGuardar] = useState(false);
 
   const getAuthHeader = (): HeadersInit => {
     const token = localStorage.getItem("token");
@@ -139,6 +169,98 @@ export default function ConfiguracionPermisos() {
       );
     }
   }, [usuarioSeleccionado]);
+
+  const abrirModalGestion = () => {
+    if (!usuarioSeleccionado) return;
+    setFormGestion({
+      full_name: usuarioSeleccionado.full_name,
+      username: usuarioSeleccionado.username,
+      email: usuarioSeleccionado.email,
+      role: usuarioSeleccionado.role,
+      password: "",
+    });
+    setConfirmandoEliminar(false);
+    setConfirmandoGuardar(false);
+    setModalGestion(true);
+  };
+
+  const handleGuardarGestion = async () => {
+    if (!usuarioSeleccionado) return;
+    setGuardandoGestion(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/users/${usuarioSeleccionado.id}`,
+        {
+          method: "PUT",
+          headers: getAuthHeader(),
+          body: JSON.stringify({
+            username: formGestion.username,
+            email: formGestion.email,
+            full_name: formGestion.full_name,
+            role: formGestion.role,
+            password: formGestion.password || undefined,
+          }),
+        },
+      );
+      if (response.ok) {
+        const updated = await response.json();
+        const updatedUser: Usuario = {
+          ...usuarioSeleccionado,
+          full_name: updated.full_name,
+          username: updated.username,
+          email: updated.email,
+          role: updated.role,
+        };
+        setUsuarios((prev) =>
+          ordenarUsuarios(
+            prev.map((u) => (u.id === usuarioSeleccionado.id ? updatedUser : u)),
+          ),
+        );
+        setUsuarioSeleccionado(updatedUser);
+        if (currentUserId && currentUserId === String(usuarioSeleccionado.id)) {
+          refreshUser?.();
+        }
+        showToast("Usuario actualizado correctamente", "success");
+        setModalGestion(false);
+        setConfirmandoGuardar(false);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        showToast(err.detail || "Error al actualizar usuario", "error");
+        setConfirmandoGuardar(false);
+      }
+    } catch {
+      showToast("Error al actualizar usuario", "error");
+      setConfirmandoGuardar(false);
+    } finally {
+      setGuardandoGestion(false);
+    }
+  };
+
+  const handleEliminarUsuario = async () => {
+    if (!usuarioSeleccionado) return;
+    setEliminando(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/users/${usuarioSeleccionado.id}`,
+        { method: "DELETE", headers: getAuthHeader() },
+      );
+      if (response.ok) {
+        setUsuarios((prev) => prev.filter((u) => u.id !== usuarioSeleccionado.id));
+        setUsuarioSeleccionado(null);
+        showToast("Usuario eliminado correctamente", "success");
+        setModalGestion(false);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        showToast(err.detail || "Error al eliminar usuario", "error");
+        setConfirmandoEliminar(false);
+      }
+    } catch {
+      showToast("Error al eliminar usuario", "error");
+      setConfirmandoEliminar(false);
+    } finally {
+      setEliminando(false);
+    }
+  };
 
   const handleToggleNavegacion = (permisoId: string) => {
     setPermisosNavegacion((prev) => ({
@@ -290,13 +412,21 @@ export default function ConfiguracionPermisos() {
         <div className="flex-1 overflow-y-auto">
           {usuarioSeleccionado ? (
             <div className="p-6">
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900">
-                  {usuarioSeleccionado.full_name}
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Configura los permisos de acceso del usuario
-                </p>
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900">
+                    {usuarioSeleccionado.full_name}
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Configura los permisos de acceso del usuario
+                  </p>
+                </div>
+                <button
+                  onClick={abrirModalGestion}
+                  className="ml-4 shrink-0 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-900 transition-colors"
+                >
+                  ⚙️ Gestionar
+                </button>
               </div>
 
               {/* Selector de secciones de permisos */}
@@ -501,6 +631,173 @@ export default function ConfiguracionPermisos() {
           )}
         </div>
       </div>
+
+      {/* Modal Gestionar Usuario */}
+      {modalGestion && usuarioSeleccionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Gestionar Usuario
+              </h3>
+              <button
+                onClick={() => {
+                  setModalGestion(false);
+                  setConfirmandoEliminar(false);
+                  setConfirmandoGuardar(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nombre completo
+                </label>
+                <input
+                  type="text"
+                  value={formGestion.full_name}
+                  onChange={(e) =>
+                    setFormGestion((p) => ({ ...p, full_name: e.target.value }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Usuario
+                </label>
+                <input
+                  type="text"
+                  value={formGestion.username}
+                  onChange={(e) =>
+                    setFormGestion((p) => ({ ...p, username: e.target.value }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Correo
+                </label>
+                <input
+                  type="email"
+                  value={formGestion.email}
+                  onChange={(e) =>
+                    setFormGestion((p) => ({ ...p, email: e.target.value }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Rol
+                </label>
+                <select
+                  value={formGestion.role}
+                  onChange={(e) =>
+                    setFormGestion((p) => ({ ...p, role: e.target.value }))
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nueva contraseña{" "}
+                  <span className="text-gray-400 font-normal">
+                    (dejar vacío para no cambiar)
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  value={formGestion.password}
+                  onChange={(e) =>
+                    setFormGestion((p) => ({ ...p, password: e.target.value }))
+                  }
+                  placeholder="••••••••"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 space-y-3">
+              {/* Confirmación guardar */}
+              {confirmandoGuardar ? (
+                <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                  <span className="text-sm text-blue-800 font-medium">
+                    ¿Confirmar cambios?
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmandoGuardar(false)}
+                      className="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleGuardarGestion}
+                      disabled={guardandoGestion}
+                      className="px-3 py-1.5 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {guardandoGestion ? "Guardando..." : "Confirmar"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmandoGuardar(true)}
+                  className="w-full px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Guardar cambios
+                </button>
+              )}
+
+              {/* Confirmación eliminar */}
+              {confirmandoEliminar ? (
+                <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                  <span className="text-sm text-red-800 font-medium">
+                    ¿Eliminar a {usuarioSeleccionado.full_name}?
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmandoEliminar(false)}
+                      className="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleEliminarUsuario}
+                      disabled={eliminando}
+                      className="px-3 py-1.5 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {eliminando ? "Eliminando..." : "Eliminar"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmandoEliminar(true)}
+                  className="w-full px-4 py-2 bg-white text-red-600 border border-red-300 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  🗑️ Eliminar usuario
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
