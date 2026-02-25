@@ -202,9 +202,10 @@ export interface Proveedor {
 export interface Archivo {
   id: string;
   nombre: string;
-  tipo: "PDF" | "XML" | "Comprobante";
+  tipo: string;
   url: string;
   fechaSubida: string;
+  seccion?: string;
 }
 
 export interface Cotizacion {

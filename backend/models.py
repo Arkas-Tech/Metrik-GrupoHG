@@ -89,11 +89,12 @@ class FacturaArchivos(Base):
     id = Column(Integer, primary_key=True, index=True)
     factura_id = Column(Integer, ForeignKey('facturas.id'))
     nombre_archivo = Column(String)
-    tipo_archivo = Column(String)  # 'PDF', 'XML'
+    tipo_archivo = Column(String)  # 'PDF', 'XML', etc.
     contenido_archivo = Column(LargeBinary)  # Archivo en base64
     tamaño_archivo = Column(Integer)  # Tamaño en bytes
     fecha_subida = Column(DateTime, server_default=func.now())
     subido_por = Column(String)
+    seccion = Column(String, nullable=True)  # 'general' | 'productos'
 
 
 class FacturaCotizaciones(Base):

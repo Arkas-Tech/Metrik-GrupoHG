@@ -46,7 +46,7 @@ export default function FormularioFactura({
     cargarProveedores,
   } = useProveedoresAPI();
 
-  const { subirArchivos, subirCotizacion } = useFacturasAPI();
+  const { subirArchivos, subirCotizacion, subirArchivosProductos } = useFacturasAPI();
 
   const [folio, setFolio] = useState(facturaInicial?.folio || "");
   const [proveedor, setProveedor] = useState(facturaInicial?.proveedor || "");
@@ -127,6 +127,7 @@ export default function FormularioFactura({
   const [cargandoCampanyas, setCargandoCampanyas] = useState(false);
 
   const [archivos, setArchivos] = useState<File[]>([]);
+  const [archivosProductos, setArchivosProductos] = useState<File[]>([]);
   const [archivosCotizaciones, setArchivosCotizaciones] = useState<File[]>([]);
   const [archivosExistentes, setArchivosExistentes] = useState(
     facturaInicial?.archivos || [],
@@ -628,7 +629,7 @@ export default function FormularioFactura({
       console.log("✅ onSubmit completado, facturaId:", facturaId);
 
       if (
-        (archivos.length > 0 || archivosCotizaciones.length > 0) &&
+        (archivos.length > 0 || archivosCotizaciones.length > 0 || archivosProductos.length > 0) &&
         facturaId
       ) {
         console.log("📤 Subiendo archivos con ID de factura:", facturaId);
@@ -659,6 +660,11 @@ export default function FormularioFactura({
               console.error("❌ Error subiendo cotización:", archivo.name);
             }
           }
+
+          if (archivosProductos.length > 0) {
+            console.log(`📤 Subiendo ${archivosProductos.length} archivo(s) de productos...`);
+            await subirArchivosProductos(facturaId, archivosProductos);
+          }
         } catch (error) {
           console.error("❌ Error subiendo archivos:", error);
         }
@@ -684,6 +690,7 @@ export default function FormularioFactura({
         setEventoId("");
         setCampanyaId("");
         setArchivos([]);
+        setArchivosProductos([]);
         setArchivosCotizaciones([]);
         setArchivosExistentes([]);
         setCotizaciones([]);
@@ -1267,6 +1274,54 @@ export default function FormularioFactura({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             disabled={enviando}
           />
+          {/* Archivos adjuntos de productos */}
+          <div className="mt-2">
+            <label className="inline-flex items-center gap-1.5 cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 5.25 5.25 0 0 1 1.324 10.136" />
+              </svg>
+              Adjuntar archivo
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                disabled={enviando}
+                onChange={(e) => {
+                  const nuevos = Array.from(e.target.files || []);
+                  setArchivosProductos((prev) => [...prev, ...nuevos]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {/* Archivos ya guardados en la factura */}
+            {facturaInicial?.archivos
+              .filter((a) => a.seccion === "productos")
+              .map((a) => (
+                <div key={a.id} className="flex items-center gap-2 mt-1 text-xs text-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z" />
+                  </svg>
+                  <span className="truncate">{a.nombre}</span>
+                  <span className="text-gray-400">(guardado)</span>
+                </div>
+              ))}
+            {/* Nuevos archivos aún no subidos */}
+            {archivosProductos.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 mt-1 text-xs text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z" />
+                </svg>
+                <span className="truncate">{f.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setArchivosProductos((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="text-red-400 hover:text-red-600 ml-auto shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>

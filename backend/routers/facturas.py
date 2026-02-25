@@ -11,6 +11,7 @@ from .auth import get_current_user
 from datetime import date
 import base64
 import io
+import mimetypes
 
 def can_access_facturas(user_role: str) -> bool:
     """Determina si el usuario puede acceder a facturas según su rol"""
@@ -89,6 +90,7 @@ class ArchivoResponse(BaseModel):
     tipo_archivo: str
     tamaño_archivo: int
     fecha_subida: str
+    seccion: Optional[str] = None
 
 class CotizacionResponse(BaseModel):
     id: int
@@ -260,7 +262,8 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
                 nombre_archivo=archivo.nombre_archivo,
                 tipo_archivo=archivo.tipo_archivo,
                 tamaño_archivo=archivo.tamaño_archivo,
-                fecha_subida=archivo.fecha_subida.strftime("%Y-%m-%d %H:%M:%S")
+                fecha_subida=archivo.fecha_subida.strftime("%Y-%m-%d %H:%M:%S"),
+                seccion=archivo.seccion
             ) for archivo in archivos
         ]
         
@@ -357,7 +360,8 @@ async def read_factura(user: user_dependency, db: db_dependency, factura_id: int
             nombre_archivo=archivo.nombre_archivo,
             tipo_archivo=archivo.tipo_archivo,
             tamaño_archivo=archivo.tamaño_archivo,
-            fecha_subida=archivo.fecha_subida.strftime("%Y-%m-%d %H:%M:%S")
+            fecha_subida=archivo.fecha_subida.strftime("%Y-%m-%d %H:%M:%S"),
+            seccion=archivo.seccion
         ) for archivo in archivos
     ]
     
@@ -534,6 +538,51 @@ async def subir_archivos_factura(
         'archivos': archivos_guardados
     }
 
+@router.post("/{factura_id}/archivos-productos", status_code=status.HTTP_201_CREATED)
+async def subir_archivos_productos_factura(
+    factura_id: int,
+    user: user_dependency,
+    db: db_dependency,
+    archivos: List[UploadFile] = File(...)
+):
+    """Subir archivos de productos a una factura (cualquier tipo de archivo)"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    user_role = user.get('role', '')
+    if not can_modify_facturas(user_role):
+        raise HTTPException(status_code=403, detail='No tienes permisos para subir archivos')
+
+    factura = db.query(Facturas).filter(Facturas.id == factura_id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail='Factura no encontrada')
+
+    archivos_guardados = []
+
+    for archivo in archivos:
+        contenido = await archivo.read()
+        nombre = archivo.filename or 'archivo'
+        tipo_archivo = nombre.rsplit('.', 1)[-1].upper() if '.' in nombre else 'ARCHIVO'
+
+        archivo_modelo = FacturaArchivos(
+            factura_id=factura_id,
+            nombre_archivo=nombre,
+            tipo_archivo=tipo_archivo,
+            contenido_archivo=contenido,
+            tamaño_archivo=len(contenido),
+            subido_por=user.get('username'),
+            seccion='productos'
+        )
+        db.add(archivo_modelo)
+        archivos_guardados.append({'nombre': nombre, 'tipo': tipo_archivo, 'tamaño': len(contenido)})
+
+    db.commit()
+
+    return {
+        'message': f'Se guardaron {len(archivos_guardados)} archivo(s) de productos',
+        'archivos': archivos_guardados
+    }
+
 @router.post("/{factura_id}/cotizaciones", status_code=status.HTTP_201_CREATED)
 async def subir_cotizaciones_factura(
     factura_id: int,
@@ -614,7 +663,8 @@ async def descargar_archivo_factura(
         raise HTTPException(status_code=404, detail='Archivo no encontrado')
     
     # Preparar el archivo para descarga
-    media_type = "application/pdf" if archivo.tipo_archivo == "PDF" else "application/xml"
+    mime_type, _ = mimetypes.guess_type(archivo.nombre_archivo)
+    media_type = mime_type or "application/octet-stream"
     
     return StreamingResponse(
         io.BytesIO(archivo.contenido_archivo),

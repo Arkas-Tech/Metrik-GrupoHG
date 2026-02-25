@@ -41,6 +41,7 @@ interface ArchivoBackend {
   nombre_archivo: string;
   tipo_archivo: string;
   fecha_subida: string;
+  seccion?: string;
 }
 
 interface CotizacionBackend {
@@ -110,6 +111,7 @@ export function useFacturasAPI() {
           tipo: archivo.tipo_archivo,
           url: `${API_URL}/facturas/${fact.id}/archivos/${archivo.id}/descargar`,
           fechaSubida: archivo.fecha_subida.split(" ")[0],
+          seccion: archivo.seccion || undefined,
         })),
         cotizaciones: (fact.cotizaciones || []).map(
           (cotizacion: CotizacionBackend) => ({
@@ -665,6 +667,32 @@ export function useFacturasAPI() {
     [cargarFacturas],
   );
 
+  const subirArchivosProductos = useCallback(
+    async (facturaId: string, archivos: File[]): Promise<boolean> => {
+      try {
+        const formData = new FormData();
+        archivos.forEach((archivo) => formData.append("archivos", archivo));
+
+        const response = await fetchConToken(
+          `${API_URL}/facturas/${facturaId}/archivos-productos`,
+          { method: "POST", body: formData },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Error al subir archivos de productos: ${response.status} - ${errorData}`);
+        }
+
+        await cargarFacturas();
+        return true;
+      } catch (err) {
+        console.error("❌ Error subiendo archivos de productos:", err);
+        return false;
+      }
+    },
+    [cargarFacturas],
+  );
+
   const descargarArchivo = useCallback(
     async (facturaId: string, archivoId: string, nombreArchivo: string) => {
       try {
@@ -764,6 +792,7 @@ export function useFacturasAPI() {
     exportarPDF,
     subirArchivos,
     subirCotizacion,
+    subirArchivosProductos,
     descargarArchivo,
     descargarCotizacion,
     eliminarArchivo,
