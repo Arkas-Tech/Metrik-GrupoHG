@@ -722,61 +722,43 @@ export default function ListaFacturas({
                                   {factura.cotizaciones.map((cotizacion) => (
                                     <div
                                       key={cotizacion.id}
-                                      className="bg-white p-2 rounded text-sm"
+                                      className="bg-white p-2 rounded text-sm flex items-center justify-between gap-2"
                                     >
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <div className="flex justify-between">
-                                            <span className="text-gray-900 font-medium">
-                                              {cotizacion.proveedor}
-                                            </span>
-                                          </div>
-                                          {cotizacion.observaciones && (
-                                            <p className="text-gray-700 text-xs mt-1">
-                                              {cotizacion.observaciones}
-                                            </p>
-                                          )}
-                                          {cotizacion.archivo && (
-                                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                                              <span className="text-xs text-gray-600 truncate max-w-[120px]">
-                                                {cotizacion.archivo.nombre}
-                                              </span>
-                                              <div className="flex items-center space-x-2">
-                                                {cotizacion.archivo.tipo === "PDF" && (
-                                                  <button
-                                                    onClick={() =>
-                                                      verPDF(
-                                                        factura.id,
-                                                        cotizacion.id,
-                                                        cotizacion.archivo!
-                                                          .nombre,
-                                                        "cotizacion",
-                                                      )
-                                                    }
-                                                    className="text-purple-600 hover:text-purple-900 text-xs font-medium"
-                                                  >
-                                                    Ver
-                                                  </button>
-                                                )}
-                                                <button
-                                                  onClick={() => {
-                                                    if (onDescargarCotizacion) {
-                                                      onDescargarCotizacion(
-                                                        factura.id,
-                                                        cotizacion.id,
-                                                        cotizacion.archivo!
-                                                          .nombre,
-                                                      );
-                                                    }
-                                                  }}
-                                                  className="text-blue-600 hover:text-blue-900 text-xs font-medium"
-                                                >
-                                                  Descargar
-                                                </button>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
+                                      <span className="text-gray-800 text-xs truncate flex-1">
+                                        {cotizacion.archivo?.nombre ?? cotizacion.proveedor}
+                                      </span>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        {cotizacion.archivo?.tipo === "PDF" && (
+                                          <button
+                                            onClick={() =>
+                                              verPDF(
+                                                factura.id,
+                                                cotizacion.id,
+                                                cotizacion.archivo!.nombre,
+                                                "cotizacion",
+                                              )
+                                            }
+                                            className="text-purple-600 hover:text-purple-900 text-xs font-medium"
+                                          >
+                                            Ver
+                                          </button>
+                                        )}
+                                        {cotizacion.archivo && (
+                                          <button
+                                            onClick={() => {
+                                              if (onDescargarCotizacion) {
+                                                onDescargarCotizacion(
+                                                  factura.id,
+                                                  cotizacion.id,
+                                                  cotizacion.archivo!.nombre,
+                                                );
+                                              }
+                                            }}
+                                            className="text-blue-600 hover:text-blue-900 text-xs font-medium"
+                                          >
+                                            Descargar
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   ))}
