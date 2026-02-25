@@ -36,6 +36,23 @@ export default function ProyeccionesPage() {
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva" | "editar"
   >("dashboard");
+
+  // Navegación con soporte para botón atrás del navegador
+  const navegarA = (vista: "dashboard" | "nueva" | "editar") => {
+    window.history.pushState({ vista: vistaActual }, "");
+    setVistaActual(vista);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.vista !== undefined) {
+        setVistaActual(e.state.vista);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const [proyeccionEditando, setProyeccionEditando] =
     useState<Proyeccion | null>(null);
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
@@ -174,7 +191,7 @@ export default function ProyeccionesPage() {
 
   const manejarEditarProyeccion = (proyeccion: Proyeccion) => {
     setProyeccionEditando(proyeccion);
-    setVistaActual("editar");
+    navegarA("editar");
   };
 
   const manejarActualizarProyeccion = async (datos: Partial<Proyeccion>) => {
@@ -344,7 +361,7 @@ export default function ProyeccionesPage() {
                       Nueva Proyección
                     </h3>
                     <button
-                      onClick={() => setVistaActual("nueva")}
+                      onClick={() => navegarA("nueva")}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
                     >
                       Crear Nueva Proyección

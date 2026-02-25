@@ -81,6 +81,33 @@ export default function EventosPage() {
     "disponibles" | "pendientes"
   >("disponibles");
 
+  // Navegación con soporte para botón atrás del navegador
+  const navegarA = (
+    vista:
+      | "dashboard"
+      | "calendario-trimestral"
+      | "calendario-anual"
+      | "calendario-mensual"
+      | "nuevo"
+      | "editar"
+      | "brief"
+      | "template"
+      | "preview",
+  ) => {
+    window.history.pushState({ vista: vistaActual }, "");
+    setVistaActual(vista);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.vista !== undefined) {
+        setVistaActual(e.state.vista);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const isAdmin = usuario?.tipo === "administrador";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
@@ -193,7 +220,7 @@ export default function EventosPage() {
 
   const manejarEditarEvento = (evento: Evento) => {
     setEventoEditando(evento);
-    setVistaActual("editar");
+    navegarA("editar");
   };
 
   const manejarEliminarEvento = async (id: string) => {
@@ -292,12 +319,12 @@ export default function EventosPage() {
 
   const manejarVerTemplate = (evento: Evento) => {
     setEventoEditando(evento);
-    setVistaActual("template");
+    navegarA("template");
   };
 
   const manejarVerPreview = (evento: Evento) => {
     setEventoEditando(evento);
-    setVistaActual("preview");
+    navegarA("preview");
   };
 
   const manejarExportarBriefPDF = async () => {
@@ -420,7 +447,7 @@ export default function EventosPage() {
                 <div className="flex flex-wrap gap-3">
                   {tienePermiso("proyecciones", "crear") && (
                     <button
-                      onClick={() => setVistaActual("nuevo")}
+                      onClick={() => navegarA("nuevo")}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                     >
                       🎉 Nuevo Evento
@@ -526,20 +553,20 @@ export default function EventosPage() {
                       facturas={facturas}
                       onEventoClick={(evento) => {
                         setEventoEditando(evento);
-                        setVistaActual("editar");
+                        navegarA("editar");
                       }}
                       onCrearBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento) {
                           setEventoEditando(evento);
-                          setVistaActual("brief");
+                          navegarA("brief");
                         }
                       }}
                       onVerBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento && evento.brief) {
                           setEventoEditando(evento);
-                          setVistaActual("template");
+                          navegarA("template");
                         }
                       }}
                     />
@@ -553,20 +580,20 @@ export default function EventosPage() {
                       facturas={facturas}
                       onEventoClick={(evento) => {
                         setEventoEditando(evento);
-                        setVistaActual("editar");
+                        navegarA("editar");
                       }}
                       onCrearBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento) {
                           setEventoEditando(evento);
-                          setVistaActual("brief");
+                          navegarA("brief");
                         }
                       }}
                       onVerBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento && evento.brief) {
                           setEventoEditando(evento);
-                          setVistaActual("template");
+                          navegarA("template");
                         }
                       }}
                     />
@@ -580,20 +607,20 @@ export default function EventosPage() {
                       facturas={facturas}
                       onEventoClick={(evento) => {
                         setEventoEditando(evento);
-                        setVistaActual("editar");
+                        navegarA("editar");
                       }}
                       onCrearBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento) {
                           setEventoEditando(evento);
-                          setVistaActual("brief");
+                          navegarA("brief");
                         }
                       }}
                       onVerBrief={(eventoId) => {
                         const evento = eventos.find((e) => e.id === eventoId);
                         if (evento && evento.brief) {
                           setEventoEditando(evento);
-                          setVistaActual("template");
+                          navegarA("template");
                         }
                       }}
                     />
@@ -1196,7 +1223,7 @@ export default function EventosPage() {
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     setEventoEditando(evento);
-                                                    setVistaActual("brief");
+                                                    navegarA("brief");
                                                   }}
                                                   className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
                                                 >
@@ -1237,7 +1264,7 @@ export default function EventosPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setEventoEditando(evento);
-                                                setVistaActual("brief");
+                                                navegarA("brief");
                                               }}
                                               className="px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors block"
                                             >
@@ -1449,7 +1476,7 @@ export default function EventosPage() {
                                     <button
                                       onClick={() => {
                                         setEventoEditando(evento);
-                                        setVistaActual("brief");
+                                        navegarA("brief");
                                       }}
                                       className="px-3 py-2 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200 transition-colors"
                                     >
@@ -1511,7 +1538,7 @@ export default function EventosPage() {
                           <button
                             onClick={() => {
                               setEventoEditando(evento);
-                              setVistaActual("brief");
+                              navegarA("brief");
                             }}
                             className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
                           >

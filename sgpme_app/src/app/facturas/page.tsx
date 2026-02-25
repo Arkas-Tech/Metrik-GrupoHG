@@ -69,6 +69,30 @@ function FacturasPageContent() {
     null,
   );
 
+  // Navegación con soporte para botón atrás del navegador
+  const navegarA = (
+    vista:
+      | "dashboard"
+      | "nueva"
+      | "editar"
+      | "proveedores"
+      | "nuevo-proveedor"
+      | "editar-proveedor",
+  ) => {
+    window.history.pushState({ vista: vistaActual }, "");
+    setVistaActual(vista);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.vista !== undefined) {
+        setVistaActual(e.state.vista);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const mesActual = MESES[new Date().getMonth()];
   const añoActual = new Date().getFullYear();
 
@@ -337,7 +361,7 @@ function FacturasPageContent() {
 
   const manejarEditarFactura = (factura: Factura) => {
     setFacturaEditando(factura);
-    setVistaActual("editar");
+    navegarA("editar");
   };
 
   const manejarActualizarFactura = async (datos: Partial<Factura>) => {
@@ -608,7 +632,7 @@ function FacturasPageContent() {
 
   const manejarEditarProveedor = (proveedor: Proveedor) => {
     setProveedorEditando(proveedor);
-    setVistaActual("editar-proveedor");
+    navegarA("editar-proveedor");
   };
 
   const manejarActualizarProveedor = async (
@@ -775,13 +799,13 @@ function FacturasPageContent() {
                     {tienePermiso("facturas", "crear") && (
                       <>
                         <button
-                          onClick={() => setVistaActual("nueva")}
+                          onClick={() => navegarA("nueva")}
                           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                         >
                           📄 Cargar Factura (PDF/XML)
                         </button>
                         <button
-                          onClick={() => setVistaActual("proveedores")}
+                          onClick={() => navegarA("proveedores")}
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                         >
                           🏢 Gestionar Proveedores
@@ -924,7 +948,7 @@ function FacturasPageContent() {
 
                 {tienePermiso("facturas", "crear") && (
                   <button
-                    onClick={() => setVistaActual("nuevo-proveedor")}
+                    onClick={() => navegarA("nuevo-proveedor")}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                   >
                     ➕ Nuevo Proveedor
