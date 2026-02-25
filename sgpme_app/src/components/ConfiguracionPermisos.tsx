@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { MARCAS } from "@/types";
-import { ChevronDownIcon, ChevronRightIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
 interface PermisosNavegacion {
   dashboard?: boolean;
@@ -213,7 +217,9 @@ export default function ConfiguracionPermisos() {
         };
         setUsuarios((prev) =>
           ordenarUsuarios(
-            prev.map((u) => (u.id === usuarioSeleccionado.id ? updatedUser : u)),
+            prev.map((u) =>
+              u.id === usuarioSeleccionado.id ? updatedUser : u,
+            ),
           ),
         );
         setUsuarioSeleccionado(updatedUser);
@@ -225,7 +231,10 @@ export default function ConfiguracionPermisos() {
         setConfirmandoGuardar(false);
       } else {
         const err = await response.json().catch(() => ({}));
-        showToast(err.detail || "Error al actualizar usuario", "error");
+        const msg = Array.isArray(err.detail)
+          ? err.detail[0]?.msg || "Error al actualizar usuario"
+          : err.detail || "Error al actualizar usuario";
+        showToast(msg, "error");
         setConfirmandoGuardar(false);
       }
     } catch {
@@ -245,13 +254,18 @@ export default function ConfiguracionPermisos() {
         { method: "DELETE", headers: getAuthHeader() },
       );
       if (response.ok) {
-        setUsuarios((prev) => prev.filter((u) => u.id !== usuarioSeleccionado.id));
+        setUsuarios((prev) =>
+          prev.filter((u) => u.id !== usuarioSeleccionado.id),
+        );
         setUsuarioSeleccionado(null);
         showToast("Usuario eliminado correctamente", "success");
         setModalGestion(false);
       } else {
         const err = await response.json().catch(() => ({}));
-        showToast(err.detail || "Error al eliminar usuario", "error");
+        const msg = Array.isArray(err.detail)
+          ? err.detail[0]?.msg || "Error al eliminar usuario"
+          : err.detail || "Error al eliminar usuario";
+        showToast(msg, "error");
         setConfirmandoEliminar(false);
       }
     } catch {
@@ -656,7 +670,7 @@ export default function ConfiguracionPermisos() {
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
                   Nombre completo
                 </label>
                 <input
@@ -665,11 +679,11 @@ export default function ConfiguracionPermisos() {
                   onChange={(e) =>
                     setFormGestion((p) => ({ ...p, full_name: e.target.value }))
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
                   Usuario
                 </label>
                 <input
@@ -678,11 +692,11 @@ export default function ConfiguracionPermisos() {
                   onChange={(e) =>
                     setFormGestion((p) => ({ ...p, username: e.target.value }))
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
                   Correo
                 </label>
                 <input
@@ -691,11 +705,11 @@ export default function ConfiguracionPermisos() {
                   onChange={(e) =>
                     setFormGestion((p) => ({ ...p, email: e.target.value }))
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
                   Rol
                 </label>
                 <select
@@ -703,7 +717,7 @@ export default function ConfiguracionPermisos() {
                   onChange={(e) =>
                     setFormGestion((p) => ({ ...p, role: e.target.value }))
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {ROLES.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -713,9 +727,9 @@ export default function ConfiguracionPermisos() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
                   Nueva contraseña{" "}
-                  <span className="text-gray-400 font-normal">
+                  <span className="text-gray-500 font-normal">
                     (dejar vacío para no cambiar)
                   </span>
                 </label>
@@ -726,7 +740,7 @@ export default function ConfiguracionPermisos() {
                     setFormGestion((p) => ({ ...p, password: e.target.value }))
                   }
                   placeholder="••••••••"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>

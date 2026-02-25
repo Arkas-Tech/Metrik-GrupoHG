@@ -14,12 +14,10 @@ import { Bars3Icon } from "@heroicons/react/24/outline";
 import {
   FolderIcon,
   UserGroupIcon,
-  UsersIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/solid";
 import ConfiguracionCategorias from "@/components/ConfiguracionCategorias";
 import ConfiguracionPermisos from "@/components/ConfiguracionPermisos";
-import GestionAccesos from "@/components/GestionAccesos";
 import ConfiguracionFormularios from "@/components/ConfiguracionFormularios";
 import dynamic from "next/dynamic";
 
@@ -35,12 +33,6 @@ const CambiarContrasenaCoordinador = dynamic(
 );
 
 const menuConfiguracion = [
-  {
-    id: "accesos",
-    name: "Accesos",
-    icon: UsersIcon,
-    description: "Gestionar usuarios y roles",
-  },
   {
     id: "permisos",
     name: "Permisos",
@@ -73,7 +65,7 @@ export default function ConfiguracionPage() {
   useMarcaGlobal();
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
-  const [seccionActiva, setSeccionActiva] = useState("accesos");
+  const [seccionActiva, setSeccionActiva] = useState("permisos");
 
   const isAdmin = usuario?.tipo === "administrador";
   const isCoordinador = usuario?.tipo === "coordinador";
@@ -232,7 +224,6 @@ export default function ConfiguracionPage() {
 
           {/* Contenido de la Sección */}
           <div className="flex-1">
-            {seccionActiva === "accesos" && <GestionAccesos />}
             {seccionActiva === "permisos" && <ConfiguracionPermisos />}
             {seccionActiva === "categorias" && (
               <ConfiguracionCategorias
