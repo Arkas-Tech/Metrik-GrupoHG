@@ -1027,10 +1027,7 @@ function FacturasPageContent() {
           <ConfigSidebar
             isOpen={configSidebarOpen}
             onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={(item: string) => {
-              setActiveConfigView(item);
-              setConfigSidebarOpen(false);
-            }}
+            onNavigate={handleMenuClick}
           />
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />

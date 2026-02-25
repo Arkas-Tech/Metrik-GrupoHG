@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from database import SessionLocal
@@ -31,6 +31,13 @@ class CreateUserRequest(BaseModel):
     email: str
     full_name: str
     password: str
+    role: str
+
+class UpdateUserRequest(BaseModel):
+    username: str
+    email: str
+    full_name: str
+    password: Optional[str] = None
     role: str
 
 class Token(BaseModel):
@@ -167,7 +174,7 @@ async def create_user(user: user_dependency,
 
 @router.put("/users/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(current_user: user_dependency, db: db_dependency, 
-                     user_id: int, update_request: CreateUserRequest):
+                     user_id: int, update_request: UpdateUserRequest):
     if current_user is None:
         raise HTTPException(status_code=401, detail='No autenticado')
     
