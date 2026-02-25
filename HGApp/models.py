@@ -94,6 +94,7 @@ class FacturaArchivos(Base):
     tamaño_archivo = Column(Integer)  # Tamaño en bytes
     fecha_subida = Column(DateTime, server_default=func.now())
     subido_por = Column(String)
+    seccion = Column(String, nullable=True)
 
 
 class FacturaCotizaciones(Base):

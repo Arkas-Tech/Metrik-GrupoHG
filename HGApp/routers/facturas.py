@@ -534,6 +534,58 @@ async def subir_archivos_factura(
         'archivos': archivos_guardados
     }
 
+@router.post("/{factura_id}/archivos-productos", status_code=status.HTTP_201_CREATED)
+async def subir_archivos_productos_factura(
+    factura_id: int,
+    user: user_dependency,
+    db: db_dependency,
+    archivos: List[UploadFile] = File(...)
+):
+    """Subir archivos adjuntos a la sección de productos de una factura (cualquier tipo)"""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    user_role = user.get('role', '')
+    if not can_modify_facturas(user_role):
+        raise HTTPException(status_code=403, detail='No tienes permisos para subir archivos')
+
+    factura = db.query(Facturas).filter(Facturas.id == factura_id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail='Factura no encontrada')
+
+    archivos_guardados = []
+
+    for archivo in archivos:
+        contenido = await archivo.read()
+
+        import mimetypes
+        tipo_mime, _ = mimetypes.guess_type(archivo.filename)
+        extension = archivo.filename.rsplit('.', 1)[-1].upper() if '.' in archivo.filename else 'ARCHIVO'
+
+        archivo_modelo = FacturaArchivos(
+            factura_id=factura_id,
+            nombre_archivo=archivo.filename,
+            tipo_archivo=extension,
+            contenido_archivo=contenido,
+            tamaño_archivo=len(contenido),
+            subido_por=user.get('username'),
+            seccion='productos'
+        )
+
+        db.add(archivo_modelo)
+        archivos_guardados.append({
+            'nombre': archivo.filename,
+            'tipo': extension,
+            'tamaño': len(contenido)
+        })
+
+    db.commit()
+
+    return {
+        'message': f'Se guardaron {len(archivos_guardados)} archivo(s) en productos',
+        'archivos': archivos_guardados
+    }
+
 @router.post("/{factura_id}/cotizaciones", status_code=status.HTTP_201_CREATED)
 async def subir_cotizaciones_factura(
     factura_id: int,
