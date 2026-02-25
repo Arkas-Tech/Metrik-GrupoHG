@@ -217,10 +217,7 @@ export default function DashboardGeneral({
     >
   >({});
 
-  // Estados para la sección de Desplazamiento
-  const [agenciaDesplazamiento, setAgenciaDesplazamiento] = useState<
-    string | null
-  >(null);
+  // Estado para la sección de Desplazamiento
   const [modoEdicionDesplazamiento, setModoEdicionDesplazamiento] =
     useState(false);
 
@@ -313,19 +310,19 @@ export default function DashboardGeneral({
       console.log("[DEBUG-GUARDAR] Iniciando guardado...");
       console.log("[DEBUG-GUARDAR] Datos a guardar:", datos);
 
-      if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
+      if (!agenciaSeleccionada) {
         console.log(
-          "[DEBUG-GUARDAR] ❌ No hay agencia seleccionada o está en 'todas'",
+          "[DEBUG-GUARDAR] ❌ No hay agencia seleccionada en el header",
         );
         return;
       }
 
       // Obtener marca_id de la agencia seleccionada
-      const marca = marcas.find((m) => m.cuenta === agenciaDesplazamiento);
+      const marca = marcas.find((m) => m.cuenta === agenciaSeleccionada);
       if (!marca) {
         console.log(
           "[DEBUG-GUARDAR] ❌ No se encontró marca para:",
-          agenciaDesplazamiento,
+          agenciaSeleccionada,
         );
         console.log(
           "[DEBUG-GUARDAR] Marcas disponibles:",
@@ -390,18 +387,17 @@ export default function DashboardGeneral({
     try {
       console.log("[DEBUG-CARGAR] Iniciando carga de desplazamiento...");
       console.log(
-        "[DEBUG-CARGAR] agenciaDesplazamiento:",
-        agenciaDesplazamiento,
+        "[DEBUG-CARGAR] agenciaSeleccionada (header):",
+        agenciaSeleccionada,
       );
       console.log("[DEBUG-CARGAR] marcas.length:", marcas.length);
       console.log("[DEBUG-CARGAR] mes:", filtroMesGlobal);
       console.log("[DEBUG-CARGAR] año:", añoSeleccionado);
 
-      if (!agenciaDesplazamiento || agenciaDesplazamiento === "todas") {
+      if (!agenciaSeleccionada) {
         console.log(
-          "[DEBUG-CARGAR] ℹ️ No hay agencia seleccionada o está en 'todas', mostrando vacío",
+          "[DEBUG-CARGAR] ℹ️ No hay agencia seleccionada en el header, mostrando vacío",
         );
-        // Limpiar datos cuando no hay agencia o está en "todas"
         setDesplazamientoPorMes((prev) => ({
           ...prev,
           [filtroMesGlobal]: {
@@ -415,11 +411,11 @@ export default function DashboardGeneral({
       }
 
       // Obtener marca_id de la agencia seleccionada
-      const marca = marcas.find((m) => m.cuenta === agenciaDesplazamiento);
+      const marca = marcas.find((m) => m.cuenta === agenciaSeleccionada);
       if (!marca) {
         console.log(
           "[DEBUG-CARGAR] ❌ No se encontró marca para cargar:",
-          agenciaDesplazamiento,
+          agenciaSeleccionada,
         );
         console.log(
           "[DEBUG-CARGAR] Marcas disponibles:",
@@ -455,7 +451,7 @@ export default function DashboardGeneral({
     } catch (error) {
       console.error("[DEBUG-CARGAR] ❌ Error cargando desplazamiento:", error);
     }
-  }, [agenciaDesplazamiento, marcas, filtroMesGlobal, añoSeleccionado]);
+  }, [agenciaSeleccionada, marcas, filtroMesGlobal, añoSeleccionado]);
 
   // Función para manejar la carga de PDF
   const handlePdfUpload = (
@@ -697,7 +693,7 @@ export default function DashboardGeneral({
   }, [
     filtroMesGlobal,
     añoSeleccionado,
-    agenciaDesplazamiento,
+    agenciaSeleccionada,
     marcas.length,
     cargarDesplazamientoDesdeDB,
   ]);
@@ -1709,36 +1705,23 @@ export default function DashboardGeneral({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Filtro de agencia */}
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-              <label className="text-sm font-semibold text-gray-700">
-                🏢 Agencia:
-              </label>
-              <select
-                value={agenciaDesplazamiento || "todas"}
-                onChange={(e) => {
-                  const valor =
-                    e.target.value === "todas" ? null : e.target.value;
-                  setAgenciaDesplazamiento(valor);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-gray-50 hover:bg-white transition-colors text-gray-900"
-              >
-                <option value="todas">Todas las agencias</option>
-                {marcas.map((marca) => (
-                  <option key={marca.id} value={marca.cuenta}>
-                    {marca.cuenta}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Botón de edición */}
+            {!agenciaSeleccionada && (
+              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                Selecciona una agencia en el filtro del header para editar
+              </span>
+            )}
+            {agenciaSeleccionada && (
+              <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
+                🏢 {agenciaSeleccionada}
+              </span>
+            )}
             <button
               onClick={() =>
                 setModoEdicionDesplazamiento(!modoEdicionDesplazamiento)
               }
-              disabled={!agenciaDesplazamiento}
+              disabled={!agenciaSeleccionada}
               className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg ${
-                !agenciaDesplazamiento
+                !agenciaSeleccionada
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : modoEdicionDesplazamiento
                     ? "bg-linear-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
@@ -1897,15 +1880,14 @@ export default function DashboardGeneral({
                                     }}
                                     className="hidden"
                                   />
-                                  <button
-                                    type="button"
-                                    className="text-orange-600 hover:text-orange-800 p-1"
+                                  <span
+                                    className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
                                     title={
                                       item.pdf ? "Cambiar PDF" : "Subir PDF"
                                     }
                                   >
                                     <ArrowPathIcon className="h-5 w-5" />
-                                  </button>
+                                  </span>
                                 </label>
                               )}
                               {item.pdf && (
@@ -2107,13 +2089,12 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <button
-                                  type="button"
-                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                <span
+                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
                                   title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
                                 >
                                   <ArrowPathIcon className="h-5 w-5" />
-                                </button>
+                                </span>
                               </label>
                             )}
                             {item.pdf && (
@@ -2305,13 +2286,12 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <button
-                                  type="button"
-                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                <span
+                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
                                   title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
                                 >
                                   <ArrowPathIcon className="h-5 w-5" />
-                                </button>
+                                </span>
                               </label>
                             )}
                             {item.pdf && (
@@ -2500,13 +2480,12 @@ export default function DashboardGeneral({
                                     }
                                   }}
                                 />
-                                <button
-                                  type="button"
-                                  className="text-orange-600 hover:text-orange-800 p-1"
+                                <span
+                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
                                   title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
                                 >
                                   <ArrowPathIcon className="h-5 w-5" />
-                                </button>
+                                </span>
                               </label>
                             )}
                             {item.pdf && (
