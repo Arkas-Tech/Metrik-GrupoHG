@@ -220,6 +220,11 @@ export default function DashboardGeneral({
   // Estado para la sección de Desplazamiento
   const [modoEdicionDesplazamiento, setModoEdicionDesplazamiento] =
     useState(false);
+  const [guardandoDesplazamiento, setGuardandoDesplazamiento] =
+    useState(false);
+  const [mensajeGuardar, setMensajeGuardar] = useState<
+    "ok" | "error" | null
+  >(null);
 
   // Estado para el visor de PDF
   const [pdfViewer, setPdfViewer] = useState<{
@@ -275,7 +280,7 @@ export default function DashboardGeneral({
   };
 
   // Funciones para actualizar datos del mes actual
-  const actualizarDatosDesplazamiento = async (
+  const actualizarDatosDesplazamiento = (
     categoria: "mayorExistencia" | "mas90Dias" | "demos" | "otros",
     nuevosDatos: Array<{
       unidad: string;
@@ -294,9 +299,7 @@ export default function DashboardGeneral({
       ...prev,
       [filtroMesGlobal]: nuevoDatosMes,
     }));
-
-    // Guardar en la base de datos automáticamente
-    await guardarDesplazamientoEnDB(nuevoDatosMes);
+    // El guardado se hace únicamente al pulsar “Guardar Cambios”
   };
 
   // Función para guardar datos en la base de datos
@@ -367,18 +370,20 @@ export default function DashboardGeneral({
           result,
         );
       } else {
+        const errorData = await response.text();
         console.error(
           "[DEBUG-GUARDAR] ❌ Error guardando desplazamiento:",
           response.status,
+          errorData,
         );
-        const errorData = await response.text();
-        console.error("[DEBUG-GUARDAR] Error data:", errorData);
+        throw new Error(`Error ${response.status}: ${errorData}`);
       }
     } catch (error) {
       console.error(
         "[DEBUG-GUARDAR] ❌ Exception guardando desplazamiento:",
         error,
       );
+      throw error;
     }
   };
 
@@ -1705,9 +1710,14 @@ export default function DashboardGeneral({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {!agenciaSeleccionada && (
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                Selecciona una agencia en el filtro del header para editar
+            {mensajeGuardar === "ok" && (
+              <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+                ✅ Guardado
+              </span>
+            )}
+            {mensajeGuardar === "error" && (
+              <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg">
+                ❌ Error al guardar
               </span>
             )}
             {agenciaSeleccionada && (
@@ -1715,20 +1725,45 @@ export default function DashboardGeneral({
                 🏢 {agenciaSeleccionada}
               </span>
             )}
+            {!agenciaSeleccionada && (
+              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                Selecciona una agencia en el filtro del header para editar
+              </span>
+            )}
             <button
-              onClick={() =>
-                setModoEdicionDesplazamiento(!modoEdicionDesplazamiento)
-              }
-              disabled={!agenciaSeleccionada}
+              disabled={!agenciaSeleccionada || guardandoDesplazamiento}
+              onClick={async () => {
+                if (modoEdicionDesplazamiento) {
+                  setGuardandoDesplazamiento(true);
+                  setMensajeGuardar(null);
+                  try {
+                    await guardarDesplazamientoEnDB(datosDesplazamientoActual);
+                    setMensajeGuardar("ok");
+                    setModoEdicionDesplazamiento(false);
+                    setTimeout(() => setMensajeGuardar(null), 3000);
+                  } catch {
+                    setMensajeGuardar("error");
+                  } finally {
+                    setGuardandoDesplazamiento(false);
+                  }
+                } else {
+                  setMensajeGuardar(null);
+                  setModoEdicionDesplazamiento(true);
+                }
+              }}
               className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg ${
-                !agenciaSeleccionada
+                !agenciaSeleccionada || guardandoDesplazamiento
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : modoEdicionDesplazamiento
                     ? "bg-linear-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
                     : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
               }`}
             >
-              {modoEdicionDesplazamiento ? "💾 Guardar Cambios" : "✏️ Editar"}
+              {guardandoDesplazamiento
+                ? "⏳ Guardando..."
+                : modoEdicionDesplazamiento
+                  ? "💾 Guardar Cambios"
+                  : "✏️ Editar"}
             </button>
           </div>
         </div>
