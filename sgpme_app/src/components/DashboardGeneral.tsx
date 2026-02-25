@@ -98,6 +98,7 @@ import {
   XMarkIcon,
   ArrowDownTrayIcon,
   ArrowPathIcon,
+  CloudArrowUpIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 
@@ -220,11 +221,10 @@ export default function DashboardGeneral({
   // Estado para la sección de Desplazamiento
   const [modoEdicionDesplazamiento, setModoEdicionDesplazamiento] =
     useState(false);
-  const [guardandoDesplazamiento, setGuardandoDesplazamiento] =
-    useState(false);
-  const [mensajeGuardar, setMensajeGuardar] = useState<
-    "ok" | "error" | null
-  >(null);
+  const [guardandoDesplazamiento, setGuardandoDesplazamiento] = useState(false);
+  const [mensajeGuardar, setMensajeGuardar] = useState<"ok" | "error" | null>(
+    null,
+  );
 
   // Estado para el visor de PDF
   const [pdfViewer, setPdfViewer] = useState<{
@@ -1898,7 +1898,7 @@ export default function DashboardGeneral({
                           </td>
                           <td className="px-2 py-2">
                             <div className="flex items-center justify-center gap-1">
-                              {modoEdicionDesplazamiento && (
+                              {modoEdicionDesplazamiento && !item.pdf && (
                                 <label className="cursor-pointer">
                                   <input
                                     type="file"
@@ -1916,12 +1916,11 @@ export default function DashboardGeneral({
                                     className="hidden"
                                   />
                                   <span
-                                    className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
-                                    title={
-                                      item.pdf ? "Cambiar PDF" : "Subir PDF"
-                                    }
+                                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                    title="Cargar PDF"
                                   >
-                                    <ArrowPathIcon className="h-5 w-5" />
+                                    <CloudArrowUpIcon className="h-4 w-4" />
+                                    Cargar PDF
                                   </span>
                                 </label>
                               )}
@@ -2111,7 +2110,7 @@ export default function DashboardGeneral({
                         </td>
                         <td className="px-2 py-2">
                           <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && (
+                            {modoEdicionDesplazamiento && !item.pdf && (
                               <label className="cursor-pointer">
                                 <input
                                   type="file"
@@ -2125,10 +2124,11 @@ export default function DashboardGeneral({
                                   }}
                                 />
                                 <span
-                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
-                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                  title="Cargar PDF"
                                 >
-                                  <ArrowPathIcon className="h-5 w-5" />
+                                  <CloudArrowUpIcon className="h-4 w-4" />
+                                  Cargar PDF
                                 </span>
                               </label>
                             )}
@@ -2308,7 +2308,7 @@ export default function DashboardGeneral({
                         </td>
                         <td className="px-2 py-2">
                           <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && (
+                            {modoEdicionDesplazamiento && !item.pdf && (
                               <label className="cursor-pointer">
                                 <input
                                   type="file"
@@ -2322,10 +2322,11 @@ export default function DashboardGeneral({
                                   }}
                                 />
                                 <span
-                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
-                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                  title="Cargar PDF"
                                 >
-                                  <ArrowPathIcon className="h-5 w-5" />
+                                  <CloudArrowUpIcon className="h-4 w-4" />
+                                  Cargar PDF
                                 </span>
                               </label>
                             )}
@@ -2502,7 +2503,7 @@ export default function DashboardGeneral({
                         </td>
                         <td className="px-2 py-2">
                           <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && (
+                            {modoEdicionDesplazamiento && !item.pdf && (
                               <label className="cursor-pointer">
                                 <input
                                   type="file"
@@ -2516,10 +2517,11 @@ export default function DashboardGeneral({
                                   }}
                                 />
                                 <span
-                                  className="text-orange-600 hover:text-orange-800 p-1 cursor-pointer"
-                                  title={item.pdf ? "Cambiar PDF" : "Subir PDF"}
+                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                  title="Cargar PDF"
                                 >
-                                  <ArrowPathIcon className="h-5 w-5" />
+                                  <CloudArrowUpIcon className="h-4 w-4" />
+                                  Cargar PDF
                                 </span>
                               </label>
                             )}
