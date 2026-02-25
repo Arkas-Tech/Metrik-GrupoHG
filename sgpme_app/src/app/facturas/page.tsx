@@ -79,15 +79,16 @@ function FacturasPageContent() {
       | "nuevo-proveedor"
       | "editar-proveedor",
   ) => {
-    window.history.pushState({ vista: vistaActual }, "");
+    window.history.pushState({ vista }, "");
     setVistaActual(vista);
   };
 
   useEffect(() => {
+    // Seed the initial history entry so back from the first sub-view works
+    window.history.replaceState({ vista: "dashboard" }, "");
+
     const handlePopState = (e: PopStateEvent) => {
-      if (e.state?.vista !== undefined) {
-        setVistaActual(e.state.vista);
-      }
+      setVistaActual((e.state?.vista as typeof vistaActual) ?? "dashboard");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);

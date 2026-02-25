@@ -94,15 +94,15 @@ export default function EventosPage() {
       | "template"
       | "preview",
   ) => {
-    window.history.pushState({ vista: vistaActual }, "");
+    window.history.pushState({ vista }, "");
     setVistaActual(vista);
   };
 
   useEffect(() => {
+    window.history.replaceState({ vista: "dashboard" }, "");
+
     const handlePopState = (e: PopStateEvent) => {
-      if (e.state?.vista !== undefined) {
-        setVistaActual(e.state.vista);
-      }
+      setVistaActual((e.state?.vista as typeof vistaActual) ?? "dashboard");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
