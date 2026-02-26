@@ -149,7 +149,7 @@ if [ "$BACKEND_CHANGED" = true ]; then
     fi
     
     log "   🔄 Reloading backend..."
-    pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-backend --update-env >> "$BUILD_LOG" 2>&1
     sleep 3
     log "   ✅ Backend actualizado"
 fi
@@ -279,7 +279,7 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
     
     # PM2 graceful reload (rolling restart)
     log "   🔄 PM2 reload (rolling restart)..."
-    pm2 reload metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
+    pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
     sleep 5
     
     ONLINE_COUNT=$(pm2 list 2>/dev/null | grep "metrik-frontend" | grep -c "online" || echo "0")
@@ -344,7 +344,7 @@ if [ "$FRONTEND_HEALTHY" = false ]; then
     if [ -d "$FRONTEND_DIR/.next.rollback" ]; then
         mv "$FRONTEND_DIR/.next" "$FRONTEND_DIR/.next.failed" 2>/dev/null || true
         mv "$FRONTEND_DIR/.next.rollback" "$FRONTEND_DIR/.next"
-        pm2 reload metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
+        pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-frontend --update-env >> "$BUILD_LOG" 2>&1
         sleep 5
         
         if check_health "http://127.0.0.1:3030" "Frontend (rollback)"; then
@@ -366,7 +366,7 @@ if [ "$BACKEND_HEALTHY" = false ]; then
     log "⚠️  Backend unhealthy, haciendo rollback..."
     cd "$APP_DIR"
     git checkout "$BEFORE_COMMIT" -- backend/ HGApp/ 2>/dev/null || true
-    pm2 reload metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-backend --update-env >> "$BUILD_LOG" 2>&1
     log "══════════════════════════════════════════════"
     log "  ⚠️  BACKEND ROLLED BACK to $BEFORE_COMMIT"
     log "══════════════════════════════════════════════"
