@@ -42,7 +42,16 @@ export function useProyecciones() {
   const cargarProyecciones = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetchConToken(`${API_URL}/proyecciones/`);
+
+      // Fetch con reintento automático en errores 5xx transitorios
+      let response = await fetchConToken(`${API_URL}/proyecciones/`);
+      if (!response.ok && response.status >= 500) {
+        console.warn(
+          `⚠️ Error ${response.status} transitorio, reintentando en 2s...`,
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+        response = await fetchConToken(`${API_URL}/proyecciones/`);
+      }
 
       if (!response.ok) {
         throw new Error(`Error al cargar proyecciones: ${response.status}`);

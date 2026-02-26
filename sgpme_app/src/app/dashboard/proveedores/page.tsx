@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProveedoresAPI } from "@/hooks/useProveedoresAPI";
 import { Proveedor } from "@/types";
 import ListaProveedores from "@/components/ListaProveedores";
 import FormularioProveedor from "@/components/FormularioProveedor";
 
 export default function ProveedoresPage() {
+  const [errorVisible, setErrorVisible] = useState<string | null>(null);
+
   const {
     proveedores,
     loading,
@@ -17,6 +19,17 @@ export default function ProveedoresPage() {
     eliminarProveedor,
   } = useProveedoresAPI();
 
+  // Auto-dismiss error banner after 6 seconds
+  useEffect(() => {
+    if (error) {
+      setErrorVisible(error);
+      const t = setTimeout(() => setErrorVisible(null), 6000);
+      return () => clearTimeout(t);
+    } else {
+      setErrorVisible(null);
+    }
+  }, [error]);
+
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   const [proveedorEdicion, setProveedorEdicion] = useState<
     Proveedor | undefined
@@ -24,7 +37,7 @@ export default function ProveedoresPage() {
   const [procesando, setProcesando] = useState(false);
 
   const handleSubmitProveedor = async (
-    datos: Omit<Proveedor, "id" | "fechaCreacion">
+    datos: Omit<Proveedor, "id" | "fechaCreacion">,
   ) => {
     setProcesando(true);
     try {
@@ -89,9 +102,17 @@ export default function ProveedoresPage() {
         </button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+      {/* eslint-disable-next-line react-hooks/exhaustive-deps */
+      /* Auto-dismiss error after 6s */}
+      {errorVisible && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center justify-between">
+          <span>{errorVisible}</span>
+          <button
+            onClick={() => setErrorVisible(null)}
+            className="ml-3 text-red-500 hover:text-red-700 font-bold text-lg leading-none"
+          >
+            &times;
+          </button>
         </div>
       )}
 

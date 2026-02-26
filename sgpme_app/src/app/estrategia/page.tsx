@@ -96,6 +96,7 @@ export default function ProyeccionesPage() {
     meses: [mesActual],
     año: añoActual,
   });
+  const [errorVisible, setErrorVisible] = useState<string | null>(null);
 
   const {
     proyecciones,
@@ -106,6 +107,17 @@ export default function ProyeccionesPage() {
     obtenerProyeccionesPorFiltros,
     aprobarProyeccion,
   } = useProyecciones();
+
+  // Auto-dismiss error notification after 6 seconds
+  useEffect(() => {
+    if (error) {
+      setErrorVisible(error);
+      const t = setTimeout(() => setErrorVisible(null), 6000);
+      return () => clearTimeout(t);
+    } else {
+      setErrorVisible(null);
+    }
+  }, [error]);
 
   useEffect(() => {
     console.log(
@@ -474,9 +486,15 @@ export default function ProyeccionesPage() {
           </div>
         )}
 
-        {error && (
-          <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
+        {errorVisible && (
+          <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-3 z-50">
+            <span>{errorVisible}</span>
+            <button
+              onClick={() => setErrorVisible(null)}
+              className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
+            >
+              &times;
+            </button>
           </div>
         )}
       </main>
