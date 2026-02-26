@@ -47,7 +47,9 @@ export default function ProyeccionesPage() {
     window.history.replaceState({ vista: "dashboard" }, "");
 
     const handlePopState = (e: PopStateEvent) => {
-      setVistaActual((e.state?.vista as "dashboard" | "nueva" | "editar") ?? "dashboard");
+      setVistaActual(
+        (e.state?.vista as "dashboard" | "nueva" | "editar") ?? "dashboard",
+      );
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -64,8 +66,7 @@ export default function ProyeccionesPage() {
 
   const handleMenuClick = (item: string) => {
     if (item === "configuracion") {
-      router.push("/configuracion");
-      setConfigSidebarOpen(false);
+      window.location.href = "/configuracion";
       return;
     }
     setActiveConfigView(item);

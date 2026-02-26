@@ -135,7 +135,7 @@ if [ "$BACKEND_CHANGED" = true ]; then
         
         if [ -n "$target_path" ] && [ -f "$file" ]; then
             mkdir -p "$(dirname "$target_path")"
-            cp "$file" "$target_path"
+            cp "$file" "$target_path" 2>/dev/null || true
             SYNCED=$((SYNCED + 1))
         fi
     done

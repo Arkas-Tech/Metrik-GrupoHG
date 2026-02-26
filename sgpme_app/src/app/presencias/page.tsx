@@ -99,8 +99,7 @@ export default function PresenciasPage() {
 
   const handleMenuClick = (item: string) => {
     if (item === "configuracion") {
-      router.push("/configuracion");
-      setConfigSidebarOpen(false);
+      window.location.href = "/configuracion";
       return;
     }
     setActiveConfigView(item);

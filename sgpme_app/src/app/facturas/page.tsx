@@ -144,18 +144,14 @@ function FacturasPageContent() {
     mostrarMenu,
   });
 
-  const handleMenuClick = useCallback(
-    (item: string) => {
-      if (item === "configuracion") {
-        router.push("/configuracion");
-        setConfigSidebarOpen(false);
-        return;
-      }
-      setActiveConfigView(item);
-      setConfigSidebarOpen(false);
-    },
-    [router],
-  );
+  const handleMenuClick = useCallback((item: string) => {
+    if (item === "configuracion") {
+      window.location.href = "/configuracion";
+      return;
+    }
+    setActiveConfigView(item);
+    setConfigSidebarOpen(false);
+  }, []);
 
   const {
     facturas,
