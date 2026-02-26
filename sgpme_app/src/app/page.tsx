@@ -23,7 +23,7 @@ export default function Home() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando Sistema...</p>
+          <p className="text-gray-600">Cargando sistema...</p>
         </div>
       </div>
     );
