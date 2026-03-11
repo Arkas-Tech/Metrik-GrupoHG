@@ -667,18 +667,33 @@ const CampanasPage = () => {
                 Volver a Dashboard
               </button>
             </div>
-            {!isAuditor && (
-              <button
-                onClick={() => {
-                  setCampanaEditando(null);
-                  setModalFormulario(true);
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-              >
-                <PlusIcon className="w-5 h-5" />
-                Nueva Campaña
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {isAdmin && gadsConfigured && (
+                <button
+                  onClick={() => importarCampanas(marcaSeleccionada || undefined)}
+                  disabled={importando}
+                  title="Sincronizar campañas desde Google Ads"
+                  className="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2 text-sm"
+                >
+                  <svg className={`w-4 h-4 ${importando ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {importando ? 'Actualizando...' : 'Actualizar'}
+                </button>
+              )}
+              {!isAuditor && (
+                <button
+                  onClick={() => {
+                    setCampanaEditando(null);
+                    setModalFormulario(true);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  Nueva Campaña
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mb-8">
@@ -690,59 +705,6 @@ const CampanasPage = () => {
               {marcaSeleccionada && ` - ${marcaSeleccionada}`}
             </p>
           </div>
-
-          {/* Google Ads status banner — solo admins */}
-          {isAdmin && gadsConfigured !== null && (
-            <div
-              className={`flex items-center justify-between rounded-lg border px-4 py-3 mb-4 text-sm ${
-                gadsConfigured
-                  ? "bg-green-50 border-green-200 text-green-800"
-                  : "bg-yellow-50 border-yellow-200 text-yellow-800"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-base">
-                  {gadsConfigured ? "✅" : "⚠️"}
-                </span>
-                <span>
-                  {gadsConfigured
-                    ? "Google Ads conectado — sincronización automática disponible"
-                    : "Google Ads no configurado. Conecta tu cuenta para sincronizar métricas automáticamente."}
-                </span>
-              </div>
-              {!gadsConfigured && (
-                <button
-                  onClick={() => abrirGadsSetup()}
-                  className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded-md font-medium transition-colors shrink-0"
-                >
-                  Conectar Google Ads
-                </button>
-              )}
-              {gadsConfigured && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => importarCampanas(marcaSeleccionada || undefined)}
-                    disabled={importando}
-                    className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
-                  >
-                    {importando ? "Importando..." : "⬇ Importar campañas"}
-                  </button>
-                  <button
-                    onClick={() => abrirGadsSetup("cuentas")}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
-                  >
-                    Cuentas por marca
-                  </button>
-                  <button
-                    onClick={() => abrirGadsSetup("oauth")}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
-                  >
-                    Reconfigurar
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Filtros */}
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">

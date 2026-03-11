@@ -588,57 +588,51 @@ async def vincular_campaign(
     return {"success": True, "google_ads_id": campana.google_ads_id}
 
 
-# ─── Importar campañas desde Google Ads ────────────────────────────────────────
+# ─── Lógica de importación reutilizable (también usada por el auto-sync) ──────
 
-@router.post("/importar")
-async def importar_campanas(
-    payload: dict,
-    user: user_dependency,
-    db: db_dependency,
-):
+def _importar_todas_las_marcas(db: Session) -> dict:
     """
-    Importa o actualiza campañas desde Google Ads a la BD de Metrik.
-    Payload: {"marca": "Subaru Chihuahua"}  o  {} para importar todas las marcas.
-    - Si la campaña ya existe (por google_ads_id), actualiza sus métricas.
-    - Si no existe, la crea como nuevo registro.
+    Importa/actualiza campañas de Google Ads para todas las marcas configuradas.
+    Usa dos queries separadas:
+      1. Todas las campañas activas (sin filtro de fecha) → nombre, estado, fechas, presupuesto
+      2. Métricas agregadas del mes → impresiones, coste, conversiones, ctr, cpc, cxc
+    Esto garantiza que campañas sin actividad este mes igualmente se importan.
     """
-    _require_admin(user)
+    from datetime import date as date_type
+    import calendar
+
     cfg = _get_google_config(db)
     if not _is_configured(cfg):
-        raise HTTPException(status_code=503, detail="Google Ads no configurado")
+        return {"error": "Google Ads no configurado"}
 
-    marcas_a_importar: list[str] = []
-    marca_solicitada = payload.get("marca", "").strip()
+    marcas = list(cfg["customer_map"].keys()) if cfg.get("customer_map") else ([""] if cfg.get("customer_id") else [])
+    if not marcas:
+        return {"error": "Sin cuentas configuradas"}
 
-    if marca_solicitada:
-        marcas_a_importar = [marca_solicitada]
-    elif cfg.get("customer_map"):
-        marcas_a_importar = list(cfg["customer_map"].keys())
-    elif cfg.get("customer_id"):
-        marcas_a_importar = [""]  # cuenta única sin nombre de marca
-    else:
-        raise HTTPException(status_code=400, detail="No hay cuentas configuradas")
+    try:
+        token = _get_access_token(cfg)
+    except Exception as e:
+        return {"error": str(e)}
 
-    token = _get_access_token(cfg)
+    ESTADO_MAP = {"ENABLED": "Activa", "PAUSED": "Pausada", "REMOVED": "Completada"}
+
+    # Rango del mes actual para query de métricas
+    hoy = date_type.today()
+    mes_inicio = hoy.replace(day=1).isoformat()
+    mes_fin = hoy.isoformat()
+
     resumen = {"creadas": 0, "actualizadas": 0, "marcas": [], "errores": []}
 
-    ESTADO_MAP = {
-        "ENABLED": "Activa",
-        "PAUSED": "Pausada",
-        "REMOVED": "Completada",
-    }
-
-    for marca in marcas_a_importar:
+    for marca in marcas:
         customer_id = _get_customer_id_for_marca(cfg, marca if marca else None)
         if not customer_id:
             resumen["errores"].append(f"Sin customer_id para '{marca}'")
             continue
 
+        # ── Query 1: Info de campañas (sin filtro de fecha, no genera filas por día) ──
         try:
-            rows = _gaql(
-                token,
-                cfg["developer_token"],
-                customer_id,
+            rows_info = _gaql(
+                token, cfg["developer_token"], customer_id,
                 """
                 SELECT
                     campaign.id,
@@ -646,52 +640,97 @@ async def importar_campanas(
                     campaign.status,
                     campaign.start_date,
                     campaign.end_date,
-                    campaign_budget.amount_micros,
+                    campaign_budget.amount_micros
+                FROM campaign
+                WHERE campaign.status != 'REMOVED'
+                ORDER BY campaign.name
+                """,
+                manager_id=cfg.get("manager_id", ""),
+            )
+        except HTTPException as e:
+            resumen["errores"].append(f"{marca} (info): {e.detail}")
+            continue
+
+        # ── Query 2: Métricas del mes actual (una fila por campaña, sin segments.date) ──
+        metricas_por_id: dict = {}
+        try:
+            rows_metrics = _gaql(
+                token, cfg["developer_token"], customer_id,
+                f"""
+                SELECT
+                    campaign.id,
                     metrics.impressions,
                     metrics.clicks,
                     metrics.cost_micros,
                     metrics.conversions,
                     metrics.ctr,
                     metrics.interactions,
-                    metrics.conversion_rate
+                    metrics.conversion_rate,
+                    metrics.cost_per_conversion
                 FROM campaign
                 WHERE campaign.status != 'REMOVED'
-                    AND segments.date DURING THIS_MONTH
-                ORDER BY metrics.cost_micros DESC
+                    AND segments.date BETWEEN '{mes_inicio}' AND '{mes_fin}'
                 """,
                 manager_id=cfg.get("manager_id", ""),
             )
-        except HTTPException as e:
-            resumen["errores"].append(f"{marca}: {e.detail}")
-            continue
+            # Agregar métricas por campaign.id (puede haber múltiples rows por día → sumar)
+            for r in rows_metrics:
+                cid = str(r.get("campaign", {}).get("id", ""))
+                if not cid:
+                    continue
+                m = r.get("metrics", {})
+                if cid not in metricas_por_id:
+                    metricas_por_id[cid] = {
+                        "impressions": 0, "clicks": 0, "costMicros": 0,
+                        "conversions": 0.0, "interactions": 0,
+                        "ctr": float(m.get("ctr", 0) or 0),
+                        "conversionRate": float(m.get("conversionRate", 0) or 0),
+                        "costPerConversion": float(m.get("costPerConversion", 0) or 0),
+                    }
+                metricas_por_id[cid]["impressions"] += int(m.get("impressions", 0) or 0)
+                metricas_por_id[cid]["clicks"] += int(m.get("clicks", 0) or 0)
+                metricas_por_id[cid]["costMicros"] += int(m.get("costMicros", 0) or 0)
+                metricas_por_id[cid]["conversions"] += float(m.get("conversions", 0) or 0)
+                metricas_por_id[cid]["interactions"] += int(m.get("interactions", 0) or 0)
+                # ctr/conversionRate/costPerConversion → tomar el último (son ratios, no sumas)
+                metricas_por_id[cid]["ctr"] = float(m.get("ctr", 0) or 0)
+                metricas_por_id[cid]["conversionRate"] = float(m.get("conversionRate", 0) or 0)
+                metricas_por_id[cid]["costPerConversion"] = float(m.get("costPerConversion", 0) or 0)
+        except HTTPException:
+            pass  # Si no hay métricas este mes, igual importamos las campañas con 0s
 
         creadas_marca = 0
         actualizadas_marca = 0
-        seen = set()
 
-        for row in rows:
+        for row in rows_info:
             c = row.get("campaign", {})
-            m = row.get("metrics", {})
             b = row.get("campaignBudget", {})
             gads_id = str(c.get("id", ""))
-            if not gads_id or gads_id in seen:
+            if not gads_id:
                 continue
-            seen.add(gads_id)
 
-            alcance = int(m.get("impressions", 0) or 0)
-            clics = int(m.get("clicks", 0) or 0)
-            gasto = round((int(m.get("costMicros", 0) or 0)) / 1_000_000, 2)
-            conversiones = max(0, int(float(m.get("conversions", 0) or 0)))
-            ctr = round(float(m.get("ctr", 0) or 0) * 100, 4)
-            interacciones = int(m.get("interactions", 0) or 0)
-            tasa_conv = round(float(m.get("conversionRate", 0) or 0) * 100, 2)
-            presupuesto = round((int(b.get("amountMicros", 0) or 0)) / 1_000_000, 2)
-            estado = ESTADO_MAP.get(c.get("status", ""), c.get("status", "Activa"))
+            m = metricas_por_id.get(gads_id, {})
 
-            # Parsear fechas
-            from datetime import date as date_type
+            # ── Mapeo Google Ads → Metrik ──────────────────────────────────────
+            # impresiones  → alcance
+            # coste        → gasto_actual (inversión)
+            # conversiones → leads
+            # ctr          → ctr
+            # conversion_rate → conversion (%)
+            # cost_per_conversion → cxc_porcentaje (costo x conversión)
+            # interactions → interacciones
+            alcance      = m.get("impressions", 0)
+            interacciones= m.get("interactions", 0)
+            leads        = max(0, int(m.get("conversions", 0)))
+            gasto        = round(m.get("costMicros", 0) / 1_000_000, 2)
+            ctr          = round(m.get("ctr", 0) * 100, 4)
+            tasa_conv    = round(m.get("conversionRate", 0) * 100, 2)
+            cxc          = round(m.get("costPerConversion", 0) / 1_000_000, 2) if m.get("costPerConversion") else 0.0
+            presupuesto  = round((int(b.get("amountMicros", 0) or 0)) / 1_000_000, 2)
+            estado       = ESTADO_MAP.get(c.get("status", ""), "Activa")
+
             fecha_inicio = None
-            fecha_fin = None
+            fecha_fin    = None
             try:
                 if c.get("startDate"):
                     fecha_inicio = date_type.fromisoformat(c["startDate"])
@@ -703,17 +742,16 @@ async def importar_campanas(
             except Exception:
                 pass
 
-            # Buscar si ya existe
             existente = db.query(Campanas).filter(Campanas.google_ads_id == gads_id).first()
-
             if existente:
-                existente.estado = estado
-                existente.alcance = alcance
+                existente.estado        = estado
+                existente.alcance       = alcance
                 existente.interacciones = interacciones
-                existente.leads = conversiones
-                existente.gasto_actual = gasto
-                existente.ctr = ctr
-                existente.conversion = tasa_conv
+                existente.leads         = leads
+                existente.gasto_actual  = gasto
+                existente.ctr           = ctr
+                existente.conversion    = tasa_conv
+                existente.cxc_porcentaje = cxc
                 if presupuesto:
                     existente.presupuesto = presupuesto
                 if fecha_inicio:
@@ -722,7 +760,7 @@ async def importar_campanas(
                     existente.fecha_fin = fecha_fin
                 actualizadas_marca += 1
             else:
-                nueva = Campanas(
+                db.add(Campanas(
                     nombre=c.get("name", f"Campaña {gads_id}"),
                     estado=estado,
                     plataforma="Google Ads",
@@ -730,26 +768,44 @@ async def importar_campanas(
                     google_ads_id=gads_id,
                     alcance=alcance,
                     interacciones=interacciones,
-                    leads=conversiones,
+                    leads=leads,
                     gasto_actual=gasto,
                     presupuesto=presupuesto or 0,
                     ctr=ctr,
                     conversion=tasa_conv,
+                    cxc_porcentaje=cxc,
                     fecha_inicio=fecha_inicio,
                     fecha_fin=fecha_fin,
                     auto_objetivo="",
                     creado_por="Google Ads Import",
-                )
-                db.add(nueva)
+                ))
                 creadas_marca += 1
 
         db.commit()
-        resumen["creadas"] += creadas_marca
+        resumen["creadas"]      += creadas_marca
         resumen["actualizadas"] += actualizadas_marca
-        resumen["marcas"].append({
-            "marca": marca,
-            "creadas": creadas_marca,
-            "actualizadas": actualizadas_marca,
-        })
+        resumen["marcas"].append({"marca": marca, "creadas": creadas_marca, "actualizadas": actualizadas_marca})
 
     return resumen
+
+
+@router.post("/importar")
+async def importar_campanas(payload: dict, user: user_dependency, db: db_dependency):
+    """Importa o actualiza campañas de Google Ads en la BD de Metrik."""
+    _require_admin(user)
+    cfg = _get_google_config(db)
+    if not _is_configured(cfg):
+        raise HTTPException(status_code=503, detail="Google Ads no configurado")
+
+    marca_solicitada = payload.get("marca", "").strip()
+    if marca_solicitada:
+        # Solo una marca: restringir el customer_map temporalmente
+        original_map = cfg.get("customer_map", {})
+        if marca_solicitada not in original_map and not cfg.get("customer_id"):
+            raise HTTPException(status_code=400, detail=f"Marca '{marca_solicitada}' no encontrada en la configuración")
+
+    result = _importar_todas_las_marcas(db)
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+    return result
+

@@ -1,17 +1,49 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+import asyncio
 import models
-from database import engine
+from database import engine, SessionLocal
 from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads
 
 # Cargar variables de entorno
 load_dotenv()
 
+GOOGLE_ADS_SYNC_INTERVAL = 600  # segundos (10 minutos)
+
+
+async def _auto_sync_loop():
+    """Importa/actualiza campañas de Google Ads cada 10 minutos en background."""
+    await asyncio.sleep(30)  # espera inicial al arrancar
+    while True:
+        try:
+            db = SessionLocal()
+            try:
+                google_ads._importar_todas_las_marcas(db)
+            finally:
+                db.close()
+        except Exception:
+            pass  # nunca crashear el servidor por un fallo de sync
+        await asyncio.sleep(GOOGLE_ADS_SYNC_INTERVAL)
+
+
+@asynccontextmanager
+async def lifespan(app):
+    task = asyncio.create_task(_auto_sync_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
 app = FastAPI(
     title="SGPME API",
     description="Sistema de Gestión de Presupuestos, Marcas y Eventos",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configuración de CORS
