@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import asyncio
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores
 
 # Cargar variables de entorno
 load_dotenv()
@@ -102,6 +102,7 @@ app.include_router(form_templates.router)
 app.include_router(desplazamiento.router)
 app.include_router(google_ads.router)
 app.include_router(meta_ads.router)
+app.include_router(embajadores.router)
 
 @app.get("/")
 async def root():

@@ -242,6 +242,20 @@ class Campanas(Base):
     meta_ads_id = Column(String, nullable=True)  # ID de campaña en Meta Ads
 
 
+class Embajadores(Base):
+    __tablename__ = 'embajadores'
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    plataformas_json = Column(Text, nullable=True)  # JSON: [{"plataforma": "Instagram", "usuario": "@user"}]
+    presupuesto = Column(Float, default=0.0)
+    leads = Column(Integer, default=0)
+    audiencia = Column(Integer, default=0)  # número real, ej. 85400
+    marca = Column(String, nullable=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    creado_por = Column(String, nullable=True)
+
+
 class PresenciaTradicional(Base):
     __tablename__ = 'presencia_tradicional'
 
