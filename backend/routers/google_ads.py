@@ -156,16 +156,17 @@ async def get_oauth_url(user: user_dependency):
     client_id = os.getenv("GOOGLE_ADS_CLIENT_ID")
     if not client_id:
         raise HTTPException(status_code=503, detail="Falta GOOGLE_ADS_CLIENT_ID en el servidor")
+    redirect_uri = os.getenv("GOOGLE_ADS_REDIRECT_URI", "http://localhost")
     url = (
         "https://accounts.google.com/o/oauth2/auth"
         f"?client_id={client_id}"
-        "&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+        f"&redirect_uri={redirect_uri}"
         "&response_type=code"
         "&scope=https://www.googleapis.com/auth/adwords"
         "&access_type=offline"
         "&prompt=consent"
     )
-    return {"url": url}
+    return {"url": url, "redirect_uri": redirect_uri}
 
 
 @router.post("/oauth/exchange")
@@ -181,6 +182,7 @@ async def exchange_oauth_code(payload: dict, user: user_dependency, db: db_depen
     if not client_id or not client_secret:
         raise HTTPException(status_code=503, detail="Faltan GOOGLE_ADS_CLIENT_ID o CLIENT_SECRET en el servidor")
 
+    redirect_uri = os.getenv("GOOGLE_ADS_REDIRECT_URI", "http://localhost")
     resp = http_requests.post(
         "https://oauth2.googleapis.com/token",
         json={
@@ -188,7 +190,7 @@ async def exchange_oauth_code(payload: dict, user: user_dependency, db: db_depen
             "client_secret": client_secret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+            "redirect_uri": redirect_uri,
         },
         timeout=15,
     )

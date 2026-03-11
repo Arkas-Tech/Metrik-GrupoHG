@@ -1412,8 +1412,13 @@ const CampanasPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center shrink-0">
-              <h2 className="text-xl font-bold text-gray-900">Configurar Google Ads</h2>
-              <button onClick={() => setModalGadsSetup(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-bold text-gray-900">
+                Configurar Google Ads
+              </h2>
+              <button
+                onClick={() => setModalGadsSetup(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
@@ -1437,7 +1442,9 @@ const CampanasPage = () => {
 
             <div className="p-6 overflow-y-auto flex-1 text-sm text-gray-700 space-y-4">
               {gadsSetupMsg && (
-                <p className={`font-medium ${gadsSetupMsg.startsWith("✅") ? "text-green-700" : "text-red-600"}`}>
+                <p
+                  className={`font-medium ${gadsSetupMsg.startsWith("✅") ? "text-green-700" : "text-red-600"}`}
+                >
                   {gadsSetupMsg}
                 </p>
               )}
@@ -1450,21 +1457,32 @@ const CampanasPage = () => {
                   </p>
                   <ol className="list-decimal ml-5 space-y-2">
                     <li>
-                      Abre el siguiente enlace con la cuenta MCC/administradora (la que agrupa todas las marcas):
+                      Abre el siguiente enlace con la cuenta MCC/administradora
+                      (la que agrupa todas las marcas):
                       {gadsOAuthUrl ? (
-                        <a href={gadsOAuthUrl} target="_blank" rel="noopener noreferrer"
-                          className="block mt-1 text-xs text-blue-600 underline break-all">
+                        <a
+                          href={gadsOAuthUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mt-1 text-xs text-blue-600 underline break-all"
+                        >
                           {gadsOAuthUrl.slice(0, 80)}...
                         </a>
                       ) : (
-                        <span className="block mt-1 text-gray-400 italic">Generando URL...</span>
+                        <span className="block mt-1 text-gray-400 italic">
+                          Generando URL...
+                        </span>
                       )}
                     </li>
                     <li>Acepta los permisos solicitados.</li>
-                    <li>Copia el código que aparece en pantalla y pégalo abajo.</li>
+                    <li>
+                      Serás redirigido a localhost (la página no carga, es normal). Copia el valor del parámetro <strong>code=</strong> que aparece en la barra de URL y pégalo abajo.
+                    </li>
                   </ol>
                   <div>
-                    <label className="block font-medium text-gray-800 mb-1">Código de autorización</label>
+                    <label className="block font-medium text-gray-800 mb-1">
+                      Código de autorización
+                    </label>
                     <input
                       type="text"
                       value={gadsAuthCode}
@@ -1481,14 +1499,17 @@ const CampanasPage = () => {
                     >
                       {gadsSetupLoading ? "Conectando..." : "Conectar"}
                     </button>
-                    <button onClick={() => setGadsSetupTab("cuentas")}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors">
+                    <button
+                      onClick={() => setGadsSetupTab("cuentas")}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+                    >
                       Siguiente: Cuentas →
                     </button>
                   </div>
                   <p className="text-xs text-gray-500">
-                    ⚠️ El servidor debe tener GOOGLE_ADS_DEVELOPER_TOKEN, CLIENT_ID, CLIENT_SECRET
-                    y GOOGLE_ADS_MANAGER_ID (ID de la cuenta MCC) en el .env.
+                    ⚠️ El servidor debe tener GOOGLE_ADS_DEVELOPER_TOKEN,
+                    CLIENT_ID, CLIENT_SECRET y GOOGLE_ADS_MANAGER_ID (ID de la
+                    cuenta MCC) en el .env.
                   </p>
                 </>
               )}
@@ -1497,13 +1518,19 @@ const CampanasPage = () => {
               {gadsSetupTab === "cuentas" && (
                 <>
                   <p className="text-gray-600">
-                    Asigna el <span className="font-semibold">Customer ID de Google Ads</span> (10 dígitos, sin guiones) a cada marca.
-                    Se usa automáticamente al sincronizar campañas.
+                    Asigna el{" "}
+                    <span className="font-semibold">
+                      Customer ID de Google Ads
+                    </span>{" "}
+                    (10 dígitos, sin guiones) a cada marca. Se usa
+                    automáticamente al sincronizar campañas.
                   </p>
                   <div className="space-y-3">
                     {MARCAS_CONOCIDAS.map((marca) => (
                       <div key={marca} className="flex items-center gap-3">
-                        <span className="w-44 shrink-0 text-gray-800 font-medium text-xs">{marca}</span>
+                        <span className="w-44 shrink-0 text-gray-800 font-medium text-xs">
+                          {marca}
+                        </span>
                         <input
                           type="text"
                           value={gadsCustomerMap[marca] || ""}
@@ -1521,7 +1548,9 @@ const CampanasPage = () => {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Encuéntralos en ads.google.com → selecciona la cuenta de cada marca → el número de 10 dígitos aparece arriba a la derecha.
+                    Encuéntralos en ads.google.com → selecciona la cuenta de
+                    cada marca → el número de 10 dígitos aparece arriba a la
+                    derecha.
                   </p>
                   <div className="flex gap-2 pt-2">
                     <button
@@ -1531,8 +1560,10 @@ const CampanasPage = () => {
                     >
                       {savingCustomerMap ? "Guardando..." : "Guardar cuentas"}
                     </button>
-                    <button onClick={() => setModalGadsSetup(false)}
-                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors">
+                    <button
+                      onClick={() => setModalGadsSetup(false)}
+                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+                    >
                       Cerrar
                     </button>
                   </div>
