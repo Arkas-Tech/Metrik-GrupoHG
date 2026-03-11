@@ -1056,6 +1056,21 @@ export default function ListaProyecciones({
                                     },
                                   );
 
+                                  // Incluir subcategorías dinámicas no presentes en la lista fija
+                                  partidasDeCategoria.forEach((partida) => {
+                                    if (
+                                      partida.subcategoria &&
+                                      !(partida.subcategoria in porSubcategoria)
+                                    ) {
+                                      porSubcategoria[partida.subcategoria] =
+                                        partidasDeCategoria.filter(
+                                          (p) =>
+                                            p.subcategoria ===
+                                            partida.subcategoria,
+                                        );
+                                    }
+                                  });
+
                                   return (
                                     <div
                                       key={categoria}
@@ -1338,6 +1353,21 @@ export default function ListaProyecciones({
                                           }
                                         },
                                       );
+
+                                      // Incluir subcategorías dinámicas no presentes en la lista fija
+                                      partidas.forEach((partida) => {
+                                        if (
+                                          partida.subcategoria &&
+                                          !(partida.subcategoria in porSubcategoria)
+                                        ) {
+                                          porSubcategoria[partida.subcategoria] =
+                                            partidas.filter(
+                                              (p) =>
+                                                p.subcategoria ===
+                                                partida.subcategoria,
+                                            );
+                                        }
+                                      });
 
                                       return (
                                         <div
