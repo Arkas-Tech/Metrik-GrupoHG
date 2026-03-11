@@ -39,6 +39,15 @@ interface Embajador {
   creado_por: string | null;
 }
 
+const MARCAS_CONOCIDAS = [
+  "GWM Chihuahua",
+  "Kia Juventud",
+  "Kia Juarez",
+  "Subaru Chihuahua",
+  "Toyota Chihuahua",
+  "Toyota Monclova",
+];
+
 const PLATAFORMAS_OPCIONES = [
   "Instagram",
   "TikTok",
@@ -227,7 +236,7 @@ export default function EmbajadoresPage() {
   // ── Filter by marca ─────────────────────────────────────────────────────────
 
   const embajadoresFiltrados = embajadores.filter((e) =>
-    filtraPorMarca(e.marca || ""),
+    !e.marca ? true : filtraPorMarca(e.marca),
   );
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -459,24 +468,27 @@ export default function EmbajadoresPage() {
                     setForm((f) => ({ ...f, nombre: e.target.value }))
                   }
                   placeholder="Ej. @mariana_fitness"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              {/* Marca */}
+              {/* Agencia */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Marca / Agencia
+                  Agencia
                 </label>
-                <input
-                  type="text"
+                <select
                   value={form.marca}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, marca: e.target.value }))
                   }
-                  placeholder="Ej. Toyota Chihuahua"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">— Sin agencia —</option>
+                  {MARCAS_CONOCIDAS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Plataformas */}
@@ -501,7 +513,7 @@ export default function EmbajadoresPage() {
                         onChange={(e) =>
                           updatePlataforma(i, "plataforma", e.target.value)
                         }
-                        className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       >
                         {PLATAFORMAS_OPCIONES.map((opt) => (
                           <option key={opt} value={opt}>
@@ -516,7 +528,7 @@ export default function EmbajadoresPage() {
                           updatePlataforma(i, "usuario", e.target.value)
                         }
                         placeholder="@usuario"
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                       {form.plataformas.length > 1 && (
                         <button
@@ -545,7 +557,7 @@ export default function EmbajadoresPage() {
                     setForm((f) => ({ ...f, presupuesto: e.target.value }))
                   }
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -562,7 +574,7 @@ export default function EmbajadoresPage() {
                     setForm((f) => ({ ...f, leads: e.target.value }))
                   }
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -582,7 +594,7 @@ export default function EmbajadoresPage() {
                     setForm((f) => ({ ...f, audiencia: e.target.value }))
                   }
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>
@@ -616,7 +628,10 @@ export default function EmbajadoresPage() {
           isOpen={configSidebarOpen}
           onClose={() => setConfigSidebarOpen(false)}
           onNavigate={(item) => {
-            if (item === "configuracion") { window.location.href = "/configuracion"; return; }
+            if (item === "configuracion") {
+              window.location.href = "/configuracion";
+              return;
+            }
             setActiveConfigView(item);
             setConfigSidebarOpen(false);
           }}
@@ -633,9 +648,20 @@ export default function EmbajadoresPage() {
         />
       )}
       {activeConfigView !== "" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setActiveConfigView("")}>
-          <div className="bg-white rounded-xl p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setActiveConfigView("")} className="float-right text-gray-500 hover:text-gray-700">&times;</button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setActiveConfigView("")}
+        >
+          <div
+            className="bg-white rounded-xl p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setActiveConfigView("")}
+              className="float-right text-gray-500 hover:text-gray-700"
+            >
+              &times;
+            </button>
             <p className="text-gray-600">{activeConfigView}</p>
           </div>
         </div>
