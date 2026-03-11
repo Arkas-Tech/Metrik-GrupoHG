@@ -50,17 +50,20 @@ class CampanyaResponse(BaseModel):
     alcance: int
     interacciones: int
     ctr: float
-    fecha_inicio: date
-    fecha_fin: date
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
     presupuesto: float
     gasto_actual: float
-    auto_objetivo: str
+    auto_objetivo: Optional[str] = None
     conversion: float
     cxc_porcentaje: float
     marca: str
-    imagenes_json: Optional[str]
-    creado_por: str
+    imagenes_json: Optional[str] = None
+    creado_por: Optional[str] = None
     google_ads_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 @router.get("/", response_model=list[CampanyaResponse], status_code=status.HTTP_200_OK)
 async def read_all_campanas(user: user_dependency, db: db_dependency,

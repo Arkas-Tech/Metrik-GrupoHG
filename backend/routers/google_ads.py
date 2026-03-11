@@ -736,6 +736,8 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                     fecha_inicio = date_type.fromisoformat(c["startDate"])
             except Exception:
                 pass
+            if fecha_inicio is None:
+                fecha_inicio = hoy  # fallback: hoy si Google no devuelve fecha
             try:
                 if c.get("endDate") and c["endDate"] != "2037-12-30":
                     fecha_fin = date_type.fromisoformat(c["endDate"])

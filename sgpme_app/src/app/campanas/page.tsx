@@ -554,22 +554,25 @@ const CampanasPage = () => {
       // Filtrar por marcas permitidas del usuario
       if (!filtraPorMarca(campana.marca)) return false;
 
+      // Si no hay fecha o los filtros están en "Todos", pasa siempre
+      const cumplePlataforma =
+        plataformaSeleccionada === "Todas" ||
+        campana.plataforma === plataformaSeleccionada;
+
+      if (!campana.fecha_inicio) return cumplePlataforma;
+
       const fechaInicio = new Date(campana.fecha_inicio);
       const mesCampana = fechaInicio.getMonth() + 1;
       const añoCampana = fechaInicio.getFullYear();
 
       const cumpleMes = mesSeleccionado === 0 || mesCampana === mesSeleccionado;
       const cumpleAño = añoSeleccionado === 0 || añoCampana === añoSeleccionado;
-      const cumplePlataforma =
-        plataformaSeleccionada === "Todas" ||
-        campana.plataforma === plataformaSeleccionada;
 
       return cumpleMes && cumpleAño && cumplePlataforma;
     })
     .sort((a, b) => {
-      // Ordenar por fecha de inicio descendente (más recientes primero)
-      const fechaA = new Date(a.fecha_inicio).getTime();
-      const fechaB = new Date(b.fecha_inicio).getTime();
+      const fechaA = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : 0;
+      const fechaB = b.fecha_inicio ? new Date(b.fecha_inicio).getTime() : 0;
       return fechaB - fechaA;
     });
 
@@ -670,15 +673,27 @@ const CampanasPage = () => {
             <div className="flex items-center gap-3">
               {isAdmin && gadsConfigured && (
                 <button
-                  onClick={() => importarCampanas(marcaSeleccionada || undefined)}
+                  onClick={() =>
+                    importarCampanas(marcaSeleccionada || undefined)
+                  }
                   disabled={importando}
                   title="Sincronizar campañas desde Google Ads"
                   className="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center gap-2 text-sm"
                 >
-                  <svg className={`w-4 h-4 ${importando ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <svg
+                    className={`w-4 h-4 ${importando ? "animate-spin" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
-                  {importando ? 'Actualizando...' : 'Actualizar'}
+                  {importando ? "Actualizando..." : "Actualizar"}
                 </button>
               )}
               {!isAuditor && (
@@ -805,12 +820,14 @@ const CampanasPage = () => {
                       >
                         {campana.plataforma}
                       </span>
-                      <span className="font-medium text-gray-900">
-                        $
-                        {new Intl.NumberFormat("es-MX").format(
-                          campana.presupuesto,
-                        )}
-                      </span>
+                      {campana.presupuesto > 0 && (
+                        <span className="font-medium text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX").format(
+                            campana.presupuesto,
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-4 mb-6">
@@ -851,12 +868,15 @@ const CampanasPage = () => {
                         <span className="text-sm text-gray-600">CxC</span>
                       </div>
                       <span className="text-lg font-bold text-orange-600">
-                        {campana.cxc_porcentaje.toFixed(2)}%
+                        {campana.cxc_porcentaje > 0
+                          ? `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(campana.cxc_porcentaje)}`
+                          : "—"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Barra de progreso de gasto */}
+                  {/* Barra de progreso de gasto — solo si hay presupuesto */}
+                  {campana.presupuesto > 0 ? (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">
@@ -929,15 +949,28 @@ const CampanasPage = () => {
                       %
                     </div>
                   </div>
+                  ) : campana.gasto_actual > 0 ? (
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Inversión</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      ${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2 }).format(campana.gasto_actual)}
+                    </span>
+                  </div>
+                  ) : null}
 
                   <div className="text-xs text-gray-500 mb-4 p-2 bg-gray-50 rounded">
                     <div className="flex justify-between">
                       <span>
                         Inicio:{" "}
-                        {campana.fecha_inicio.split("-").reverse().join("/")}
+                        {campana.fecha_inicio
+                          ? campana.fecha_inicio.split("-").reverse().join("/")
+                          : "—"}
                       </span>
                       <span>
-                        Fin: {campana.fecha_fin.split("-").reverse().join("/")}
+                        Fin:{" "}
+                        {campana.fecha_fin
+                          ? campana.fecha_fin.split("-").reverse().join("/")
+                          : "—"}
                       </span>
                     </div>
                   </div>
