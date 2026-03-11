@@ -123,8 +123,8 @@ const CampanasPage = () => {
 
   // Filtros
   const fechaActual = new Date();
-  const [mesSeleccionado, setMesSeleccionado] = useState(0); // 0 = Todos
-  const [añoSeleccionado, setAñoSeleccionado] = useState(0); // 0 = Todos
+  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([fechaActual.getMonth() + 1]);
+  const [añoSeleccionado, setAñoSeleccionado] = useState(fechaActual.getFullYear());
   const [busquedaCampana, setBusquedaCampana] = useState("");
 
   // Métricas filtradas por período (google_ads_id → métricas)
@@ -327,16 +327,9 @@ const CampanasPage = () => {
     if (isAdmin && usuario) cargarGadsStatus();
   }, [isAdmin, usuario, cargarGadsStatus]);
 
-  // Cargar métricas filtradas cuando cambia mes/año
+  // Cargar métricas filtradas cuando cambia la selección de meses/año
   useEffect(() => {
-    if (mesSeleccionado === 0 && añoSeleccionado === 0) {
-      setMetricasPeriodo({});
-      setMetricasPeriodoMeta({});
-      return;
-    }
-    const year = añoSeleccionado || new Date().getFullYear();
-    const month = mesSeleccionado || 1;
-    if (mesSeleccionado === 0 || añoSeleccionado === 0) {
+    if (mesesSeleccionados.length === 0 || añoSeleccionado === 0) {
       setMetricasPeriodo({});
       setMetricasPeriodoMeta({});
       return;
@@ -344,26 +337,48 @@ const CampanasPage = () => {
     let cancelled = false;
     (async () => {
       try {
-        const [gRes, mRes] = await Promise.all([
-          fetchConToken(
-            `${API_URL}/google-ads/metrics?year=${year}&month=${month}`,
-          ),
-          fetchConToken(
-            `${API_URL}/meta-ads/metrics?year=${year}&month=${month}`,
-          ),
-        ]);
+        type MetricasEntry = {
+          alcance: number; interacciones: number; leads: number;
+          gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number;
+        };
+        const mergeEntry = (a: MetricasEntry, b: MetricasEntry): MetricasEntry => ({
+          alcance: a.alcance + b.alcance,
+          interacciones: a.interacciones + b.interacciones,
+          leads: a.leads + b.leads,
+          gasto_actual: a.gasto_actual + b.gasto_actual,
+          ctr: (a.ctr + b.ctr) / 2,
+          conversion: (a.conversion + b.conversion) / 2,
+          cxc_porcentaje: (a.cxc_porcentaje + b.cxc_porcentaje) / 2,
+        });
+        const mergeAll = (maps: Record<string, MetricasEntry>[]) =>
+          maps.reduce((acc, map) => {
+            for (const [id, m] of Object.entries(map)) {
+              acc[id] = acc[id] ? mergeEntry(acc[id], m) : m;
+            }
+            return acc;
+          }, {} as Record<string, MetricasEntry>);
+        const resultados = await Promise.all(
+          mesesSeleccionados.map(async (mes) => {
+            const [gRes, mRes] = await Promise.all([
+              fetchConToken(`${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${mes}`),
+              fetchConToken(`${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${mes}`),
+            ]);
+            return {
+              gData: gRes.ok ? (await gRes.json()) as Record<string, MetricasEntry> : {},
+              mData: mRes.ok ? (await mRes.json()) as Record<string, MetricasEntry> : {},
+            };
+          })
+        );
         if (!cancelled) {
-          if (gRes.ok) setMetricasPeriodo(await gRes.json());
-          if (mRes.ok) setMetricasPeriodoMeta(await mRes.json());
+          setMetricasPeriodo(mergeAll(resultados.map((r) => r.gData)));
+          setMetricasPeriodoMeta(mergeAll(resultados.map((r) => r.mData)));
         }
       } catch {
         // silently ignore
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [mesSeleccionado, añoSeleccionado, API_URL]);
+    return () => { cancelled = true; };
+  }, [mesesSeleccionados, añoSeleccionado, API_URL]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -548,7 +563,7 @@ const CampanasPage = () => {
   };
 
   // Filtrar campañas por mes, año, plataforma y búsqueda
-  const hayFiltroFecha = mesSeleccionado !== 0 && añoSeleccionado !== 0;
+  const hayFiltroFecha = mesesSeleccionados.length > 0 && añoSeleccionado !== 0;
   const terminoBusqueda = busquedaCampana.trim().toLowerCase();
 
   const campanasFiltradas = campanasDb
@@ -557,7 +572,11 @@ const CampanasPage = () => {
       if (!filtraPorMarca(campana.marca)) return false;
 
       // Filtrar por nombre de campaña
-      if (terminoBusqueda && !campana.nombre.toLowerCase().includes(terminoBusqueda)) return false;
+      if (
+        terminoBusqueda &&
+        !campana.nombre.toLowerCase().includes(terminoBusqueda)
+      )
+        return false;
 
       const cumplePlataforma =
         plataformaSeleccionada === "Todas" ||
@@ -586,7 +605,7 @@ const CampanasPage = () => {
       const mesCampana = fechaInicio.getMonth() + 1;
       const añoCampana = fechaInicio.getFullYear();
       return (
-        mesCampana === mesSeleccionado &&
+        mesesSeleccionados.includes(mesCampana) &&
         añoCampana === añoSeleccionado &&
         cumplePlataforma
       );
@@ -617,26 +636,43 @@ const CampanasPage = () => {
       return fechaB - fechaA;
     });
 
-  const meses = [
-    { value: 0, label: "Todos" },
-    { value: 1, label: "Enero" },
-    { value: 2, label: "Febrero" },
-    { value: 3, label: "Marzo" },
-    { value: 4, label: "Abril" },
-    { value: 5, label: "Mayo" },
-    { value: 6, label: "Junio" },
-    { value: 7, label: "Julio" },
-    { value: 8, label: "Agosto" },
-    { value: 9, label: "Septiembre" },
-    { value: 10, label: "Octubre" },
-    { value: 11, label: "Noviembre" },
-    { value: 12, label: "Diciembre" },
-  ];
+  const TRIMESTRES_NUMS: Record<string, number[]> = {
+    Q1: [1, 2, 3],
+    Q2: [4, 5, 6],
+    Q3: [7, 8, 9],
+    Q4: [10, 11, 12],
+  };
+  const MESES_NOMBRES = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-  const años = [
-    0, // Todos
-    ...Array.from({ length: 5 }, (_, i) => fechaActual.getFullYear() - 2 + i),
-  ];
+  const toggleMes = (mes: number) => {
+    setMesesSeleccionados((prev) =>
+      prev.includes(mes) ? prev.filter((m) => m !== mes) : [...prev, mes]
+    );
+  };
+  const toggleTrimestre = (mesesQ: number[]) => {
+    const todosActivos = mesesQ.every((m) => mesesSeleccionados.includes(m));
+    setMesesSeleccionados((prev) =>
+      todosActivos
+        ? prev.filter((m) => !mesesQ.includes(m))
+        : [...new Set([...prev, ...mesesQ])]
+    );
+  };
+  const seleccionarYTD = () => {
+    const mesActual = fechaActual.getMonth() + 1;
+    const ytd = Array.from({ length: mesActual }, (_, i) => i + 1);
+    const estaActivo =
+      ytd.every((m) => mesesSeleccionados.includes(m)) &&
+      mesesSeleccionados.length === ytd.length;
+    setMesesSeleccionados(estaActivo ? [] : ytd);
+  };
+  const limpiarFiltros = () => {
+    setMesesSeleccionados([fechaActual.getMonth() + 1]);
+    setAñoSeleccionado(fechaActual.getFullYear());
+    setPlataformaSeleccionada("Todas");
+    setBusquedaCampana("");
+  };
+
+  const años = Array.from({ length: 5 }, (_, i) => fechaActual.getFullYear() - 2 + i);
 
   const plataformas = ["Todas", "Meta Ads", "Google Ads", "TikTok Ads"];
 
@@ -764,63 +800,44 @@ const CampanasPage = () => {
 
           {/* Filtros */}
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Filtros</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mes
-                </label>
-                <select
-                  value={mesSeleccionado}
-                  onChange={(e) => setMesSeleccionado(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
-                >
-                  {meses.map((mes) => (
-                    <option key={mes.value} value={mes.value}>
-                      {mes.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Filtros</h2>
+              <button
+                onClick={limpiarFiltros}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Limpiar filtros
+              </button>
+            </div>
 
+            {/* Fila superior: Año, Plataforma, Búsqueda */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Año
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
                 <select
                   value={añoSeleccionado}
                   onChange={(e) => setAñoSeleccionado(Number(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
                 >
                   {años.map((año) => (
-                    <option key={año} value={año}>
-                      {año === 0 ? "Todos" : año}
-                    </option>
+                    <option key={año} value={año}>{año}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Plataforma
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Plataforma</label>
                 <select
                   value={plataformaSeleccionada}
                   onChange={(e) => setPlataformaSeleccionada(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
                 >
                   {plataformas.map((plataforma) => (
-                    <option key={plataforma} value={plataforma}>
-                      {plataforma}
-                    </option>
+                    <option key={plataforma} value={plataforma}>{plataforma}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaña
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Campaña</label>
                 <input
                   type="text"
                   value={busquedaCampana}
@@ -829,6 +846,69 @@ const CampanasPage = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
                 />
               </div>
+            </div>
+
+            {/* Accesos rápidos por trimestre / YTD */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(TRIMESTRES_NUMS).map(([q, mesesQ]) => {
+                  const activo = mesesQ.every((m) => mesesSeleccionados.includes(m));
+                  return (
+                    <button
+                      key={q}
+                      onClick={() => toggleTrimestre(mesesQ)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                        activo
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {q}
+                    </button>
+                  );
+                })}
+                {(() => {
+                  const mesActual = fechaActual.getMonth() + 1;
+                  const ytd = Array.from({ length: mesActual }, (_, i) => i + 1);
+                  const ytdActivo =
+                    ytd.every((m) => mesesSeleccionados.includes(m)) &&
+                    mesesSeleccionados.length === ytd.length;
+                  return (
+                    <button
+                      onClick={seleccionarYTD}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                        ytdActivo
+                          ? "bg-purple-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      YTD
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Meses individuales */}
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
+              {MESES_NOMBRES.slice(1).map((nombre, idx) => {
+                const num = idx + 1;
+                const activo = mesesSeleccionados.includes(num);
+                return (
+                  <button
+                    key={num}
+                    onClick={() => toggleMes(num)}
+                    className={`py-1.5 px-1 rounded-md text-xs font-semibold text-center transition-colors border ${
+                      activo
+                        ? "bg-green-100 border-green-500 text-green-800"
+                        : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {nombre.slice(0, 3)}
+                  </button>
+                );
+              })}
             </div>
           </div>
           {loadingCampanas && (
