@@ -875,88 +875,20 @@ const CampanasPage = () => {
                     </div>
                   </div>
 
-                  {/* Barra de progreso de gasto — solo si hay presupuesto */}
-                  {campana.presupuesto > 0 ? (
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
+                  {/* Gasto actual */}
+                  {(campana.gasto_actual || 0) > 0 && (
+                    <div className="mb-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
-                        Gasto Actual
+                        Inversión
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">
-                          $
-                          {new Intl.NumberFormat("es-MX").format(
-                            campana.gasto_actual || 0,
-                          )}{" "}
-                          / $
-                          {new Intl.NumberFormat("es-MX").format(
-                            campana.presupuesto,
-                          )}
-                        </span>
-                        {!isAuditor && (
-                          <button
-                            onClick={() => {
-                              console.log("Click en lápiz - Estado actual:", {
-                                campanaId: campana.id,
-                                gastoActual: campana.gasto_actual,
-                                isAuditor,
-                                editandoGasto,
-                              });
-                              setEditandoGasto(campana.id);
-                              setGastoTemporal(campana.gasto_actual || 0);
-                              console.log("Estado después del click:", {
-                                editandoGasto: campana.id,
-                                gastoTemporal: campana.gasto_actual || 0,
-                              });
-                            }}
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                            title="Editar gasto"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                      <span className="text-sm font-bold text-gray-900">
+                        $
+                        {new Intl.NumberFormat("es-MX", {
+                          minimumFractionDigits: 2,
+                        }).format(campana.gasto_actual)}
+                      </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full transition-all ${
-                          ((campana.gasto_actual || 0) / campana.presupuesto) *
-                            100 >=
-                          100
-                            ? "bg-red-600"
-                            : ((campana.gasto_actual || 0) /
-                                  campana.presupuesto) *
-                                  100 >=
-                                80
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                        }`}
-                        style={{
-                          width: `${Math.min(
-                            ((campana.gasto_actual || 0) /
-                              campana.presupuesto) *
-                              100,
-                            100,
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1 text-right">
-                      {(
-                        ((campana.gasto_actual || 0) / campana.presupuesto) *
-                        100
-                      ).toFixed(1)}
-                      %
-                    </div>
-                  </div>
-                  ) : campana.gasto_actual > 0 ? (
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Inversión</span>
-                    <span className="text-sm font-bold text-gray-900">
-                      ${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2 }).format(campana.gasto_actual)}
-                    </span>
-                  </div>
-                  ) : null}
+                  )}
 
                   <div className="text-xs text-gray-500 mb-4 p-2 bg-gray-50 rounded">
                     <div className="flex justify-between">

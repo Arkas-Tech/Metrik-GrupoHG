@@ -319,11 +319,9 @@ async def list_gads_campaigns(
             metrics.conversions,
             metrics.ctr,
             metrics.average_cpc,
-            metrics.interactions,
-            metrics.conversion_rate
+            metrics.interactions
         FROM campaign
         WHERE campaign.status != 'REMOVED'
-            AND segments.date DURING THIS_MONTH
         ORDER BY metrics.cost_micros DESC
         """,
         manager_id=cfg.get("manager_id", ""),
@@ -352,7 +350,6 @@ async def list_gads_campaigns(
                 "ctr": round(float(m.get("ctr", 0) or 0) * 100, 2),
                 "cpc_promedio": round((int(m.get("averageCpc", 0) or 0)) / 1_000_000, 2),
                 "interacciones": int(m.get("interactions", 0) or 0),
-                "tasa_conversion": round(float(m.get("conversionRate", 0) or 0) * 100, 2),
             }
         )
     return results
@@ -539,16 +536,15 @@ async def sync_campaign_metrics(
             metrics.conversions,
             metrics.ctr,
             metrics.interactions,
-            metrics.conversion_rate
+            metrics.cost_per_conversion
         FROM campaign
         WHERE campaign.id = {campana.google_ads_id}
-            AND segments.date DURING THIS_MONTH
         """,
         manager_id=cfg.get("manager_id", ""),
     )
 
     if not rows:
-        return {"updated": False, "message": "No hay datos para este mes en Google Ads"}
+        return {"updated": False, "message": "No hay datos en Google Ads para esta campaña"}
 
     m = rows[0].get("metrics", {})
     campana.alcance = int(m.get("impressions", 0) or 0)
@@ -556,7 +552,10 @@ async def sync_campaign_metrics(
     campana.leads = max(0, int(float(m.get("conversions", 0) or 0)))
     campana.gasto_actual = round((int(m.get("costMicros", 0) or 0)) / 1_000_000, 2)
     campana.ctr = round(float(m.get("ctr", 0) or 0) * 100, 4)
-    campana.conversion = round(float(m.get("conversionRate", 0) or 0) * 100, 2)
+    interactions = int(m.get("interactions", 0) or 0)
+    conversions = float(m.get("conversions", 0) or 0)
+    campana.conversion = round((conversions / interactions * 100) if interactions > 0 else 0, 2)
+    campana.cxc_porcentaje = round((float(m.get("costPerConversion", 0) or 0)) / 1_000_000, 2)
     db.commit()
 
     return {
@@ -616,10 +615,7 @@ def _importar_todas_las_marcas(db: Session) -> dict:
 
     ESTADO_MAP = {"ENABLED": "Activa", "PAUSED": "Pausada", "REMOVED": "Completada"}
 
-    # Rango del mes actual para query de métricas
     hoy = date_type.today()
-    mes_inicio = hoy.replace(day=1).isoformat()
-    mes_fin = hoy.isoformat()
 
     resumen = {"creadas": 0, "actualizadas": 0, "marcas": [], "errores": []}
 
@@ -651,12 +647,12 @@ def _importar_todas_las_marcas(db: Session) -> dict:
             resumen["errores"].append(f"{marca} (info): {e.detail}")
             continue
 
-        # ── Query 2: Métricas del mes actual (una fila por campaña, sin segments.date) ──
+        # ── Query 2: Métricas acumuladas (all-time, sin filtro de fecha) ──
         metricas_por_id: dict = {}
         try:
             rows_metrics = _gaql(
                 token, cfg["developer_token"], customer_id,
-                f"""
+                """
                 SELECT
                     campaign.id,
                     metrics.impressions,
@@ -668,30 +664,24 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                     metrics.cost_per_conversion
                 FROM campaign
                 WHERE campaign.status != 'REMOVED'
-                    AND segments.date BETWEEN '{mes_inicio}' AND '{mes_fin}'
                 """,
                 manager_id=cfg.get("manager_id", ""),
             )
-            # Agregar métricas por campaign.id (puede haber múltiples rows por día → sumar)
+            # Sin filtro de fecha → una sola fila por campaña (all-time)
             for r in rows_metrics:
                 cid = str(r.get("campaign", {}).get("id", ""))
                 if not cid:
                     continue
                 m = r.get("metrics", {})
-                if cid not in metricas_por_id:
-                    metricas_por_id[cid] = {
-                        "impressions": 0, "clicks": 0, "costMicros": 0,
-                        "conversions": 0.0, "interactions": 0,
-                        "ctr": 0.0, "costPerConversion": 0.0,
-                    }
-                metricas_por_id[cid]["impressions"] += int(m.get("impressions", 0) or 0)
-                metricas_por_id[cid]["clicks"] += int(m.get("clicks", 0) or 0)
-                metricas_por_id[cid]["costMicros"] += int(m.get("costMicros", 0) or 0)
-                metricas_por_id[cid]["conversions"] += float(m.get("conversions", 0) or 0)
-                metricas_por_id[cid]["interactions"] += int(m.get("interactions", 0) or 0)
-                # ctr/costPerConversion → tomar el último (son ratios/promedios, no sumas)
-                metricas_por_id[cid]["ctr"] = float(m.get("ctr", 0) or 0)
-                metricas_por_id[cid]["costPerConversion"] = float(m.get("costPerConversion", 0) or 0)
+                metricas_por_id[cid] = {
+                    "impressions": int(m.get("impressions", 0) or 0),
+                    "clicks": int(m.get("clicks", 0) or 0),
+                    "costMicros": int(m.get("costMicros", 0) or 0),
+                    "conversions": float(m.get("conversions", 0) or 0),
+                    "interactions": int(m.get("interactions", 0) or 0),
+                    "ctr": float(m.get("ctr", 0) or 0),
+                    "costPerConversion": float(m.get("costPerConversion", 0) or 0),
+                }
         except HTTPException:
             pass  # Si no hay métricas este mes, igual importamos las campañas con 0s
 
