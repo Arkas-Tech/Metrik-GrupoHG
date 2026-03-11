@@ -3,9 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import asyncio
-import signal
-import logging
-import os
 import models
 from database import engine, SessionLocal
 from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion
@@ -13,57 +10,10 @@ from routers import auth, marcas, admin, eventos, facturas, proyecciones, provee
 # Cargar variables de entorno
 load_dotenv()
 
-# ── Diagnóstico de señales ─────────────────────────────────────────────────────
-def _log_sigterm(signum, frame):
-    sender_pid = None
-    try:
-        import subprocess
-        result = subprocess.run(["ps", "axo", "pid,ppid,comm"], capture_output=True, text=True)
-        mypid = os.getpid()
-        logging.warning(f"[SIGTERM] PID={mypid} recibió señal {signum}. Procesos activos:\n{result.stdout[:1000]}")
-    except Exception as e:
-        logging.warning(f"[SIGTERM] PID={os.getpid()} recibió señal {signum}. Error info: {e}")
-    # Re-avisar al handler original de uvicorn
-    signal.default_int_handler(signum, frame)
-
-signal.signal(signal.SIGTERM, _log_sigterm)
-
-ADS_SYNC_INTERVAL = 600  # segundos (10 minutos)
-
-
-async def _auto_sync_loop():
-    """Importa/actualiza campañas de Google Ads y Meta Ads cada 10 minutos."""
-    await asyncio.sleep(30)  # espera inicial al arrancar
-    while True:
-        loop = asyncio.get_event_loop()
-        try:
-            db = SessionLocal()
-            try:
-                await loop.run_in_executor(None, google_ads._importar_todas_las_marcas, db)
-            finally:
-                db.close()
-        except Exception:
-            pass
-        try:
-            db = SessionLocal()
-            try:
-                await loop.run_in_executor(None, meta_ads._importar_todas_las_marcas, db)
-            finally:
-                db.close()
-        except Exception:
-            pass
-        await asyncio.sleep(ADS_SYNC_INTERVAL)
-
 
 @asynccontextmanager
 async def lifespan(app):
-    task = asyncio.create_task(_auto_sync_loop())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
 
 
 app = FastAPI(
