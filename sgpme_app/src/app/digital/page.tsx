@@ -23,6 +23,7 @@ import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
+import { fetchConToken } from "@/lib/auth-utils";
 import { useCampanas } from "@/hooks/useCampanas";
 import FormularioPresencia from "@/components/FormularioPresencia";
 import { usePresencias, Presencia } from "@/hooks/usePresencias";
@@ -65,6 +66,17 @@ const MetricasPage = () => {
   const [metricaEditando, setMetricaEditando] = useState<Metrica | null>(null);
   const [historialExpanded, setHistorialExpanded] = useState(false);
 
+  // Embajadores
+  const [embajadoresDig, setEmbajadoresDig] = useState<Array<{
+    id: number;
+    nombre: string;
+    plataformas_json: string | null;
+    presupuesto: number;
+    leads: number;
+    audiencia: number;
+    marca: string | null;
+  }>>([]);
+
   const [mesSeleccionado, setMesSeleccionado] = useState<number | undefined>(
     undefined,
   );
@@ -90,6 +102,14 @@ const MetricasPage = () => {
     actualizarMetrica,
     eliminarMetrica,
   } = useMetricas();
+
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+    fetchConToken(`${API_URL}/embajadores/`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setEmbajadoresDig(Array.isArray(data) ? data : []))
+      .catch(() => setEmbajadoresDig([]));
+  }, []);
 
   useEffect(() => {
     if (usuario) {
@@ -1019,168 +1039,91 @@ const MetricasPage = () => {
 
           {/* Sección Embajadores */}
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Embajadores
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Embajador 1 */}
-              <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-6 border-2 border-purple-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-purple-900">
-                    @mariana_fitness
-                  </h3>
-                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Presupuesto:
-                    </span>
-                    <span className="text-lg font-bold text-purple-900">
-                      $25,000
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads:
-                    </span>
-                    <span className="text-lg font-bold text-purple-900">
-                      342
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Audiencia:
-                    </span>
-                    <span className="text-lg font-bold text-purple-900">
-                      85.4K
-                    </span>
-                  </div>
-                </div>
-                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                  Ver detalles
-                </button>
-              </div>
-
-              {/* Embajador 2 */}
-              <div className="bg-linear-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-pink-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-pink-900">
-                    @carlos_tech
-                  </h3>
-                  <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Presupuesto:
-                    </span>
-                    <span className="text-lg font-bold text-pink-900">
-                      $18,500
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads:
-                    </span>
-                    <span className="text-lg font-bold text-pink-900">276</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Audiencia:
-                    </span>
-                    <span className="text-lg font-bold text-pink-900">
-                      62.1K
-                    </span>
-                  </div>
-                </div>
-                <button className="w-full bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                  Ver detalles
-                </button>
-              </div>
-
-              {/* Embajador 3 */}
-              <div className="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border-2 border-indigo-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-indigo-900">
-                    @sofia_lifestyle
-                  </h3>
-                  <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Presupuesto:
-                    </span>
-                    <span className="text-lg font-bold text-indigo-900">
-                      $32,000
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads:
-                    </span>
-                    <span className="text-lg font-bold text-indigo-900">
-                      418
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Audiencia:
-                    </span>
-                    <span className="text-lg font-bold text-indigo-900">
-                      127.8K
-                    </span>
-                  </div>
-                </div>
-                <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                  Ver detalles
-                </button>
-              </div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Embajadores</h2>
+              <button
+                onClick={() => router.push("/embajadores")}
+                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+              >
+                Ver todos →
+              </button>
             </div>
+
+            {(() => {
+              const embFiltrados = embajadoresDig.filter((e) =>
+                !e.marca ? true : filtraPorMarca(e.marca),
+              );
+              if (embFiltrados.length === 0) {
+                return (
+                  <div className="text-center py-10 text-gray-400">
+                    <p className="text-sm">No hay embajadores registrados.</p>
+                    <button
+                      onClick={() => router.push("/embajadores")}
+                      className="mt-3 text-purple-600 hover:underline text-sm font-medium"
+                    >
+                      Administrar embajadores →
+                    </button>
+                  </div>
+                );
+              }
+              const paletas = [
+                { bg: "from-purple-50 to-purple-100", border: "border-purple-200", avatar: "bg-purple-600", text: "text-purple-900" },
+                { bg: "from-pink-50 to-pink-100", border: "border-pink-200", avatar: "bg-pink-600", text: "text-pink-900" },
+                { bg: "from-indigo-50 to-indigo-100", border: "border-indigo-200", avatar: "bg-indigo-600", text: "text-indigo-900" },
+              ];
+              const fmtAud = (n: number) => {
+                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+                return String(n);
+              };
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {embFiltrados.slice(0, 6).map((emb, idx) => {
+                    const p = paletas[idx % paletas.length];
+                    let plataformas: Array<{ plataforma: string; usuario: string }> = [];
+                    try { if (emb.plataformas_json) plataformas = JSON.parse(emb.plataformas_json); } catch { /* ignore */ }
+                    return (
+                      <div key={emb.id} className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className={`text-lg font-bold ${p.text} leading-tight`}>{emb.nombre}</h3>
+                            {emb.marca && <p className="text-xs text-gray-500 mt-0.5">{emb.marca}</p>}
+                          </div>
+                          <div className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}>
+                            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                        {plataformas.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {plataformas.map((pl, i) => (
+                              <span key={i} className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full">
+                                {pl.plataforma}{pl.usuario ? ` · ${pl.usuario}` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Presupuesto:</span>
+                            <span className={`text-base font-bold ${p.text}`}>${new Intl.NumberFormat("es-MX").format(emb.presupuesto)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Leads:</span>
+                            <span className={`text-base font-bold ${p.text}`}>{new Intl.NumberFormat("es-MX").format(emb.leads)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Audiencia:</span>
+                            <span className={`text-base font-bold ${p.text}`}>{fmtAud(emb.audiencia)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </main>

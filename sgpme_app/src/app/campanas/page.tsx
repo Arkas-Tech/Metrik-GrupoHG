@@ -125,6 +125,7 @@ const CampanasPage = () => {
   const fechaActual = new Date();
   const [mesSeleccionado, setMesSeleccionado] = useState(0); // 0 = Todos
   const [añoSeleccionado, setAñoSeleccionado] = useState(0); // 0 = Todos
+  const [busquedaCampana, setBusquedaCampana] = useState("");
 
   // Métricas filtradas por período (google_ads_id → métricas)
   const [metricasPeriodo, setMetricasPeriodo] = useState<
@@ -546,13 +547,17 @@ const CampanasPage = () => {
     return new Intl.NumberFormat("es-ES").format(num);
   };
 
-  // Filtrar campañas por mes, año y plataforma
+  // Filtrar campañas por mes, año, plataforma y búsqueda
   const hayFiltroFecha = mesSeleccionado !== 0 && añoSeleccionado !== 0;
+  const terminoBusqueda = busquedaCampana.trim().toLowerCase();
 
   const campanasFiltradas = campanasDb
     .filter((campana) => {
       // Filtrar por marcas permitidas del usuario
       if (!filtraPorMarca(campana.marca)) return false;
+
+      // Filtrar por nombre de campaña
+      if (terminoBusqueda && !campana.nombre.toLowerCase().includes(terminoBusqueda)) return false;
 
       const cumplePlataforma =
         plataformaSeleccionada === "Todas" ||
@@ -810,6 +815,19 @@ const CampanasPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Campaña
+                </label>
+                <input
+                  type="text"
+                  value={busquedaCampana}
+                  onChange={(e) => setBusquedaCampana(e.target.value)}
+                  placeholder="Buscar por nombre..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
+                />
               </div>
             </div>
           </div>
