@@ -2,8 +2,9 @@
 Google Ads API integration – todas las credenciales viven en .env del servidor.
 Nunca se exponen al frontend ni se incluyen en el repositorio.
 """
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+import json
+from typing import Annotated, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from starlette import status
@@ -37,7 +38,7 @@ def _require_admin(user: dict):
 
 
 def _get_google_config(db: Session) -> dict:
-    """Lee credenciales de .env (secrets fijos) y refresh_token de DB (obtenido via OAuth)."""
+    """Lee credenciales de .env (secrets fijos) y tokens/customer_map de DB."""
     db_refresh = (
         db.query(SystemSettings)
         .filter(SystemSettings.key == "google_ads_refresh_token")
@@ -46,17 +47,46 @@ def _get_google_config(db: Session) -> dict:
     refresh_token = (db_refresh.value if db_refresh else None) or os.getenv(
         "GOOGLE_ADS_REFRESH_TOKEN"
     )
+
+    db_map = (
+        db.query(SystemSettings)
+        .filter(SystemSettings.key == "google_ads_customer_map")
+        .first()
+    )
+    customer_map: dict = {}
+    if db_map and db_map.value:
+        try:
+            customer_map = json.loads(db_map.value)
+        except Exception:
+            pass
+
     return {
         "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN"),
         "client_id": os.getenv("GOOGLE_ADS_CLIENT_ID"),
         "client_secret": os.getenv("GOOGLE_ADS_CLIENT_SECRET"),
+        # MCC / Manager account (login-customer-id header). Deja vacío si no tienes MCC.
+        "manager_id": os.getenv("GOOGLE_ADS_MANAGER_ID", "").replace("-", ""),
+        # ID de cliente único (fallback si no hay customer_map configurado)
         "customer_id": os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").replace("-", ""),
         "refresh_token": refresh_token,
+        # Mapa marca → customer_id almacenado en DB
+        "customer_map": customer_map,
     }
 
 
 def _is_configured(cfg: dict) -> bool:
-    return all(cfg.get(k) for k in ["developer_token", "client_id", "client_secret", "refresh_token", "customer_id"])
+    base = all(cfg.get(k) for k in ["developer_token", "client_id", "client_secret", "refresh_token"])
+    has_accounts = bool(cfg.get("customer_id") or cfg.get("customer_map"))
+    return base and has_accounts
+
+
+def _get_customer_id_for_marca(cfg: dict, marca: Optional[str]) -> str:
+    """Devuelve el customer_id de Google Ads para la marca dada.
+    Prioridad: customer_map (DB) > customer_id único (.env).
+    """
+    if marca and cfg.get("customer_map") and marca in cfg["customer_map"]:
+        return str(cfg["customer_map"][marca]).replace("-", "")
+    return cfg.get("customer_id", "")
 
 
 def _get_access_token(cfg: dict) -> str:
@@ -77,15 +107,20 @@ def _get_access_token(cfg: dict) -> str:
     return resp.json()["access_token"]
 
 
-def _gaql(access_token: str, developer_token: str, customer_id: str, query: str) -> list:
+def _gaql(access_token: str, developer_token: str, customer_id: str, query: str,
+          manager_id: str = "") -> list:
     url = f"{GOOGLE_ADS_BASE}/customers/{customer_id}/googleAds:search"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "developer-token": developer_token,
+        "Content-Type": "application/json",
+    }
+    # Si hay una MCC, se envía como login-customer-id para acceder a sub-cuentas
+    if manager_id:
+        headers["login-customer-id"] = manager_id
     resp = http_requests.post(
         url,
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "developer-token": developer_token,
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         json={"query": query},
         timeout=30,
     )
@@ -105,7 +140,10 @@ async def get_status(user: user_dependency, db: db_dependency):
         "has_developer_token": bool(cfg.get("developer_token")),
         "has_credentials": bool(cfg.get("client_id") and cfg.get("client_secret")),
         "has_refresh_token": bool(cfg.get("refresh_token")),
-        "has_customer_id": bool(cfg.get("customer_id")),
+        "has_manager_id": bool(cfg.get("manager_id")),
+        "has_single_customer_id": bool(cfg.get("customer_id")),
+        "customer_accounts": len(cfg.get("customer_map", {})),
+        "customer_map": cfg.get("customer_map", {}),
     }
 
 
@@ -189,21 +227,72 @@ async def disconnect_google_ads(user: user_dependency, db: db_dependency):
     return {"success": True}
 
 
+# ─── Customer map (mapa marca → customer_id) ──────────────────────────────────
+
+@router.get("/customer-map")
+async def get_customer_map(user: user_dependency, db: db_dependency):
+    """Devuelve el mapa actual de marca → customer_id de Google Ads."""
+    _require_admin(user)
+    row = db.query(SystemSettings).filter(SystemSettings.key == "google_ads_customer_map").first()
+    if row and row.value:
+        try:
+            return json.loads(row.value)
+        except Exception:
+            pass
+    return {}
+
+
+@router.put("/customer-map")
+async def set_customer_map(payload: dict, user: user_dependency, db: db_dependency):
+    """Guarda el mapa de marca → customer_id en la DB.
+    Ejemplo de payload: {"GWM Chihuahua": "1234567890", "Kia Juventud": "0987654321"}
+    """
+    _require_admin(user)
+    # Validar que todos los valores sean strings no vacíos
+    cleaned = {}
+    for marca, cid in payload.items():
+        if not marca or not str(cid).strip():
+            continue
+        cleaned[str(marca).strip()] = str(cid).strip().replace("-", "")
+
+    row = db.query(SystemSettings).filter(SystemSettings.key == "google_ads_customer_map").first()
+    if row:
+        row.value = json.dumps(cleaned, ensure_ascii=False)
+    else:
+        db.add(SystemSettings(key="google_ads_customer_map", value=json.dumps(cleaned, ensure_ascii=False)))
+    db.commit()
+    return {"success": True, "cuentas_guardadas": len(cleaned), "mapa": cleaned}
+
+
 # ─── Campañas de Google Ads ────────────────────────────────────────────────────
 
 @router.get("/campanas")
-async def list_gads_campaigns(user: user_dependency, db: db_dependency):
-    """Lista todas las campañas de Google Ads con métricas del mes actual."""
+async def list_gads_campaigns(
+    user: user_dependency,
+    db: db_dependency,
+    marca: Optional[str] = Query(None, description="Marca / cuenta a consultar"),
+):
+    """Lista campañas de Google Ads con métricas del mes. Requiere ?marca= si hay múltiples cuentas."""
     _require_admin(user)
     cfg = _get_google_config(db)
     if not _is_configured(cfg):
         raise HTTPException(status_code=503, detail="Google Ads no configurado")
 
+    customer_id = _get_customer_id_for_marca(cfg, marca)
+    if not customer_id:
+        # Si hay customer_map pero no se especificó marca, devolver lista de cuentas disponibles
+        if cfg.get("customer_map"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Especifica ?marca= con una de las cuentas: {list(cfg['customer_map'].keys())}",
+            )
+        raise HTTPException(status_code=503, detail="No hay customer_id configurado")
+
     token = _get_access_token(cfg)
     rows = _gaql(
         token,
         cfg["developer_token"],
-        cfg["customer_id"],
+        customer_id,
         """
         SELECT
             campaign.id,
@@ -224,6 +313,7 @@ async def list_gads_campaigns(user: user_dependency, db: db_dependency):
             AND segments.date DURING THIS_MONTH
         ORDER BY metrics.cost_micros DESC
         """,
+        manager_id=cfg.get("manager_id", ""),
     )
 
     results = []
@@ -257,7 +347,10 @@ async def list_gads_campaigns(user: user_dependency, db: db_dependency):
 
 @router.get("/campanas/{gads_campaign_id}/anuncios")
 async def list_campaign_ads(
-    gads_campaign_id: str, user: user_dependency, db: db_dependency
+    gads_campaign_id: str,
+    user: user_dependency,
+    db: db_dependency,
+    marca: Optional[str] = Query(None),
 ):
     """Anuncios de una campaña con métricas y assets de imagen."""
     _require_admin(user)
@@ -265,11 +358,15 @@ async def list_campaign_ads(
     if not _is_configured(cfg):
         raise HTTPException(status_code=503, detail="Google Ads no configurado")
 
+    customer_id = _get_customer_id_for_marca(cfg, marca)
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="Especifica ?marca= para identificar la cuenta")
+
     token = _get_access_token(cfg)
     rows = _gaql(
         token,
         cfg["developer_token"],
-        cfg["customer_id"],
+        customer_id,
         f"""
         SELECT
             ad_group_ad.ad.id,
@@ -296,6 +393,7 @@ async def list_campaign_ads(
             AND ad_group_ad.status != 'REMOVED'
         ORDER BY metrics.impressions DESC
         """,
+        manager_id=cfg.get("manager_id", ""),
     )
 
     results = []
@@ -342,23 +440,33 @@ async def list_campaign_ads(
 
 
 @router.get("/assets/{asset_id}/imagen")
-async def proxy_asset_image(asset_id: str, user: user_dependency, db: db_dependency):
+async def proxy_asset_image(
+    asset_id: str,
+    user: user_dependency,
+    db: db_dependency,
+    marca: Optional[str] = Query(None),
+):
     """Proxy para imágenes de Google Ads — el frontend nunca ve las credenciales."""
     _require_admin(user)
     cfg = _get_google_config(db)
     if not _is_configured(cfg):
         raise HTTPException(status_code=503, detail="Google Ads no configurado")
 
+    customer_id = _get_customer_id_for_marca(cfg, marca)
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="Especifica ?marca= para identificar la cuenta")
+
     token = _get_access_token(cfg)
     rows = _gaql(
         token,
         cfg["developer_token"],
-        cfg["customer_id"],
+        customer_id,
         f"""
         SELECT asset.id, asset.image_asset.full_size.url
         FROM asset
         WHERE asset.id = {asset_id}
         """,
+        manager_id=cfg.get("manager_id", ""),
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Asset no encontrado")
@@ -400,10 +508,16 @@ async def sync_campaign_metrics(
         raise HTTPException(status_code=503, detail="Google Ads no configurado")
 
     token = _get_access_token(cfg)
+    customer_id = _get_customer_id_for_marca(cfg, campana.marca)
+    if not customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No hay customer_id configurado para la marca '{campana.marca}'. Configura el mapa de cuentas en Google Ads.",
+        )
     rows = _gaql(
         token,
         cfg["developer_token"],
-        cfg["customer_id"],
+        customer_id,
         f"""
         SELECT
             metrics.impressions,
@@ -417,6 +531,7 @@ async def sync_campaign_metrics(
         WHERE campaign.id = {campana.google_ads_id}
             AND segments.date DURING THIS_MONTH
         """,
+        manager_id=cfg.get("manager_id", ""),
     )
 
     if not rows:

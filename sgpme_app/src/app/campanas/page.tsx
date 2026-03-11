@@ -94,10 +94,27 @@ const CampanasPage = () => {
     useState("");
   const [vinculando, setVinculando] = useState(false);
   const [modalGadsSetup, setModalGadsSetup] = useState(false);
+  const [gadsSetupTab, setGadsSetupTab] = useState<"oauth" | "cuentas">(
+    "oauth",
+  );
   const [gadsOAuthUrl, setGadsOAuthUrl] = useState("");
   const [gadsAuthCode, setGadsAuthCode] = useState("");
   const [gadsSetupLoading, setGadsSetupLoading] = useState(false);
   const [gadsSetupMsg, setGadsSetupMsg] = useState("");
+  const [gadsCustomerMap, setGadsCustomerMap] = useState<
+    Record<string, string>
+  >({});
+  const [savingCustomerMap, setSavingCustomerMap] = useState(false);
+
+  // Marcas conocidas — filas por defecto en el mapa de cuentas
+  const MARCAS_CONOCIDAS = [
+    "GWM Chihuahua",
+    "Kia Juventud",
+    "Kia Juarez",
+    "Subaru Chihuahua",
+    "Toyota HG / Cuu",
+    "Toyota Monclova",
+  ];
 
   // Estado para editar gasto
   const [editandoGasto, setEditandoGasto] = useState<number | null>(null);
@@ -242,18 +259,48 @@ const CampanasPage = () => {
     marcaSeleccionada,
   ]);
 
-  const abrirGadsSetup = useCallback(async () => {
-    setGadsSetupMsg("");
-    setGadsAuthCode("");
-    setGadsOAuthUrl("");
-    setModalGadsSetup(true);
+  const abrirGadsSetup = useCallback(
+    async (tab: "oauth" | "cuentas" = "oauth") => {
+      setGadsSetupMsg("");
+      setGadsAuthCode("");
+      setGadsOAuthUrl("");
+      setGadsSetupTab(tab);
+      setModalGadsSetup(true);
+      try {
+        const [urlRes, mapRes] = await Promise.all([
+          fetchConToken(`${API_URL}/google-ads/oauth/url`),
+          fetchConToken(`${API_URL}/google-ads/customer-map`),
+        ]);
+        if (urlRes.ok) setGadsOAuthUrl((await urlRes.json()).url);
+        if (mapRes.ok) setGadsCustomerMap(await mapRes.json());
+      } catch {
+        /* ignore */
+      }
+    },
+    [API_URL],
+  );
+
+  const guardarCustomerMap = useCallback(async () => {
+    setSavingCustomerMap(true);
     try {
-      const res = await fetchConToken(`${API_URL}/google-ads/oauth/url`);
-      if (res.ok) setGadsOAuthUrl((await res.json()).url);
+      const res = await fetchConToken(`${API_URL}/google-ads/customer-map`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(gadsCustomerMap),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGadsSetupMsg(`✅ ${data.cuentas_guardadas} cuentas guardadas`);
+        setGadsSetupTab("oauth");
+      } else {
+        setGadsSetupMsg("❌ " + (data.detail || "Error al guardar"));
+      }
     } catch {
-      /* ignore */
+      setGadsSetupMsg("❌ Error de conexión");
+    } finally {
+      setSavingCustomerMap(false);
     }
-  }, [API_URL]);
+  }, [API_URL, gadsCustomerMap]);
 
   const enviarCodigoOAuth = useCallback(async () => {
     if (!gadsAuthCode.trim()) return;
@@ -636,19 +683,27 @@ const CampanasPage = () => {
               </div>
               {!gadsConfigured && (
                 <button
-                  onClick={abrirGadsSetup}
+                  onClick={() => abrirGadsSetup()}
                   className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded-md font-medium transition-colors shrink-0"
                 >
                   Conectar Google Ads
                 </button>
               )}
               {gadsConfigured && (
-                <button
-                  onClick={abrirGadsSetup}
-                  className="ml-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
-                >
-                  Reconfigurar
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => abrirGadsSetup("cuentas")}
+                    className="ml-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
+                  >
+                    Cuentas por marca
+                  </button>
+                  <button
+                    onClick={() => abrirGadsSetup("oauth")}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
+                  >
+                    Reconfigurar
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -1352,87 +1407,137 @@ const CampanasPage = () => {
         </div>
       )}
 
-      {/* Modal: Configurar Google Ads (OAuth) */}
+      {/* Modal: Configurar Google Ads (OAuth + Cuentas) */}
       {modalGadsSetup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">
-                Conectar Google Ads
-              </h2>
-              <button
-                onClick={() => setModalGadsSetup(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Configurar Google Ads</h2>
+              <button onClick={() => setModalGadsSetup(false)} className="text-gray-400 hover:text-gray-600">
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">
-                Sigue estos pasos para autorizar el acceso a Google Ads:
-              </p>
-              <ol className="list-decimal ml-5 space-y-2">
-                <li>
-                  Abre el siguiente enlace en tu navegador e inicia sesión con
-                  la cuenta de Google Ads:
-                  {gadsOAuthUrl ? (
-                    <a
-                      href={gadsOAuthUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block mt-1 text-xs text-blue-600 underline break-all"
-                    >
-                      {gadsOAuthUrl.slice(0, 80)}...
-                    </a>
-                  ) : (
-                    <span className="block mt-1 text-gray-400 italic">
-                      Generando URL...
-                    </span>
-                  )}
-                </li>
-                <li>Acepta los permisos solicitados.</li>
-                <li>Copia el código que aparece en pantalla y pégalo abajo.</li>
-              </ol>
-              <div>
-                <label className="block font-medium text-gray-800 mb-1">
-                  Código de autorización
-                </label>
-                <input
-                  type="text"
-                  value={gadsAuthCode}
-                  onChange={(e) => setGadsAuthCode(e.target.value)}
-                  placeholder="4/0AX4XfWj..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-mono text-sm"
-                />
-              </div>
-              {gadsSetupMsg && (
-                <p
-                  className={`font-medium ${gadsSetupMsg.startsWith("✅") ? "text-green-700" : "text-red-600"}`}
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 shrink-0">
+              {(["oauth", "cuentas"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setGadsSetupTab(tab)}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    gadsSetupTab === tab
+                      ? "border-b-2 border-red-600 text-red-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
                 >
+                  {tab === "oauth" ? "🔐 Autorización" : "🗺️ Cuentas por marca"}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 text-sm text-gray-700 space-y-4">
+              {gadsSetupMsg && (
+                <p className={`font-medium ${gadsSetupMsg.startsWith("✅") ? "text-green-700" : "text-red-600"}`}>
                   {gadsSetupMsg}
                 </p>
               )}
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={enviarCodigoOAuth}
-                  disabled={gadsSetupLoading || !gadsAuthCode.trim()}
-                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                >
-                  {gadsSetupLoading ? "Conectando..." : "Conectar"}
-                </button>
-                <button
-                  onClick={() => setModalGadsSetup(false)}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
-              <p className="text-xs text-gray-500">
-                ⚠️ Para que funcione, el servidor debe tener configuradas las
-                variables GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CLIENT_ID,
-                GOOGLE_ADS_CLIENT_SECRET y GOOGLE_ADS_CUSTOMER_ID en el archivo
-                .env.
-              </p>
+
+              {/* Tab: OAuth */}
+              {gadsSetupTab === "oauth" && (
+                <>
+                  <p className="font-medium text-gray-900">
+                    Sigue estos pasos para autorizar el acceso a Google Ads:
+                  </p>
+                  <ol className="list-decimal ml-5 space-y-2">
+                    <li>
+                      Abre el siguiente enlace con la cuenta MCC/administradora (la que agrupa todas las marcas):
+                      {gadsOAuthUrl ? (
+                        <a href={gadsOAuthUrl} target="_blank" rel="noopener noreferrer"
+                          className="block mt-1 text-xs text-blue-600 underline break-all">
+                          {gadsOAuthUrl.slice(0, 80)}...
+                        </a>
+                      ) : (
+                        <span className="block mt-1 text-gray-400 italic">Generando URL...</span>
+                      )}
+                    </li>
+                    <li>Acepta los permisos solicitados.</li>
+                    <li>Copia el código que aparece en pantalla y pégalo abajo.</li>
+                  </ol>
+                  <div>
+                    <label className="block font-medium text-gray-800 mb-1">Código de autorización</label>
+                    <input
+                      type="text"
+                      value={gadsAuthCode}
+                      onChange={(e) => setGadsAuthCode(e.target.value)}
+                      placeholder="4/0AX4XfWj..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-mono text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={enviarCodigoOAuth}
+                      disabled={gadsSetupLoading || !gadsAuthCode.trim()}
+                      className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    >
+                      {gadsSetupLoading ? "Conectando..." : "Conectar"}
+                    </button>
+                    <button onClick={() => setGadsSetupTab("cuentas")}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors">
+                      Siguiente: Cuentas →
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    ⚠️ El servidor debe tener GOOGLE_ADS_DEVELOPER_TOKEN, CLIENT_ID, CLIENT_SECRET
+                    y GOOGLE_ADS_MANAGER_ID (ID de la cuenta MCC) en el .env.
+                  </p>
+                </>
+              )}
+
+              {/* Tab: Cuentas por marca */}
+              {gadsSetupTab === "cuentas" && (
+                <>
+                  <p className="text-gray-600">
+                    Asigna el <span className="font-semibold">Customer ID de Google Ads</span> (10 dígitos, sin guiones) a cada marca.
+                    Se usa automáticamente al sincronizar campañas.
+                  </p>
+                  <div className="space-y-3">
+                    {MARCAS_CONOCIDAS.map((marca) => (
+                      <div key={marca} className="flex items-center gap-3">
+                        <span className="w-44 shrink-0 text-gray-800 font-medium text-xs">{marca}</span>
+                        <input
+                          type="text"
+                          value={gadsCustomerMap[marca] || ""}
+                          onChange={(e) =>
+                            setGadsCustomerMap((prev) => ({
+                              ...prev,
+                              [marca]: e.target.value.replace(/\D/g, ""),
+                            }))
+                          }
+                          placeholder="1234567890"
+                          maxLength={12}
+                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm font-mono focus:ring-red-500 focus:border-red-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Encuéntralos en ads.google.com → selecciona la cuenta de cada marca → el número de 10 dígitos aparece arriba a la derecha.
+                  </p>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={guardarCustomerMap}
+                      disabled={savingCustomerMap}
+                      className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    >
+                      {savingCustomerMap ? "Guardando..." : "Guardar cuentas"}
+                    </button>
+                    <button onClick={() => setModalGadsSetup(false)}
+                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors">
+                      Cerrar
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
