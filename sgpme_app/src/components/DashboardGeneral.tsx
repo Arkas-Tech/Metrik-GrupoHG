@@ -985,14 +985,10 @@ export default function DashboardGeneral({
   // Calcular métricas por plataforma
   const calcularMetricasPlataforma = (plataforma: string) => {
     const campanasActivas = campanasDb.filter((c) => {
-      if (c.plataforma !== plataforma || c.estado !== "Activa") return false;
+      if (c.plataforma !== plataforma) return false;
+      if (c.estado !== "Activa") return false;
       if (!filtraPorMarca(c.marca)) return false;
-
-      const fechaInicio = new Date(c.fecha_inicio);
-      return (
-        fechaInicio.getFullYear() === añoSeleccionado &&
-        fechaInicio.getMonth() + 1 === filtroMesGlobal
-      );
+      return true;
     });
 
     const leadsTotal = campanasActivas.reduce(
@@ -1000,7 +996,7 @@ export default function DashboardGeneral({
       0,
     );
     const inversionTotal = campanasActivas.reduce(
-      (sum, c) => sum + (c.gasto_actual || c.presupuesto || 0),
+      (sum, c) => sum + (c.gasto_actual || 0),
       0,
     );
     const cxcPromedio =

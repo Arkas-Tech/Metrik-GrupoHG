@@ -222,10 +222,7 @@ const CampanasPage = () => {
         const data = await res.json();
         if (res.ok) {
           await cargarCampanas(marcaSeleccionada || undefined);
-          const total = data.creadas + data.actualizadas;
-          alert(
-            `✅ Importación completada:\n• ${data.creadas} campañas nuevas\n• ${data.actualizadas} actualizadas\n• Total: ${total}`,
-          );
+          alert("Actualizado correctamente");
         } else {
           alert(data.detail || "Error al importar campañas");
         }
