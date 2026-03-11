@@ -586,3 +586,170 @@ async def vincular_campaign(
     campana.google_ads_id = str(gads_id).strip() if gads_id else None
     db.commit()
     return {"success": True, "google_ads_id": campana.google_ads_id}
+
+
+# ─── Importar campañas desde Google Ads ────────────────────────────────────────
+
+@router.post("/importar")
+async def importar_campanas(
+    payload: dict,
+    user: user_dependency,
+    db: db_dependency,
+):
+    """
+    Importa o actualiza campañas desde Google Ads a la BD de Metrik.
+    Payload: {"marca": "Subaru Chihuahua"}  o  {} para importar todas las marcas.
+    - Si la campaña ya existe (por google_ads_id), actualiza sus métricas.
+    - Si no existe, la crea como nuevo registro.
+    """
+    _require_admin(user)
+    cfg = _get_google_config(db)
+    if not _is_configured(cfg):
+        raise HTTPException(status_code=503, detail="Google Ads no configurado")
+
+    marcas_a_importar: list[str] = []
+    marca_solicitada = payload.get("marca", "").strip()
+
+    if marca_solicitada:
+        marcas_a_importar = [marca_solicitada]
+    elif cfg.get("customer_map"):
+        marcas_a_importar = list(cfg["customer_map"].keys())
+    elif cfg.get("customer_id"):
+        marcas_a_importar = [""]  # cuenta única sin nombre de marca
+    else:
+        raise HTTPException(status_code=400, detail="No hay cuentas configuradas")
+
+    token = _get_access_token(cfg)
+    resumen = {"creadas": 0, "actualizadas": 0, "marcas": [], "errores": []}
+
+    ESTADO_MAP = {
+        "ENABLED": "Activa",
+        "PAUSED": "Pausada",
+        "REMOVED": "Completada",
+    }
+
+    for marca in marcas_a_importar:
+        customer_id = _get_customer_id_for_marca(cfg, marca if marca else None)
+        if not customer_id:
+            resumen["errores"].append(f"Sin customer_id para '{marca}'")
+            continue
+
+        try:
+            rows = _gaql(
+                token,
+                cfg["developer_token"],
+                customer_id,
+                """
+                SELECT
+                    campaign.id,
+                    campaign.name,
+                    campaign.status,
+                    campaign.start_date,
+                    campaign.end_date,
+                    campaign_budget.amount_micros,
+                    metrics.impressions,
+                    metrics.clicks,
+                    metrics.cost_micros,
+                    metrics.conversions,
+                    metrics.ctr,
+                    metrics.interactions,
+                    metrics.conversion_rate
+                FROM campaign
+                WHERE campaign.status != 'REMOVED'
+                    AND segments.date DURING THIS_MONTH
+                ORDER BY metrics.cost_micros DESC
+                """,
+                manager_id=cfg.get("manager_id", ""),
+            )
+        except HTTPException as e:
+            resumen["errores"].append(f"{marca}: {e.detail}")
+            continue
+
+        creadas_marca = 0
+        actualizadas_marca = 0
+        seen = set()
+
+        for row in rows:
+            c = row.get("campaign", {})
+            m = row.get("metrics", {})
+            b = row.get("campaignBudget", {})
+            gads_id = str(c.get("id", ""))
+            if not gads_id or gads_id in seen:
+                continue
+            seen.add(gads_id)
+
+            alcance = int(m.get("impressions", 0) or 0)
+            clics = int(m.get("clicks", 0) or 0)
+            gasto = round((int(m.get("costMicros", 0) or 0)) / 1_000_000, 2)
+            conversiones = max(0, int(float(m.get("conversions", 0) or 0)))
+            ctr = round(float(m.get("ctr", 0) or 0) * 100, 4)
+            interacciones = int(m.get("interactions", 0) or 0)
+            tasa_conv = round(float(m.get("conversionRate", 0) or 0) * 100, 2)
+            presupuesto = round((int(b.get("amountMicros", 0) or 0)) / 1_000_000, 2)
+            estado = ESTADO_MAP.get(c.get("status", ""), c.get("status", "Activa"))
+
+            # Parsear fechas
+            from datetime import date as date_type
+            fecha_inicio = None
+            fecha_fin = None
+            try:
+                if c.get("startDate"):
+                    fecha_inicio = date_type.fromisoformat(c["startDate"])
+            except Exception:
+                pass
+            try:
+                if c.get("endDate") and c["endDate"] != "2037-12-30":
+                    fecha_fin = date_type.fromisoformat(c["endDate"])
+            except Exception:
+                pass
+
+            # Buscar si ya existe
+            existente = db.query(Campanas).filter(Campanas.google_ads_id == gads_id).first()
+
+            if existente:
+                existente.estado = estado
+                existente.alcance = alcance
+                existente.interacciones = interacciones
+                existente.leads = conversiones
+                existente.gasto_actual = gasto
+                existente.ctr = ctr
+                existente.conversion = tasa_conv
+                if presupuesto:
+                    existente.presupuesto = presupuesto
+                if fecha_inicio:
+                    existente.fecha_inicio = fecha_inicio
+                if fecha_fin:
+                    existente.fecha_fin = fecha_fin
+                actualizadas_marca += 1
+            else:
+                nueva = Campanas(
+                    nombre=c.get("name", f"Campaña {gads_id}"),
+                    estado=estado,
+                    plataforma="Google Ads",
+                    marca=marca,
+                    google_ads_id=gads_id,
+                    alcance=alcance,
+                    interacciones=interacciones,
+                    leads=conversiones,
+                    gasto_actual=gasto,
+                    presupuesto=presupuesto or 0,
+                    ctr=ctr,
+                    conversion=tasa_conv,
+                    fecha_inicio=fecha_inicio,
+                    fecha_fin=fecha_fin,
+                    auto_objetivo="",
+                    creado_por="Google Ads Import",
+                )
+                db.add(nueva)
+                creadas_marca += 1
+
+        db.commit()
+        resumen["creadas"] += creadas_marca
+        resumen["actualizadas"] += actualizadas_marca
+        resumen["marcas"].append({
+            "marca": marca,
+            "creadas": creadas_marca,
+            "actualizadas": actualizadas_marca,
+        })
+
+    return resumen

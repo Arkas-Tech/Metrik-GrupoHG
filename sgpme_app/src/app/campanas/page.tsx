@@ -105,6 +105,7 @@ const CampanasPage = () => {
     Record<string, string>
   >({});
   const [savingCustomerMap, setSavingCustomerMap] = useState(false);
+  const [importando, setImportando] = useState(false);
 
   // Marcas conocidas — filas por defecto en el mapa de cuentas
   const MARCAS_CONOCIDAS = [
@@ -189,6 +190,34 @@ const CampanasPage = () => {
       setLoadingGadsLista(false);
     }
   }, [API_URL]);
+
+  const importarCampanas = useCallback(
+    async (marca?: string) => {
+      setImportando(true);
+      try {
+        const res = await fetchConToken(`${API_URL}/google-ads/importar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(marca ? { marca } : {}),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          await cargarCampanas(marcaSeleccionada || undefined);
+          const total = data.creadas + data.actualizadas;
+          alert(
+            `✅ Importación completada:\n• ${data.creadas} campañas nuevas\n• ${data.actualizadas} actualizadas\n• Total: ${total}`,
+          );
+        } else {
+          alert(data.detail || "Error al importar campañas");
+        }
+      } catch {
+        alert("Error al conectar con el servidor");
+      } finally {
+        setImportando(false);
+      }
+    },
+    [API_URL, cargarCampanas, marcaSeleccionada],
+  );
 
   const sincronizarCampana = useCallback(
     async (campanaId: number) => {
@@ -692,8 +721,15 @@ const CampanasPage = () => {
               {gadsConfigured && (
                 <div className="flex gap-2">
                   <button
+                    onClick={() => importarCampanas(marcaSeleccionada || undefined)}
+                    disabled={importando}
+                    className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
+                  >
+                    {importando ? "Importando..." : "⬇ Importar campañas"}
+                  </button>
+                  <button
                     onClick={() => abrirGadsSetup("cuentas")}
-                    className="ml-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
                   >
                     Cuentas por marca
                   </button>
@@ -1476,7 +1512,10 @@ const CampanasPage = () => {
                     </li>
                     <li>Acepta los permisos solicitados.</li>
                     <li>
-                      Serás redirigido a localhost (la página no carga, es normal). Copia el valor del parámetro <strong>code=</strong> que aparece en la barra de URL y pégalo abajo.
+                      Serás redirigido a localhost (la página no carga, es
+                      normal). Copia el valor del parámetro{" "}
+                      <strong>code=</strong> que aparece en la barra de URL y
+                      pégalo abajo.
                     </li>
                   </ol>
                   <div>
