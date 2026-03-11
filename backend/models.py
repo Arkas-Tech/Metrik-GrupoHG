@@ -440,6 +440,7 @@ class DiagramaConversion(Base):
     canal_conversion = Column(String, nullable=True)
     departamento = Column(String, nullable=True)
     anuncio = Column(String, nullable=True)
+    oferta_comercial = Column(String, nullable=True)
     tipo = Column(String, nullable=True)
     preguntas = Column(Text, nullable=True)  # JSON string
     objetivo = Column(String, nullable=True)

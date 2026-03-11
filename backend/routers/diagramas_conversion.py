@@ -31,6 +31,7 @@ class DiagramaRequest(BaseModel):
     canal_conversion: Optional[str] = None
     departamento: Optional[str] = None
     anuncio: Optional[str] = None
+    oferta_comercial: Optional[str] = None
     tipo: Optional[str] = None
     preguntas: Optional[str] = None  # JSON string
     objetivo: Optional[str] = None
@@ -49,6 +50,7 @@ class DiagramaResponse(BaseModel):
     canal_conversion: Optional[str] = None
     departamento: Optional[str] = None
     anuncio: Optional[str] = None
+    oferta_comercial: Optional[str] = None
     tipo: Optional[str] = None
     preguntas: Optional[str] = None
     objetivo: Optional[str] = None
@@ -101,6 +103,7 @@ async def create_diagrama(
         canal_conversion=req.canal_conversion,
         departamento=req.departamento,
         anuncio=req.anuncio,
+        oferta_comercial=req.oferta_comercial,
         tipo=req.tipo,
         preguntas=req.preguntas,
         objetivo=req.objetivo,
@@ -135,6 +138,7 @@ async def update_diagrama(
     obj.canal_conversion = req.canal_conversion
     obj.departamento = req.departamento
     obj.anuncio = req.anuncio
+    obj.oferta_comercial = req.oferta_comercial
     obj.tipo = req.tipo
     obj.preguntas = req.preguntas
     obj.objetivo = req.objetivo
