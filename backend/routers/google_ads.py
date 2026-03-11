@@ -17,7 +17,7 @@ import requests as http_requests
 router = APIRouter(prefix="/google-ads", tags=["google-ads"])
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-GOOGLE_ADS_API_VERSION = "v17"
+GOOGLE_ADS_API_VERSION = "v20"
 GOOGLE_ADS_BASE = f"https://googleads.googleapis.com/{GOOGLE_ADS_API_VERSION}"
 
 
