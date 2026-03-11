@@ -38,7 +38,10 @@ def _require_admin(user: dict):
 
 
 def _get_google_config(db: Session) -> dict:
-    """Lee credenciales de .env (secrets fijos) y tokens/customer_map de DB."""
+    """Lee credenciales de .env (secrets fijos) y tokens/customer_map de DB o .env.
+    Prioridad refresh_token: DB > GOOGLE_ADS_REFRESH_TOKEN env var.
+    Prioridad customer_map:  DB > GOOGLE_ADS_CUSTOMER_MAP env var (JSON).
+    """
     db_refresh = (
         db.query(SystemSettings)
         .filter(SystemSettings.key == "google_ads_refresh_token")
@@ -48,15 +51,23 @@ def _get_google_config(db: Session) -> dict:
         "GOOGLE_ADS_REFRESH_TOKEN"
     )
 
+    # customer_map: base = .env JSON, sobreescrito por DB si existe
+    customer_map: dict = {}
+    env_map_str = os.getenv("GOOGLE_ADS_CUSTOMER_MAP", "")
+    if env_map_str:
+        try:
+            customer_map = json.loads(env_map_str)
+        except Exception:
+            pass
+
     db_map = (
         db.query(SystemSettings)
         .filter(SystemSettings.key == "google_ads_customer_map")
         .first()
     )
-    customer_map: dict = {}
     if db_map and db_map.value:
         try:
-            customer_map = json.loads(db_map.value)
+            customer_map.update(json.loads(db_map.value))
         except Exception:
             pass
 
