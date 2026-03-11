@@ -608,19 +608,9 @@ const CampanasPage = () => {
       // Sin filtro de fecha → mostrar todas
       if (!hayFiltroFecha) return cumplePlataforma;
 
-      // Campañas Google Ads: mostrar si estaron activas en el período filtrado
-      if (campana.google_ads_id) {
-        // Si hay métricas para este período, mostrar
-        if (metricasPeriodo[campana.google_ads_id]) return cumplePlataforma;
-        // Sin métricas = no tuvo actividad ese mes
-        return false;
-      }
-
-      // Campañas Meta Ads: mostrar si tuvieron actividad en el período filtrado
-      if (campana.meta_ads_id) {
-        if (metricasPeriodoMeta[campana.meta_ads_id]) return cumplePlataforma;
-        return false;
-      }
+      // Campañas de plataforma (Google/Meta): siempre mostrar — las métricas
+      // del período se superponen en el .map() siguiente si están disponibles.
+      if (campana.google_ads_id || campana.meta_ads_id) return cumplePlataforma;
 
       // Campañas manuales: filtrar por fecha de inicio
       if (!campana.fecha_inicio) return false;

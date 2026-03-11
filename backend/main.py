@@ -17,10 +17,11 @@ async def _auto_sync_loop():
     """Importa/actualiza campañas de Google Ads y Meta Ads cada 10 minutos."""
     await asyncio.sleep(30)  # espera inicial al arrancar
     while True:
+        loop = asyncio.get_event_loop()
         try:
             db = SessionLocal()
             try:
-                google_ads._importar_todas_las_marcas(db)
+                await loop.run_in_executor(None, google_ads._importar_todas_las_marcas, db)
             finally:
                 db.close()
         except Exception:
@@ -28,7 +29,7 @@ async def _auto_sync_loop():
         try:
             db = SessionLocal()
             try:
-                meta_ads._importar_todas_las_marcas(db)
+                await loop.run_in_executor(None, meta_ads._importar_todas_las_marcas, db)
             finally:
                 db.close()
         except Exception:
