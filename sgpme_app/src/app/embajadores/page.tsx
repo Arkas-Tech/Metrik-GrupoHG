@@ -39,15 +39,6 @@ interface Embajador {
   creado_por: string | null;
 }
 
-const MARCAS_CONOCIDAS = [
-  "GWM Chihuahua",
-  "Kia Juventud",
-  "Kia Juarez",
-  "Subaru Chihuahua",
-  "Toyota Chihuahua",
-  "Toyota Monclova",
-];
-
 const PLATAFORMAS_OPCIONES = [
   "Instagram",
   "TikTok",
@@ -80,7 +71,7 @@ export default function EmbajadoresPage() {
     cerrarSesion: cerrarSesionAuth,
     loading: authLoading,
   } = useAuth();
-  const { filtraPorMarca } = useMarcaGlobal();
+  const { filtraPorMarca, marcasPermitidas } = useMarcaGlobal();
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
 
@@ -485,8 +476,10 @@ export default function EmbajadoresPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">— Sin agencia —</option>
-                  {MARCAS_CONOCIDAS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                  {marcasPermitidas.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
                   ))}
                 </select>
               </div>
