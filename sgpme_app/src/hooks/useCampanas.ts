@@ -22,6 +22,7 @@ export interface Campana {
   marca: string;
   imagenes_json?: string;
   creado_por: string;
+  google_ads_id?: string;
 }
 
 export interface CampanaFormData {
@@ -101,7 +102,7 @@ export function useCampanas() {
         setLoading(false);
       }
     },
-    [cargarCampanas]
+    [cargarCampanas],
   );
 
   const actualizarCampana = useCallback(
@@ -133,7 +134,7 @@ export function useCampanas() {
         setLoading(false);
       }
     },
-    [cargarCampanas]
+    [cargarCampanas],
   );
 
   const eliminarCampana = useCallback(
@@ -161,7 +162,7 @@ export function useCampanas() {
         setLoading(false);
       }
     },
-    [cargarCampanas]
+    [cargarCampanas],
   );
 
   return {

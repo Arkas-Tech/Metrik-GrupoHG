@@ -725,7 +725,8 @@ export default function ListaFacturas({
                                       className="bg-white p-2 rounded text-sm flex items-center justify-between gap-2"
                                     >
                                       <span className="text-gray-800 text-xs truncate flex-1">
-                                        {cotizacion.archivo?.nombre ?? cotizacion.proveedor}
+                                        {cotizacion.archivo?.nombre ??
+                                          cotizacion.proveedor}
                                       </span>
                                       <div className="flex items-center gap-2 shrink-0">
                                         {cotizacion.archivo?.tipo === "PDF" && (

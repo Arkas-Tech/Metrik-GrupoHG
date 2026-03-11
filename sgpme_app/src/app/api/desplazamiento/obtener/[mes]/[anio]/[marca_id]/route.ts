@@ -21,7 +21,9 @@ interface DesplazamientoRecord {
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ mes: string; anio: string; marca_id: string }> },
+  {
+    params,
+  }: { params: Promise<{ mes: string; anio: string; marca_id: string }> },
 ) {
   try {
     const { mes: mesStr, anio: anioStr, marca_id: marcaIdStr } = await params;
@@ -56,6 +58,9 @@ export async function GET(
     return NextResponse.json(registro);
   } catch (error) {
     console.error("[API-DESPLAZAMIENTO-OBTENER] Error:", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 },
+    );
   }
 }

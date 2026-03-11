@@ -384,7 +384,9 @@ export default function ConfiguracionCategorias({
                           key={idx}
                           className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg"
                         >
-                          <span className="flex-1 text-sm text-gray-900">{sub}</span>
+                          <span className="flex-1 text-sm text-gray-900">
+                            {sub}
+                          </span>
                           <button
                             type="button"
                             onClick={() => moverSubcategoria(idx, "up")}

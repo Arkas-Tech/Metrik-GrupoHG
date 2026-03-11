@@ -317,7 +317,10 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
     return (
       <div className="space-y-5 animate-pulse">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div
+            key={i}
+            className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
+          >
             <div className="h-10 bg-gray-100 border-b border-gray-200" />
             <div className="p-5 space-y-3">
               <div className="h-4 bg-gray-100 rounded w-1/3" />

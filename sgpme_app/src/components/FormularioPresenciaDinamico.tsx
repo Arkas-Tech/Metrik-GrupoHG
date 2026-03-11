@@ -373,10 +373,9 @@ export default function FormularioPresenciaDinamico({
     // Do NOT extract from dynamic date campos — those are for display only (datos_extra_json).
     // Using a user-picked date here could place the presencia outside the current
     // year/quarter filter and make it disappear from the list.
-    const fecha_instalacion =
-      presenciaInicial?.fecha_instalacion
-        ? String(presenciaInicial.fecha_instalacion)
-        : todayISO();
+    const fecha_instalacion = presenciaInicial?.fecha_instalacion
+      ? String(presenciaInicial.fecha_instalacion)
+      : todayISO();
 
     // Resolve proveedor name
     let proveedorNombre = proveedorNombreManual;

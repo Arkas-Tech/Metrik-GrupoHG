@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo } from "react";
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useAuth,
@@ -13,6 +13,7 @@ import NavBar from "@/components/NavBar";
 import FormularioCampana from "@/components/FormularioCampana";
 import { useCampanas } from "@/hooks/useCampanas";
 import type { CampanaFormData } from "@/hooks/useCampanas";
+import { fetchConToken } from "@/lib/auth-utils";
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -24,6 +25,8 @@ import {
   PencilIcon,
   TrashIcon,
   XMarkIcon,
+  ArrowPathIcon,
+  LinkIcon,
 } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
@@ -47,6 +50,17 @@ interface CampanaDetallada {
   conversion: number;
   cxc_porcentaje: number;
   imagenes_json?: string;
+  google_ads_id?: string;
+}
+
+interface GadsItem {
+  id: string;
+  nombre: string;
+  estado: string;
+  gasto: number;
+  impresiones: number;
+  clics: number;
+  ctr: number;
 }
 
 const CampanasPage = () => {
@@ -66,6 +80,24 @@ const CampanasPage = () => {
   const [campanaAnuncios, setCampanaAnuncios] =
     useState<CampanaDetallada | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+
+  // Google Ads state
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const [gadsConfigured, setGadsConfigured] = useState<boolean | null>(null);
+  const [sincronizando, setSincronizando] = useState<number | null>(null);
+  const [modalVincular, setModalVincular] = useState<CampanaDetallada | null>(
+    null,
+  );
+  const [gadsCampanas, setGadsCampanas] = useState<GadsItem[]>([]);
+  const [loadingGadsLista, setLoadingGadsLista] = useState(false);
+  const [gadsCampanaIdSeleccionada, setGadsCampanaIdSeleccionada] =
+    useState("");
+  const [vinculando, setVinculando] = useState(false);
+  const [modalGadsSetup, setModalGadsSetup] = useState(false);
+  const [gadsOAuthUrl, setGadsOAuthUrl] = useState("");
+  const [gadsAuthCode, setGadsAuthCode] = useState("");
+  const [gadsSetupLoading, setGadsSetupLoading] = useState(false);
+  const [gadsSetupMsg, setGadsSetupMsg] = useState("");
 
   // Estado para editar gasto
   const [editandoGasto, setEditandoGasto] = useState<number | null>(null);
@@ -116,11 +148,147 @@ const CampanasPage = () => {
   const mostrarMenu = isAdmin || isCoordinador;
   const isAuditor = usuario?.tipo === "auditor";
 
+  // Google Ads helpers
+  const cargarGadsStatus = useCallback(async () => {
+    try {
+      const res = await fetchConToken(`${API_URL}/google-ads/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setGadsConfigured(data.configured);
+      }
+    } catch {
+      setGadsConfigured(false);
+    }
+  }, [API_URL]);
+
+  const cargarCampanasGads = useCallback(async () => {
+    setLoadingGadsLista(true);
+    try {
+      const res = await fetchConToken(`${API_URL}/google-ads/campanas`);
+      if (res.ok) setGadsCampanas(await res.json());
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingGadsLista(false);
+    }
+  }, [API_URL]);
+
+  const sincronizarCampana = useCallback(
+    async (campanaId: number) => {
+      setSincronizando(campanaId);
+      try {
+        const res = await fetchConToken(
+          `${API_URL}/google-ads/sync/${campanaId}`,
+          { method: "POST" },
+        );
+        const data = await res.json();
+        if (res.ok && data.updated) {
+          await cargarCampanas(marcaSeleccionada || undefined);
+          alert(
+            `✅ Métricas sincronizadas:\nAlcance: ${data.datos.alcance?.toLocaleString()}\nLeads: ${data.datos.leads}\nGasto: $${data.datos.gasto_actual?.toLocaleString()}\nCTR: ${data.datos.ctr}%`,
+          );
+        } else {
+          alert(data.message || data.detail || "No hay datos disponibles");
+        }
+      } catch {
+        alert("Error al sincronizar con Google Ads");
+      } finally {
+        setSincronizando(null);
+      }
+    },
+    [API_URL, cargarCampanas, marcaSeleccionada],
+  );
+
+  const abrirModalVincular = useCallback(
+    async (campana: CampanaDetallada) => {
+      setModalVincular(campana);
+      setGadsCampanaIdSeleccionada(campana.google_ads_id || "");
+      await cargarCampanasGads();
+    },
+    [cargarCampanasGads],
+  );
+
+  const vincularCampana = useCallback(async () => {
+    if (!modalVincular) return;
+    setVinculando(true);
+    try {
+      const res = await fetchConToken(
+        `${API_URL}/google-ads/vincular/${modalVincular.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            google_ads_id: gadsCampanaIdSeleccionada || null,
+          }),
+        },
+      );
+      if (res.ok) {
+        await cargarCampanas(marcaSeleccionada || undefined);
+        setModalVincular(null);
+      } else {
+        const err = await res.json();
+        alert(err.detail || "Error al vincular");
+      }
+    } catch {
+      alert("Error al vincular campaña");
+    } finally {
+      setVinculando(false);
+    }
+  }, [
+    API_URL,
+    modalVincular,
+    gadsCampanaIdSeleccionada,
+    cargarCampanas,
+    marcaSeleccionada,
+  ]);
+
+  const abrirGadsSetup = useCallback(async () => {
+    setGadsSetupMsg("");
+    setGadsAuthCode("");
+    setGadsOAuthUrl("");
+    setModalGadsSetup(true);
+    try {
+      const res = await fetchConToken(`${API_URL}/google-ads/oauth/url`);
+      if (res.ok) setGadsOAuthUrl((await res.json()).url);
+    } catch {
+      /* ignore */
+    }
+  }, [API_URL]);
+
+  const enviarCodigoOAuth = useCallback(async () => {
+    if (!gadsAuthCode.trim()) return;
+    setGadsSetupLoading(true);
+    setGadsSetupMsg("");
+    try {
+      const res = await fetchConToken(`${API_URL}/google-ads/oauth/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: gadsAuthCode.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGadsSetupMsg("✅ " + data.message);
+        setGadsConfigured(true);
+        setTimeout(() => setModalGadsSetup(false), 2000);
+      } else {
+        setGadsSetupMsg("❌ " + (data.detail || "Error desconocido"));
+      }
+    } catch {
+      setGadsSetupMsg("❌ Error de conexión");
+    } finally {
+      setGadsSetupLoading(false);
+    }
+  }, [API_URL, gadsAuthCode]);
+
   useEffect(() => {
     if (usuario) {
       cargarCampanas(marcaSeleccionada || undefined);
     }
   }, [usuario, marcaSeleccionada, cargarCampanas]);
+
+  useEffect(() => {
+    if (isAdmin && usuario) cargarGadsStatus();
+  }, [isAdmin, usuario, cargarGadsStatus]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -447,6 +615,44 @@ const CampanasPage = () => {
             </p>
           </div>
 
+          {/* Google Ads status banner — solo admins */}
+          {isAdmin && gadsConfigured !== null && (
+            <div
+              className={`flex items-center justify-between rounded-lg border px-4 py-3 mb-4 text-sm ${
+                gadsConfigured
+                  ? "bg-green-50 border-green-200 text-green-800"
+                  : "bg-yellow-50 border-yellow-200 text-yellow-800"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">
+                  {gadsConfigured ? "✅" : "⚠️"}
+                </span>
+                <span>
+                  {gadsConfigured
+                    ? "Google Ads conectado — sincronización automática disponible"
+                    : "Google Ads no configurado. Conecta tu cuenta para sincronizar métricas automáticamente."}
+                </span>
+              </div>
+              {!gadsConfigured && (
+                <button
+                  onClick={abrirGadsSetup}
+                  className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded-md font-medium transition-colors shrink-0"
+                >
+                  Conectar Google Ads
+                </button>
+              )}
+              {gadsConfigured && (
+                <button
+                  onClick={abrirGadsSetup}
+                  className="ml-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md font-medium transition-colors text-xs shrink-0"
+                >
+                  Reconfigurar
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Filtros */}
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Filtros</h2>
@@ -690,6 +896,50 @@ const CampanasPage = () => {
                       <EyeIcon className="w-4 h-4" />
                       <span>Ver Anuncios</span>
                     </button>
+
+                    {/* Google Ads sync / vincular — solo para campañas de Google Ads */}
+                    {campana.plataforma === "Google Ads" && (
+                      <div className="flex gap-2">
+                        {campana.google_ads_id ? (
+                          <button
+                            onClick={() => sincronizarCampana(campana.id)}
+                            disabled={sincronizando === campana.id}
+                            className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm"
+                            title="Sincronizar métricas desde Google Ads"
+                          >
+                            <ArrowPathIcon
+                              className={`w-4 h-4 ${sincronizando === campana.id ? "animate-spin" : ""}`}
+                            />
+                            <span>
+                              {sincronizando === campana.id
+                                ? "Sincronizando..."
+                                : "Sincronizar Ads"}
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="flex-1 text-center text-xs text-gray-400 py-2 px-3 border border-dashed border-gray-300 rounded-lg">
+                            Sin vincular a Google Ads
+                          </span>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() =>
+                              abrirModalVincular(
+                                campana as unknown as CampanaDetallada,
+                              )
+                            }
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-lg transition-colors"
+                            title={
+                              campana.google_ads_id
+                                ? "Cambiar campaña vinculada"
+                                : "Vincular con Google Ads"
+                            }
+                          >
+                            <LinkIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {!isAuditor && (
                       <div className="flex gap-2">
                         <button
@@ -1019,6 +1269,170 @@ const CampanasPage = () => {
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Vincular campaña con Google Ads */}
+      {modalVincular && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <LinkIcon className="w-5 h-5 text-red-600" />
+                Vincular con Google Ads
+              </h2>
+              <button
+                onClick={() => setModalVincular(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Campaña local:{" "}
+                <span className="font-semibold text-gray-900">
+                  {modalVincular.nombre}
+                </span>
+              </p>
+              {loadingGadsLista ? (
+                <div className="text-center py-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    Cargando campañas de Google Ads...
+                  </p>
+                </div>
+              ) : gadsCampanas.length === 0 ? (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  No se encontraron campañas en Google Ads, o Google Ads no está
+                  configurado.
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seleccionar campaña de Google Ads
+                  </label>
+                  <select
+                    value={gadsCampanaIdSeleccionada}
+                    onChange={(e) =>
+                      setGadsCampanaIdSeleccionada(e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 text-gray-900"
+                  >
+                    <option value="">— Sin vincular —</option>
+                    {gadsCampanas.map((gc) => (
+                      <option key={gc.id} value={gc.id}>
+                        {gc.nombre} ({gc.estado}) — $
+                        {gc.gasto?.toLocaleString()} |{" "}
+                        {gc.impresiones?.toLocaleString()} imp.
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={vincularCampana}
+                  disabled={vinculando || loadingGadsLista}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  {vinculando ? "Guardando..." : "Guardar vínculo"}
+                </button>
+                <button
+                  onClick={() => setModalVincular(null)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Configurar Google Ads (OAuth) */}
+      {modalGadsSetup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                Conectar Google Ads
+              </h2>
+              <button
+                onClick={() => setModalGadsSetup(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-gray-700">
+              <p className="font-medium text-gray-900">
+                Sigue estos pasos para autorizar el acceso a Google Ads:
+              </p>
+              <ol className="list-decimal ml-5 space-y-2">
+                <li>
+                  Abre el siguiente enlace en tu navegador e inicia sesión con
+                  la cuenta de Google Ads:
+                  {gadsOAuthUrl ? (
+                    <a
+                      href={gadsOAuthUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block mt-1 text-xs text-blue-600 underline break-all"
+                    >
+                      {gadsOAuthUrl.slice(0, 80)}...
+                    </a>
+                  ) : (
+                    <span className="block mt-1 text-gray-400 italic">
+                      Generando URL...
+                    </span>
+                  )}
+                </li>
+                <li>Acepta los permisos solicitados.</li>
+                <li>Copia el código que aparece en pantalla y pégalo abajo.</li>
+              </ol>
+              <div>
+                <label className="block font-medium text-gray-800 mb-1">
+                  Código de autorización
+                </label>
+                <input
+                  type="text"
+                  value={gadsAuthCode}
+                  onChange={(e) => setGadsAuthCode(e.target.value)}
+                  placeholder="4/0AX4XfWj..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-mono text-sm"
+                />
+              </div>
+              {gadsSetupMsg && (
+                <p
+                  className={`font-medium ${gadsSetupMsg.startsWith("✅") ? "text-green-700" : "text-red-600"}`}
+                >
+                  {gadsSetupMsg}
+                </p>
+              )}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={enviarCodigoOAuth}
+                  disabled={gadsSetupLoading || !gadsAuthCode.trim()}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  {gadsSetupLoading ? "Conectando..." : "Conectar"}
+                </button>
+                <button
+                  onClick={() => setModalGadsSetup(false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                ⚠️ Para que funcione, el servidor debe tener configuradas las
+                variables GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CLIENT_ID,
+                GOOGLE_ADS_CLIENT_SECRET y GOOGLE_ADS_CUSTOMER_ID en el archivo
+                .env.
+              </p>
             </div>
           </div>
         </div>

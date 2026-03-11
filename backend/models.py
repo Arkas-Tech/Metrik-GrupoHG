@@ -238,6 +238,7 @@ class Campanas(Base):
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
+    google_ads_id = Column(String, nullable=True)  # ID de campaña en Google Ads
 
 
 class PresenciaTradicional(Base):
@@ -371,6 +372,16 @@ class Desplazamiento(Base):
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     modificado_por = Column(String)
+
+
+class SystemSettings(Base):
+    """Configuración interna: valores clave como tokens OAuth (nunca en git)."""
+    __tablename__ = 'system_settings'
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False)
+    value = Column(Text)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 class FormTemplate(Base):

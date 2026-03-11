@@ -122,7 +122,9 @@ export function useFacturasAPI() {
               ? {
                   id: cotizacion.id.toString(),
                   nombre: cotizacion.nombre_archivo,
-                  tipo: cotizacion.nombre_archivo.split('.').pop()?.toUpperCase() || 'ARCHIVO',
+                  tipo:
+                    cotizacion.nombre_archivo.split(".").pop()?.toUpperCase() ||
+                    "ARCHIVO",
                   url: `${API_URL}/facturas/${fact.id}/cotizaciones/${cotizacion.id}/descargar`,
                   fechaSubida:
                     cotizacion.fecha_subida?.split(" ")[0] ||

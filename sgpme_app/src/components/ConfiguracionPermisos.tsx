@@ -347,7 +347,12 @@ export default function ConfiguracionPermisos() {
   };
 
   const handleCrearUsuario = async () => {
-    if (!formNuevo.full_name.trim() || !formNuevo.username.trim() || !formNuevo.email.trim() || !formNuevo.password.trim()) {
+    if (
+      !formNuevo.full_name.trim() ||
+      !formNuevo.username.trim() ||
+      !formNuevo.email.trim() ||
+      !formNuevo.password.trim()
+    ) {
       showToast("Todos los campos son obligatorios", "error");
       return;
     }
@@ -375,11 +380,21 @@ export default function ConfiguracionPermisos() {
       if (response.ok) {
         const nuevo = await response.json();
         setUsuarios((prev) =>
-          ordenarUsuarios([...prev, { ...nuevo, permisos: {}, permisos_agencias: {} }])
+          ordenarUsuarios([
+            ...prev,
+            { ...nuevo, permisos: {}, permisos_agencias: {} },
+          ]),
         );
         showToast("Usuario creado correctamente", "success");
         setModalNuevoUsuario(false);
-        setFormNuevo({ full_name: "", username: "", email: "", role: "coordinador", password: "", confirmPassword: "" });
+        setFormNuevo({
+          full_name: "",
+          username: "",
+          email: "",
+          role: "coordinador",
+          password: "",
+          confirmPassword: "",
+        });
       } else {
         const err = await response.json().catch(() => ({}));
         const msg = Array.isArray(err.detail)
@@ -445,14 +460,32 @@ export default function ConfiguracionPermisos() {
               <h4 className="text-sm font-semibold text-gray-700">Usuarios</h4>
               <button
                 onClick={() => {
-                  setFormNuevo({ full_name: "", username: "", email: "", role: "coordinador", password: "", confirmPassword: "" });
+                  setFormNuevo({
+                    full_name: "",
+                    username: "",
+                    email: "",
+                    role: "coordinador",
+                    password: "",
+                    confirmPassword: "",
+                  });
                   setModalNuevoUsuario(true);
                 }}
                 title="Agregar usuario"
                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded p-0.5 transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
               </button>
             </div>
@@ -724,70 +757,104 @@ export default function ConfiguracionPermisos() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Agregar usuario</h3>
-              <button onClick={() => setModalNuevoUsuario(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Agregar usuario
+              </h3>
+              <button
+                onClick={() => setModalNuevoUsuario(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Nombre completo</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Nombre completo
+                </label>
                 <input
                   type="text"
                   value={formNuevo.full_name}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, full_name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({ ...p, full_name: e.target.value }))
+                  }
                   placeholder="Ej. Juan Pérez"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Usuario</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Usuario
+                </label>
                 <input
                   type="text"
                   value={formNuevo.username}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, username: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({ ...p, username: e.target.value }))
+                  }
                   placeholder="Ej. jperez"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Correo</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Correo
+                </label>
                 <input
                   type="email"
                   value={formNuevo.email}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({ ...p, email: e.target.value }))
+                  }
                   placeholder="Ej. juan@empresa.com"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Rol</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Rol
+                </label>
                 <select
                   value={formNuevo.role}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, role: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({ ...p, role: e.target.value }))
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {ROLES.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Contraseña</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Contraseña
+                </label>
                 <input
                   type="password"
                   value={formNuevo.password}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, password: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({ ...p, password: e.target.value }))
+                  }
                   placeholder="••••••••"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-900 mb-1">Confirmar contraseña</label>
+                <label className="block text-xs font-semibold text-gray-900 mb-1">
+                  Confirmar contraseña
+                </label>
                 <input
                   type="password"
                   value={formNuevo.confirmPassword}
-                  onChange={(e) => setFormNuevo((p) => ({ ...p, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setFormNuevo((p) => ({
+                      ...p,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                   placeholder="••••••••"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />

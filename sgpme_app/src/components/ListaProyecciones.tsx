@@ -1358,14 +1358,18 @@ export default function ListaProyecciones({
                                       partidas.forEach((partida) => {
                                         if (
                                           partida.subcategoria &&
-                                          !(partida.subcategoria in porSubcategoria)
+                                          !(
+                                            partida.subcategoria in
+                                            porSubcategoria
+                                          )
                                         ) {
-                                          porSubcategoria[partida.subcategoria] =
-                                            partidas.filter(
-                                              (p) =>
-                                                p.subcategoria ===
-                                                partida.subcategoria,
-                                            );
+                                          porSubcategoria[
+                                            partida.subcategoria
+                                          ] = partidas.filter(
+                                            (p) =>
+                                              p.subcategoria ===
+                                              partida.subcategoria,
+                                          );
                                         }
                                       });
 

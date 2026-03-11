@@ -129,7 +129,10 @@ export default function GraficaPresupuestoVsGasto({
             ];
             presupuestoTotal = presupuestoData
               .filter((p: { mes: number }) => mesesTrimestre.includes(p.mes))
-              .reduce((sum: number, p: { monto: number }) => sum + (p.monto || 0), 0);
+              .reduce(
+                (sum: number, p: { monto: number }) => sum + (p.monto || 0),
+                0,
+              );
           } else if (tipoCalendario === "anual") {
             // Para anual, sumar todos los meses del año
             presupuestoTotal = presupuestoData.reduce(

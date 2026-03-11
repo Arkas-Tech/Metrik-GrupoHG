@@ -174,13 +174,15 @@ export default function DashboardGeneral({
   const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
     new Date().getFullYear(),
   );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<"YTD" | "Mes" | "Q">(
-    "YTD",
-  );
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<
+    "YTD" | "Mes" | "Q"
+  >("YTD");
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
-  const [quarterSeleccionado, setQuarterSeleccionado] = useState<1 | 2 | 3 | 4>(1);
+  const [quarterSeleccionado, setQuarterSeleccionado] = useState<1 | 2 | 3 | 4>(
+    1,
+  );
   const [presenciaIndices, setPresenciaIndices] = useState<
     Record<string, number>
   >({});
@@ -1264,7 +1266,11 @@ export default function DashboardGeneral({
                 <select
                   id="quarter-selector"
                   value={quarterSeleccionado}
-                  onChange={(e) => setQuarterSeleccionado(parseInt(e.target.value) as 1 | 2 | 3 | 4)}
+                  onChange={(e) =>
+                    setQuarterSeleccionado(
+                      parseInt(e.target.value) as 1 | 2 | 3 | 4,
+                    )
+                  }
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                 >
                   <option value={1}>Q1 (Ene – Mar)</option>

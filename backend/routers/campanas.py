@@ -60,6 +60,7 @@ class CampanyaResponse(BaseModel):
     marca: str
     imagenes_json: Optional[str]
     creado_por: str
+    google_ads_id: Optional[str] = None
 
 @router.get("/", response_model=list[CampanyaResponse], status_code=status.HTTP_200_OK)
 async def read_all_campanas(user: user_dependency, db: db_dependency,

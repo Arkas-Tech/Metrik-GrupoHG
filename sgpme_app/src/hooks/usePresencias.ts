@@ -94,28 +94,38 @@ export const usePresencias = () => {
       };
 
       const fechaInstalacion = formatDate(presenciaData.fecha_instalacion);
-      if (!fechaInstalacion) throw new Error("La fecha de instalación es requerida");
+      if (!fechaInstalacion)
+        throw new Error("La fecha de instalación es requerida");
 
-      const response = await fetchConToken(`${API_URL}/presencia-tradicional/`, {
-        method: "POST",
-        body: JSON.stringify({
-          ...presenciaData,
-          fecha_instalacion: fechaInstalacion,
-          cambio_lona: formatDate(presenciaData.cambio_lona),
-          inicio_contrato: formatDate(presenciaData.inicio_contrato),
-          termino_contrato: formatDate(presenciaData.termino_contrato),
-          costo_mensual: parseNumber(presenciaData.costo_mensual),
-          costo_impresion: parseNumber(presenciaData.costo_impresion),
-        }),
-      });
+      const response = await fetchConToken(
+        `${API_URL}/presencia-tradicional/`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...presenciaData,
+            fecha_instalacion: fechaInstalacion,
+            cambio_lona: formatDate(presenciaData.cambio_lona),
+            inicio_contrato: formatDate(presenciaData.inicio_contrato),
+            termino_contrato: formatDate(presenciaData.termino_contrato),
+            costo_mensual: parseNumber(presenciaData.costo_mensual),
+            costo_impresion: parseNumber(presenciaData.costo_impresion),
+          }),
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = `Error al crear presencia: ${response.status}`;
         if (errorData.detail) {
-          if (typeof errorData.detail === "string") errorMessage = errorData.detail;
+          if (typeof errorData.detail === "string")
+            errorMessage = errorData.detail;
           else if (Array.isArray(errorData.detail))
-            errorMessage = errorData.detail.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join(".") || "campo"}: ${e.msg}`).join(", ");
+            errorMessage = errorData.detail
+              .map(
+                (e: { loc?: string[]; msg: string }) =>
+                  `${e.loc?.join(".") || "campo"}: ${e.msg}`,
+              )
+              .join(", ");
           else errorMessage = JSON.stringify(errorData.detail);
         } else if (errorData.message) errorMessage = String(errorData.message);
         throw new Error(errorMessage);
@@ -130,7 +140,10 @@ export const usePresencias = () => {
     }
   };
 
-  const actualizarPresencia = async (id: number, presenciaData: Record<string, unknown>) => {
+  const actualizarPresencia = async (
+    id: number,
+    presenciaData: Record<string, unknown>,
+  ) => {
     try {
       const formatDate = (dateStr: unknown): string | null => {
         if (!dateStr) return null;
@@ -146,28 +159,38 @@ export const usePresencias = () => {
       };
 
       const fechaInstalacion = formatDate(presenciaData.fecha_instalacion);
-      if (!fechaInstalacion) throw new Error("La fecha de instalación es requerida");
+      if (!fechaInstalacion)
+        throw new Error("La fecha de instalación es requerida");
 
-      const response = await fetchConToken(`${API_URL}/presencia-tradicional/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          ...presenciaData,
-          fecha_instalacion: fechaInstalacion,
-          cambio_lona: formatDate(presenciaData.cambio_lona),
-          inicio_contrato: formatDate(presenciaData.inicio_contrato),
-          termino_contrato: formatDate(presenciaData.termino_contrato),
-          costo_mensual: parseNumber(presenciaData.costo_mensual),
-          costo_impresion: parseNumber(presenciaData.costo_impresion),
-        }),
-      });
+      const response = await fetchConToken(
+        `${API_URL}/presencia-tradicional/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            ...presenciaData,
+            fecha_instalacion: fechaInstalacion,
+            cambio_lona: formatDate(presenciaData.cambio_lona),
+            inicio_contrato: formatDate(presenciaData.inicio_contrato),
+            termino_contrato: formatDate(presenciaData.termino_contrato),
+            costo_mensual: parseNumber(presenciaData.costo_mensual),
+            costo_impresion: parseNumber(presenciaData.costo_impresion),
+          }),
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = `Error al actualizar presencia: ${response.status}`;
         if (errorData.detail) {
-          if (typeof errorData.detail === "string") errorMessage = errorData.detail;
+          if (typeof errorData.detail === "string")
+            errorMessage = errorData.detail;
           else if (Array.isArray(errorData.detail))
-            errorMessage = errorData.detail.map((e: { loc?: string[]; msg: string }) => `${e.loc?.join(".") || "campo"}: ${e.msg}`).join(", ");
+            errorMessage = errorData.detail
+              .map(
+                (e: { loc?: string[]; msg: string }) =>
+                  `${e.loc?.join(".") || "campo"}: ${e.msg}`,
+              )
+              .join(", ");
           else errorMessage = JSON.stringify(errorData.detail);
         } else if (errorData.message) errorMessage = String(errorData.message);
         throw new Error(errorMessage);
