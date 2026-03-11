@@ -174,12 +174,13 @@ export default function DashboardGeneral({
   const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
     new Date().getFullYear(),
   );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<"YTD" | "Mes">(
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<"YTD" | "Mes" | "Q">(
     "YTD",
   );
   const [mesSeleccionado, setMesSeleccionado] = useState<number>(
     new Date().getMonth() + 1,
   );
+  const [quarterSeleccionado, setQuarterSeleccionado] = useState<1 | 2 | 3 | 4>(1);
   const [presenciaIndices, setPresenciaIndices] = useState<
     Record<string, number>
   >({});
@@ -791,10 +792,13 @@ export default function DashboardGeneral({
     if (periodoSeleccionado === "YTD") {
       const mesActual = new Date().getMonth() + 1;
       return Array.from({ length: mesActual }, (_, i) => i + 1);
+    } else if (periodoSeleccionado === "Q") {
+      const inicio = (quarterSeleccionado - 1) * 3 + 1;
+      return [inicio, inicio + 1, inicio + 2];
     } else {
       return [mesSeleccionado];
     }
-  }, [periodoSeleccionado, mesSeleccionado]);
+  }, [periodoSeleccionado, mesSeleccionado, quarterSeleccionado]);
 
   // Filtrar proyecciones según período
   const proyeccionesFiltradas = useMemo(() => {
@@ -1240,14 +1244,36 @@ export default function DashboardGeneral({
                 id="periodo-selector"
                 value={periodoSeleccionado}
                 onChange={(e) =>
-                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes")
+                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes" | "Q")
                 }
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
               >
                 <option value="YTD">YTD (Year to Date)</option>
+                <option value="Q">Trimestre (Q)</option>
                 <option value="Mes">Mes</option>
               </select>
             </div>
+            {periodoSeleccionado === "Q" && (
+              <div>
+                <label
+                  htmlFor="quarter-selector"
+                  className="block text-sm font-medium text-gray-900 mb-2"
+                >
+                  Trimestre:
+                </label>
+                <select
+                  id="quarter-selector"
+                  value={quarterSeleccionado}
+                  onChange={(e) => setQuarterSeleccionado(parseInt(e.target.value) as 1 | 2 | 3 | 4)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                >
+                  <option value={1}>Q1 (Ene – Mar)</option>
+                  <option value={2}>Q2 (Abr – Jun)</option>
+                  <option value={3}>Q3 (Jul – Sep)</option>
+                  <option value={4}>Q4 (Oct – Dic)</option>
+                </select>
+              </div>
+            )}
             {periodoSeleccionado === "Mes" && (
               <div>
                 <label
