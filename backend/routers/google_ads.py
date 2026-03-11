@@ -665,7 +665,6 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                     metrics.conversions,
                     metrics.ctr,
                     metrics.interactions,
-                    metrics.conversion_rate,
                     metrics.cost_per_conversion
                 FROM campaign
                 WHERE campaign.status != 'REMOVED'
@@ -683,18 +682,15 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                     metricas_por_id[cid] = {
                         "impressions": 0, "clicks": 0, "costMicros": 0,
                         "conversions": 0.0, "interactions": 0,
-                        "ctr": float(m.get("ctr", 0) or 0),
-                        "conversionRate": float(m.get("conversionRate", 0) or 0),
-                        "costPerConversion": float(m.get("costPerConversion", 0) or 0),
+                        "ctr": 0.0, "costPerConversion": 0.0,
                     }
                 metricas_por_id[cid]["impressions"] += int(m.get("impressions", 0) or 0)
                 metricas_por_id[cid]["clicks"] += int(m.get("clicks", 0) or 0)
                 metricas_por_id[cid]["costMicros"] += int(m.get("costMicros", 0) or 0)
                 metricas_por_id[cid]["conversions"] += float(m.get("conversions", 0) or 0)
                 metricas_por_id[cid]["interactions"] += int(m.get("interactions", 0) or 0)
-                # ctr/conversionRate/costPerConversion → tomar el último (son ratios, no sumas)
+                # ctr/costPerConversion → tomar el último (son ratios/promedios, no sumas)
                 metricas_por_id[cid]["ctr"] = float(m.get("ctr", 0) or 0)
-                metricas_por_id[cid]["conversionRate"] = float(m.get("conversionRate", 0) or 0)
                 metricas_por_id[cid]["costPerConversion"] = float(m.get("costPerConversion", 0) or 0)
         except HTTPException:
             pass  # Si no hay métricas este mes, igual importamos las campañas con 0s
@@ -724,7 +720,10 @@ def _importar_todas_las_marcas(db: Session) -> dict:
             leads        = max(0, int(m.get("conversions", 0)))
             gasto        = round(m.get("costMicros", 0) / 1_000_000, 2)
             ctr          = round(m.get("ctr", 0) * 100, 4)
-            tasa_conv    = round(m.get("conversionRate", 0) * 100, 2)
+            # conversion_rate no existe en v20 → calcular manualmente
+            _conv  = float(m.get("conversions", 0) or 0)
+            _inter = int(m.get("interactions", 0) or 0)
+            tasa_conv = round((_conv / _inter * 100) if _inter > 0 else 0.0, 2)
             cxc          = round(m.get("costPerConversion", 0) / 1_000_000, 2) if m.get("costPerConversion") else 0.0
             presupuesto  = round((int(b.get("amountMicros", 0) or 0)) / 1_000_000, 2)
             estado       = ESTADO_MAP.get(c.get("status", ""), "Activa")
