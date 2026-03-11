@@ -408,3 +408,21 @@ class FormTemplate(Base):
     template_json = Column(Text, nullable=False)               # JSON con secciones y campos
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class ConciliacionBDC(Base):
+    __tablename__ = 'conciliacion_bdc'
+
+    id = Column(Integer, primary_key=True, index=True)
+    marca = Column(String, nullable=False)
+    semana_inicio = Column(Date, nullable=False)
+    semana_fin = Column(Date, nullable=False)
+    mes = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    leads_activos = Column(Text, nullable=True)       # JSON array
+    leads_cerrados = Column(Text, nullable=True)      # JSON array
+    comparacion_medios = Column(Text, nullable=True)  # JSON array
+    notas_generales = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    creado_por = Column(String, nullable=True)

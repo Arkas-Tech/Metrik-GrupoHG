@@ -31,6 +31,7 @@ import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useMetricas, Metrica, MetricaFormData } from "@/hooks/useMetricas";
 import FormularioMetricaSimple from "@/components/FormularioMetricaSimple";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import ConciliacionBDCSection from "@/components/ConciliacionBDCSection";
 
 interface MetricCard {
   title: string;
@@ -67,15 +68,17 @@ const MetricasPage = () => {
   const [historialExpanded, setHistorialExpanded] = useState(false);
 
   // Embajadores
-  const [embajadoresDig, setEmbajadoresDig] = useState<Array<{
-    id: number;
-    nombre: string;
-    plataformas_json: string | null;
-    presupuesto: number;
-    leads: number;
-    audiencia: number;
-    marca: string | null;
-  }>>([]);
+  const [embajadoresDig, setEmbajadoresDig] = useState<
+    Array<{
+      id: number;
+      nombre: string;
+      plataformas_json: string | null;
+      presupuesto: number;
+      leads: number;
+      audiencia: number;
+      marca: string | null;
+    }>
+  >([]);
 
   const [mesSeleccionado, setMesSeleccionado] = useState<number | undefined>(
     undefined,
@@ -812,31 +815,7 @@ const MetricasPage = () => {
           </div>
 
           {/* Sección Conciliación con BDC */}
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-            <div className="flex items-center justify-center py-16">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                  <svg
-                    className="w-8 h-8 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Conciliación con BDC
-                </h2>
-                <p className="text-gray-600">Próximamente</p>
-              </div>
-            </div>
-          </div>
+          <ConciliacionBDCSection />
 
           {/* Sección Diagramas de Conversión */}
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
@@ -1067,9 +1046,24 @@ const MetricasPage = () => {
                 );
               }
               const paletas = [
-                { bg: "from-purple-50 to-purple-100", border: "border-purple-200", avatar: "bg-purple-600", text: "text-purple-900" },
-                { bg: "from-pink-50 to-pink-100", border: "border-pink-200", avatar: "bg-pink-600", text: "text-pink-900" },
-                { bg: "from-indigo-50 to-indigo-100", border: "border-indigo-200", avatar: "bg-indigo-600", text: "text-indigo-900" },
+                {
+                  bg: "from-purple-50 to-purple-100",
+                  border: "border-purple-200",
+                  avatar: "bg-purple-600",
+                  text: "text-purple-900",
+                },
+                {
+                  bg: "from-pink-50 to-pink-100",
+                  border: "border-pink-200",
+                  avatar: "bg-pink-600",
+                  text: "text-pink-900",
+                },
+                {
+                  bg: "from-indigo-50 to-indigo-100",
+                  border: "border-indigo-200",
+                  avatar: "bg-indigo-600",
+                  text: "text-indigo-900",
+                },
               ];
               const fmtAud = (n: number) => {
                 if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -1080,42 +1074,92 @@ const MetricasPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {embFiltrados.slice(0, 6).map((emb, idx) => {
                     const p = paletas[idx % paletas.length];
-                    let plataformas: Array<{ plataforma: string; usuario: string }> = [];
-                    try { if (emb.plataformas_json) plataformas = JSON.parse(emb.plataformas_json); } catch { /* ignore */ }
+                    let plataformas: Array<{
+                      plataforma: string;
+                      usuario: string;
+                    }> = [];
+                    try {
+                      if (emb.plataformas_json)
+                        plataformas = JSON.parse(emb.plataformas_json);
+                    } catch {
+                      /* ignore */
+                    }
                     return (
-                      <div key={emb.id} className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}>
+                      <div
+                        key={emb.id}
+                        className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}
+                      >
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h3 className={`text-lg font-bold ${p.text} leading-tight`}>{emb.nombre}</h3>
-                            {emb.marca && <p className="text-xs text-gray-500 mt-0.5">{emb.marca}</p>}
+                            <h3
+                              className={`text-lg font-bold ${p.text} leading-tight`}
+                            >
+                              {emb.nombre}
+                            </h3>
+                            {emb.marca && (
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {emb.marca}
+                              </p>
+                            )}
                           </div>
-                          <div className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}>
-                            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          <div
+                            className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}
+                          >
+                            <svg
+                              className="w-7 h-7 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
                             </svg>
                           </div>
                         </div>
                         {plataformas.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-3">
                             {plataformas.map((pl, i) => (
-                              <span key={i} className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                                {pl.plataforma}{pl.usuario ? ` · ${pl.usuario}` : ""}
+                              <span
+                                key={i}
+                                className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
+                              >
+                                {pl.plataforma}
+                                {pl.usuario ? ` · ${pl.usuario}` : ""}
                               </span>
                             ))}
                           </div>
                         )}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">Presupuesto:</span>
-                            <span className={`text-base font-bold ${p.text}`}>${new Intl.NumberFormat("es-MX").format(emb.presupuesto)}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Presupuesto:
+                            </span>
+                            <span className={`text-base font-bold ${p.text}`}>
+                              $
+                              {new Intl.NumberFormat("es-MX").format(
+                                emb.presupuesto,
+                              )}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">Leads:</span>
-                            <span className={`text-base font-bold ${p.text}`}>{new Intl.NumberFormat("es-MX").format(emb.leads)}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Leads:
+                            </span>
+                            <span className={`text-base font-bold ${p.text}`}>
+                              {new Intl.NumberFormat("es-MX").format(emb.leads)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">Audiencia:</span>
-                            <span className={`text-base font-bold ${p.text}`}>{fmtAud(emb.audiencia)}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Audiencia:
+                            </span>
+                            <span className={`text-base font-bold ${p.text}`}>
+                              {fmtAud(emb.audiencia)}
+                            </span>
                           </div>
                         </div>
                       </div>
