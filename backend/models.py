@@ -239,6 +239,7 @@ class Campanas(Base):
     creado_por = Column(String)
     user_id = Column(Integer, ForeignKey('users.id'))
     google_ads_id = Column(String, nullable=True)  # ID de campaña en Google Ads
+    meta_ads_id = Column(String, nullable=True)  # ID de campaña en Meta Ads
 
 
 class PresenciaTradicional(Base):

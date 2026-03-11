@@ -50,6 +50,7 @@ interface CampanaDetallada {
   cxc_porcentaje: number;
   imagenes_json?: string;
   google_ads_id?: string;
+  meta_ads_id?: string;
 }
 
 interface GadsItem {
@@ -126,10 +127,35 @@ const CampanasPage = () => {
   const [añoSeleccionado, setAñoSeleccionado] = useState(0); // 0 = Todos
 
   // Métricas filtradas por período (google_ads_id → métricas)
-  const [metricasPeriodo, setMetricasPeriodo] = useState<Record<string, {
-    alcance: number; interacciones: number; leads: number;
-    gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number;
-  }>>({});
+  const [metricasPeriodo, setMetricasPeriodo] = useState<
+    Record<
+      string,
+      {
+        alcance: number;
+        interacciones: number;
+        leads: number;
+        gasto_actual: number;
+        ctr: number;
+        conversion: number;
+        cxc_porcentaje: number;
+      }
+    >
+  >({});
+  // Métricas filtradas por período para Meta Ads (meta_ads_id → métricas)
+  const [metricasPeriodoMeta, setMetricasPeriodoMeta] = useState<
+    Record<
+      string,
+      {
+        alcance: number;
+        interacciones: number;
+        leads: number;
+        gasto_actual: number;
+        ctr: number;
+        conversion: number;
+        cxc_porcentaje: number;
+      }
+    >
+  >({});
 
   // Hook para obtener parámetros de la URL
   const searchParams = useSearchParams();
@@ -184,18 +210,6 @@ const CampanasPage = () => {
     }
   }, [API_URL]);
 
-  const cargarCampanasGads = useCallback(async () => {
-    setLoadingGadsLista(true);
-    try {
-      const res = await fetchConToken(`${API_URL}/google-ads/campanas`);
-      if (res.ok) setGadsCampanas(await res.json());
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingGadsLista(false);
-    }
-  }, [API_URL]);
-
   const importarCampanas = useCallback(
     async (marca?: string) => {
       setImportando(true);
@@ -223,10 +237,6 @@ const CampanasPage = () => {
     },
     [API_URL, cargarCampanas, marcaSeleccionada],
   );
-
-
-
-
 
   const vincularCampana = useCallback(async () => {
     if (!modalVincular) return;
@@ -261,8 +271,6 @@ const CampanasPage = () => {
     cargarCampanas,
     marcaSeleccionada,
   ]);
-
-
 
   const guardarCustomerMap = useCallback(async () => {
     setSavingCustomerMap(true);
@@ -325,29 +333,38 @@ const CampanasPage = () => {
   useEffect(() => {
     if (mesSeleccionado === 0 && añoSeleccionado === 0) {
       setMetricasPeriodo({});
+      setMetricasPeriodoMeta({});
       return;
     }
     const year = añoSeleccionado || new Date().getFullYear();
     const month = mesSeleccionado || 1;
     if (mesSeleccionado === 0 || añoSeleccionado === 0) {
       setMetricasPeriodo({});
+      setMetricasPeriodoMeta({});
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetchConToken(
-          `${API_URL}/google-ads/metrics?year=${year}&month=${month}`,
-        );
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setMetricasPeriodo(data);
+        const [gRes, mRes] = await Promise.all([
+          fetchConToken(
+            `${API_URL}/google-ads/metrics?year=${year}&month=${month}`,
+          ),
+          fetchConToken(
+            `${API_URL}/meta-ads/metrics?year=${year}&month=${month}`,
+          ),
+        ]);
+        if (!cancelled) {
+          if (gRes.ok) setMetricasPeriodo(await gRes.json());
+          if (mRes.ok) setMetricasPeriodoMeta(await mRes.json());
         }
       } catch {
         // silently ignore
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [mesSeleccionado, añoSeleccionado, API_URL]);
 
   useEffect(() => {
@@ -555,17 +572,39 @@ const CampanasPage = () => {
         return false;
       }
 
+      // Campañas Meta Ads: mostrar si tuvieron actividad en el período filtrado
+      if (campana.meta_ads_id) {
+        if (metricasPeriodoMeta[campana.meta_ads_id]) return cumplePlataforma;
+        return false;
+      }
+
       // Campañas manuales: filtrar por fecha de inicio
       if (!campana.fecha_inicio) return false;
       const fechaInicio = new Date(campana.fecha_inicio);
       const mesCampana = fechaInicio.getMonth() + 1;
       const añoCampana = fechaInicio.getFullYear();
-      return mesCampana === mesSeleccionado && añoCampana === añoSeleccionado && cumplePlataforma;
+      return (
+        mesCampana === mesSeleccionado &&
+        añoCampana === añoSeleccionado &&
+        cumplePlataforma
+      );
     })
     .map((campana) => {
       // Sobrescribir métricas con las del período si hay filtro activo
-      if (hayFiltroFecha && campana.google_ads_id && metricasPeriodo[campana.google_ads_id]) {
+      if (
+        hayFiltroFecha &&
+        campana.google_ads_id &&
+        metricasPeriodo[campana.google_ads_id]
+      ) {
         const m = metricasPeriodo[campana.google_ads_id];
+        return { ...campana, ...m };
+      }
+      if (
+        hayFiltroFecha &&
+        campana.meta_ads_id &&
+        metricasPeriodoMeta[campana.meta_ads_id]
+      ) {
+        const m = metricasPeriodoMeta[campana.meta_ads_id];
         return { ...campana, ...m };
       }
       return campana;
@@ -825,7 +864,8 @@ const CampanasPage = () => {
                           $
                           {new Intl.NumberFormat("es-MX").format(
                             campana.presupuesto,
-                          )}/día
+                          )}
+                          /día
                         </span>
                       )}
                     </div>

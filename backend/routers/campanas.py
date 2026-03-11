@@ -61,6 +61,7 @@ class CampanyaResponse(BaseModel):
     imagenes_json: Optional[str] = None
     creado_por: Optional[str] = None
     google_ads_id: Optional[str] = None
+    meta_ads_id: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -5,16 +5,16 @@ from dotenv import load_dotenv
 import asyncio
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads
 
 # Cargar variables de entorno
 load_dotenv()
 
-GOOGLE_ADS_SYNC_INTERVAL = 600  # segundos (10 minutos)
+ADS_SYNC_INTERVAL = 600  # segundos (10 minutos)
 
 
 async def _auto_sync_loop():
-    """Importa/actualiza campañas de Google Ads cada 10 minutos en background."""
+    """Importa/actualiza campañas de Google Ads y Meta Ads cada 10 minutos."""
     await asyncio.sleep(30)  # espera inicial al arrancar
     while True:
         try:
@@ -24,8 +24,16 @@ async def _auto_sync_loop():
             finally:
                 db.close()
         except Exception:
-            pass  # nunca crashear el servidor por un fallo de sync
-        await asyncio.sleep(GOOGLE_ADS_SYNC_INTERVAL)
+            pass
+        try:
+            db = SessionLocal()
+            try:
+                meta_ads._importar_todas_las_marcas(db)
+            finally:
+                db.close()
+        except Exception:
+            pass
+        await asyncio.sleep(ADS_SYNC_INTERVAL)
 
 
 @asynccontextmanager
@@ -93,6 +101,7 @@ app.include_router(categorias.router)
 app.include_router(form_templates.router)
 app.include_router(desplazamiento.router)
 app.include_router(google_ads.router)
+app.include_router(meta_ads.router)
 
 @app.get("/")
 async def root():

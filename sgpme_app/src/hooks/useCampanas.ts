@@ -23,6 +23,7 @@ export interface Campana {
   imagenes_json?: string;
   creado_por: string;
   google_ads_id?: string;
+  meta_ads_id?: string;
 }
 
 export interface CampanaFormData {
