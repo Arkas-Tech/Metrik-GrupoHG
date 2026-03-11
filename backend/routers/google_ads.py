@@ -499,6 +499,100 @@ async def proxy_asset_image(
 
 # ─── Sync & Vincular ───────────────────────────────────────────────────────────
 
+
+@router.get("/metrics")
+async def get_period_metrics(
+    user: user_dependency,
+    db: db_dependency,
+    year: int = Query(...),
+    month: int = Query(...),
+):
+    """Devuelve métricas de Google Ads filtradas por mes/año para todas las marcas."""
+    if user is None:
+        raise HTTPException(status_code=401)
+
+    from datetime import date as date_type
+    import calendar
+
+    cfg = _get_google_config(db)
+    if not _is_configured(cfg):
+        return {}
+
+    marcas = list(cfg["customer_map"].keys()) if cfg.get("customer_map") else []
+    if not marcas:
+        return {}
+
+    try:
+        token = _get_access_token(cfg)
+    except Exception:
+        return {}
+
+    _, last_day = calendar.monthrange(year, month)
+    start = f"{year}-{month:02d}-01"
+    end = f"{year}-{month:02d}-{last_day:02d}"
+
+    # {google_ads_id: {alcance, gasto_actual, leads, interacciones, ctr, conversion, cxc_porcentaje}}
+    result: dict = {}
+
+    for marca in marcas:
+        customer_id = _get_customer_id_for_marca(cfg, marca)
+        if not customer_id:
+            continue
+        try:
+            rows = _gaql(
+                token, cfg["developer_token"], customer_id,
+                f"""
+                SELECT
+                    campaign.id,
+                    metrics.impressions,
+                    metrics.clicks,
+                    metrics.cost_micros,
+                    metrics.conversions,
+                    metrics.interactions
+                FROM campaign
+                WHERE campaign.status != 'REMOVED'
+                    AND segments.date BETWEEN '{start}' AND '{end}'
+                """,
+                manager_id=cfg.get("manager_id", ""),
+            )
+        except Exception:
+            continue
+
+        # Agrupar por campaign.id (segments.date genera una fila por día)
+        agg: dict = {}
+        for r in rows:
+            cid = str(r.get("campaign", {}).get("id", ""))
+            if not cid:
+                continue
+            m = r.get("metrics", {})
+            if cid not in agg:
+                agg[cid] = {"impressions": 0, "clicks": 0, "costMicros": 0,
+                            "conversions": 0.0, "interactions": 0}
+            agg[cid]["impressions"] += int(m.get("impressions", 0) or 0)
+            agg[cid]["clicks"] += int(m.get("clicks", 0) or 0)
+            agg[cid]["costMicros"] += int(m.get("costMicros", 0) or 0)
+            agg[cid]["conversions"] += float(m.get("conversions", 0) or 0)
+            agg[cid]["interactions"] += int(m.get("interactions", 0) or 0)
+
+        for cid, a in agg.items():
+            impr = a["impressions"]
+            clicks = a["clicks"]
+            inter = a["interactions"]
+            conv = a["conversions"]
+            cost = a["costMicros"]
+            result[cid] = {
+                "alcance": impr,
+                "interacciones": inter,
+                "leads": max(0, int(conv)),
+                "gasto_actual": round(cost / 1_000_000, 2),
+                "ctr": round((clicks / impr * 100) if impr > 0 else 0, 4),
+                "conversion": round((conv / inter * 100) if inter > 0 else 0, 2),
+                "cxc_porcentaje": round((cost / conv / 1_000_000), 2) if conv > 0 else 0.0,
+            }
+
+    return result
+
+
 @router.post("/sync/{db_campana_id}")
 async def sync_campaign_metrics(
     db_campana_id: int, user: user_dependency, db: db_dependency

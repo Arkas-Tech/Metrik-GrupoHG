@@ -25,7 +25,6 @@ import {
   PencilIcon,
   TrashIcon,
   XMarkIcon,
-  ArrowPathIcon,
   LinkIcon,
 } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
@@ -84,7 +83,7 @@ const CampanasPage = () => {
   // Google Ads state
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
   const [gadsConfigured, setGadsConfigured] = useState<boolean | null>(null);
-  const [sincronizando, setSincronizando] = useState<number | null>(null);
+
   const [modalVincular, setModalVincular] = useState<CampanaDetallada | null>(
     null,
   );
@@ -113,7 +112,7 @@ const CampanasPage = () => {
     "Kia Juventud",
     "Kia Juarez",
     "Subaru Chihuahua",
-    "Toyota HG / Cuu",
+    "Toyota Chihuahua",
     "Toyota Monclova",
   ];
 
@@ -125,6 +124,12 @@ const CampanasPage = () => {
   const fechaActual = new Date();
   const [mesSeleccionado, setMesSeleccionado] = useState(0); // 0 = Todos
   const [añoSeleccionado, setAñoSeleccionado] = useState(0); // 0 = Todos
+
+  // Métricas filtradas por período (google_ads_id → métricas)
+  const [metricasPeriodo, setMetricasPeriodo] = useState<Record<string, {
+    alcance: number; interacciones: number; leads: number;
+    gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number;
+  }>>({});
 
   // Hook para obtener parámetros de la URL
   const searchParams = useSearchParams();
@@ -219,40 +224,9 @@ const CampanasPage = () => {
     [API_URL, cargarCampanas, marcaSeleccionada],
   );
 
-  const sincronizarCampana = useCallback(
-    async (campanaId: number) => {
-      setSincronizando(campanaId);
-      try {
-        const res = await fetchConToken(
-          `${API_URL}/google-ads/sync/${campanaId}`,
-          { method: "POST" },
-        );
-        const data = await res.json();
-        if (res.ok && data.updated) {
-          await cargarCampanas(marcaSeleccionada || undefined);
-          alert(
-            `✅ Métricas sincronizadas:\nAlcance: ${data.datos.alcance?.toLocaleString()}\nLeads: ${data.datos.leads}\nGasto: $${data.datos.gasto_actual?.toLocaleString()}\nCTR: ${data.datos.ctr}%`,
-          );
-        } else {
-          alert(data.message || data.detail || "No hay datos disponibles");
-        }
-      } catch {
-        alert("Error al sincronizar con Google Ads");
-      } finally {
-        setSincronizando(null);
-      }
-    },
-    [API_URL, cargarCampanas, marcaSeleccionada],
-  );
 
-  const abrirModalVincular = useCallback(
-    async (campana: CampanaDetallada) => {
-      setModalVincular(campana);
-      setGadsCampanaIdSeleccionada(campana.google_ads_id || "");
-      await cargarCampanasGads();
-    },
-    [cargarCampanasGads],
-  );
+
+
 
   const vincularCampana = useCallback(async () => {
     if (!modalVincular) return;
@@ -288,26 +262,7 @@ const CampanasPage = () => {
     marcaSeleccionada,
   ]);
 
-  const abrirGadsSetup = useCallback(
-    async (tab: "oauth" | "cuentas" = "oauth") => {
-      setGadsSetupMsg("");
-      setGadsAuthCode("");
-      setGadsOAuthUrl("");
-      setGadsSetupTab(tab);
-      setModalGadsSetup(true);
-      try {
-        const [urlRes, mapRes] = await Promise.all([
-          fetchConToken(`${API_URL}/google-ads/oauth/url`),
-          fetchConToken(`${API_URL}/google-ads/customer-map`),
-        ]);
-        if (urlRes.ok) setGadsOAuthUrl((await urlRes.json()).url);
-        if (mapRes.ok) setGadsCustomerMap(await mapRes.json());
-      } catch {
-        /* ignore */
-      }
-    },
-    [API_URL],
-  );
+
 
   const guardarCustomerMap = useCallback(async () => {
     setSavingCustomerMap(true);
@@ -365,6 +320,35 @@ const CampanasPage = () => {
   useEffect(() => {
     if (isAdmin && usuario) cargarGadsStatus();
   }, [isAdmin, usuario, cargarGadsStatus]);
+
+  // Cargar métricas filtradas cuando cambia mes/año
+  useEffect(() => {
+    if (mesSeleccionado === 0 && añoSeleccionado === 0) {
+      setMetricasPeriodo({});
+      return;
+    }
+    const year = añoSeleccionado || new Date().getFullYear();
+    const month = mesSeleccionado || 1;
+    if (mesSeleccionado === 0 || añoSeleccionado === 0) {
+      setMetricasPeriodo({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchConToken(
+          `${API_URL}/google-ads/metrics?year=${year}&month=${month}`,
+        );
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setMetricasPeriodo(data);
+        }
+      } catch {
+        // silently ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mesSeleccionado, añoSeleccionado, API_URL]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -549,26 +533,42 @@ const CampanasPage = () => {
   };
 
   // Filtrar campañas por mes, año y plataforma
+  const hayFiltroFecha = mesSeleccionado !== 0 && añoSeleccionado !== 0;
+
   const campanasFiltradas = campanasDb
     .filter((campana) => {
       // Filtrar por marcas permitidas del usuario
       if (!filtraPorMarca(campana.marca)) return false;
 
-      // Si no hay fecha o los filtros están en "Todos", pasa siempre
       const cumplePlataforma =
         plataformaSeleccionada === "Todas" ||
         campana.plataforma === plataformaSeleccionada;
 
-      if (!campana.fecha_inicio) return cumplePlataforma;
+      // Sin filtro de fecha → mostrar todas
+      if (!hayFiltroFecha) return cumplePlataforma;
 
+      // Campañas Google Ads: mostrar si estaron activas en el período filtrado
+      if (campana.google_ads_id) {
+        // Si hay métricas para este período, mostrar
+        if (metricasPeriodo[campana.google_ads_id]) return cumplePlataforma;
+        // Sin métricas = no tuvo actividad ese mes
+        return false;
+      }
+
+      // Campañas manuales: filtrar por fecha de inicio
+      if (!campana.fecha_inicio) return false;
       const fechaInicio = new Date(campana.fecha_inicio);
       const mesCampana = fechaInicio.getMonth() + 1;
       const añoCampana = fechaInicio.getFullYear();
-
-      const cumpleMes = mesSeleccionado === 0 || mesCampana === mesSeleccionado;
-      const cumpleAño = añoSeleccionado === 0 || añoCampana === añoSeleccionado;
-
-      return cumpleMes && cumpleAño && cumplePlataforma;
+      return mesCampana === mesSeleccionado && añoCampana === añoSeleccionado && cumplePlataforma;
+    })
+    .map((campana) => {
+      // Sobrescribir métricas con las del período si hay filtro activo
+      if (hayFiltroFecha && campana.google_ads_id && metricasPeriodo[campana.google_ads_id]) {
+        const m = metricasPeriodo[campana.google_ads_id];
+        return { ...campana, ...m };
+      }
+      return campana;
     })
     .sort((a, b) => {
       const fechaA = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : 0;
@@ -825,7 +825,7 @@ const CampanasPage = () => {
                           $
                           {new Intl.NumberFormat("es-MX").format(
                             campana.presupuesto,
-                          )}
+                          )}/día
                         </span>
                       )}
                     </div>
@@ -915,49 +915,6 @@ const CampanasPage = () => {
                       <span>Ver Anuncios</span>
                     </button>
 
-                    {/* Google Ads sync / vincular — solo para campañas de Google Ads */}
-                    {campana.plataforma === "Google Ads" && (
-                      <div className="flex gap-2">
-                        {campana.google_ads_id ? (
-                          <button
-                            onClick={() => sincronizarCampana(campana.id)}
-                            disabled={sincronizando === campana.id}
-                            className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm"
-                            title="Sincronizar métricas desde Google Ads"
-                          >
-                            <ArrowPathIcon
-                              className={`w-4 h-4 ${sincronizando === campana.id ? "animate-spin" : ""}`}
-                            />
-                            <span>
-                              {sincronizando === campana.id
-                                ? "Sincronizando..."
-                                : "Sincronizar Ads"}
-                            </span>
-                          </button>
-                        ) : (
-                          <span className="flex-1 text-center text-xs text-gray-400 py-2 px-3 border border-dashed border-gray-300 rounded-lg">
-                            Sin vincular a Google Ads
-                          </span>
-                        )}
-                        {isAdmin && (
-                          <button
-                            onClick={() =>
-                              abrirModalVincular(
-                                campana as unknown as CampanaDetallada,
-                              )
-                            }
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-lg transition-colors"
-                            title={
-                              campana.google_ads_id
-                                ? "Cambiar campaña vinculada"
-                                : "Vincular con Google Ads"
-                            }
-                          >
-                            <LinkIcon className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    )}
                     {!isAuditor && (
                       <div className="flex gap-2">
                         <button

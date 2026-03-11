@@ -112,14 +112,13 @@ export default function FormularioCampana({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Nombre de la Campaña *
+            Nombre de la Campaña
           </label>
           <input
             type="text"
             name="nombre"
             value={formData.nombre}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
             placeholder="Ej: Campaña Black Friday 2024"
           />
@@ -127,13 +126,12 @@ export default function FormularioCampana({
 
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Agencia *
+            Agencia
           </label>
           <select
             name="marca"
             value={formData.marca}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
           >
             <option value="">Seleccionar agencia</option>
@@ -147,13 +145,12 @@ export default function FormularioCampana({
 
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Estado *
+            Estado
           </label>
           <select
             name="estado"
             value={formData.estado}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
           >
             <option value="Activa">Activa</option>
@@ -164,13 +161,12 @@ export default function FormularioCampana({
 
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Plataforma *
+            Plataforma
           </label>
           <select
             name="plataforma"
             value={formData.plataforma}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
           >
             <option value="Meta Ads">Meta Ads</option>
@@ -181,14 +177,13 @@ export default function FormularioCampana({
 
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Auto Objetivo *
+            Auto Objetivo
           </label>
           <input
             type="text"
             name="auto_objetivo"
             value={formData.auto_objetivo}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
             placeholder="Ej: Toyota RAV4"
           />
@@ -196,14 +191,13 @@ export default function FormularioCampana({
 
         <div>
           <label className="block text-sm font-bold text-gray-800 mb-2">
-            Presupuesto *
+            Presupuesto
           </label>
           <input
             type="number"
             name="presupuesto"
             value={formData.presupuesto || ""}
             onChange={handleChange}
-            required
             min="0"
             step="0.01"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
@@ -269,7 +263,6 @@ export default function FormularioCampana({
               value={formData.conversion || ""}
               onChange={handleChange}
               min="0"
-              max="100"
               step="0.01"
               placeholder="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
@@ -286,7 +279,6 @@ export default function FormularioCampana({
               value={formData.cxc_porcentaje || ""}
               onChange={handleChange}
               min="0"
-              max="100"
               step="0.01"
               placeholder="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
@@ -299,7 +291,7 @@ export default function FormularioCampana({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-bold text-gray-800 mb-2">
-              Fecha Inicio *
+              Fecha Inicio
             </label>
             <DateInput
               name="fecha_inicio"
@@ -313,7 +305,7 @@ export default function FormularioCampana({
 
           <div>
             <label className="block text-sm font-bold text-gray-800 mb-2">
-              Fecha Fin *
+              Fecha Fin
             </label>
             <DateInput
               name="fecha_fin"
