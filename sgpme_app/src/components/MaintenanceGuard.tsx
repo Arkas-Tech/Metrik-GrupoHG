@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuthUnified";
+import { usePathname } from "next/navigation";
 
 const MAINTENANCE_EXEMPT = ["yosmar.chavez.aram@gmail.com"];
 
@@ -13,11 +14,15 @@ export default function MaintenanceGuard({
   children: ReactNode;
 }) {
   const { usuario, loading } = useAuth();
+  const pathname = usePathname();
 
   if (!MAINTENANCE_MODE) return <>{children}</>;
 
-  // Mientras carga la sesión, no mostrar nada todavía
-  if (loading) return null;
+  // Siempre permitir la página de login
+  if (pathname === "/login") return <>{children}</>;
+
+  // Mientras carga la sesión no bloquear todavía
+  if (loading) return <>{children}</>;
 
   // Si el usuario está exento, mostrar la app normalmente
   if (usuario && MAINTENANCE_EXEMPT.includes(usuario.email ?? "")) {
