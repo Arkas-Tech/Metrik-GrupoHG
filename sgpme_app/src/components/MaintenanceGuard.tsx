@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 const MAINTENANCE_EXEMPT = ["yosmar.chavez.aram@gmail.com"];
 
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 export default function MaintenanceGuard({
   children,
