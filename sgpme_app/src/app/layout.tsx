@@ -32,6 +32,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Limpiar service workers y caches viejos automáticamente */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      var unregistered = false;
+      regs.forEach(function(reg) { reg.unregister(); unregistered = true; });
+      if (unregistered && 'caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) { caches.delete(name); });
+        }).then(function() { window.location.reload(); });
+      }
+    });
+  }
+})();
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} antialiased`}>
         <ClientProviders useBackend={true}>{children}</ClientProviders>
       </body>
