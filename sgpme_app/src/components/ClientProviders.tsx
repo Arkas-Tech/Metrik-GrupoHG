@@ -6,6 +6,7 @@ import { AuthProvider as AuthBackendProvider } from "@/hooks/useAuthBackend";
 import { AuthConfigProvider } from "@/hooks/useAuthUnified";
 import { MarcaProvider } from "@/contexts/MarcaContext";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
+import MaintenanceGuard from "@/components/MaintenanceGuard";
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -23,7 +24,9 @@ export default function ClientProviders({
     <AuthConfigProvider useBackend={useBackend}>
       <AuthProvider>
         <AuthBackendProvider>
-          <MarcaProvider>{children}</MarcaProvider>
+          <MarcaProvider>
+            <MaintenanceGuard>{children}</MaintenanceGuard>
+          </MarcaProvider>
         </AuthBackendProvider>
       </AuthProvider>
     </AuthConfigProvider>
