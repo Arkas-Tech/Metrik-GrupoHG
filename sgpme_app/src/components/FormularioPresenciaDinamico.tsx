@@ -369,13 +369,28 @@ export default function FormularioPresenciaDinamico({
       if (nombre !== subcategoria) break;
     }
 
-    // fecha_instalacion: preserve original when editing, use today when creating.
-    // Do NOT extract from dynamic date campos — those are for display only (datos_extra_json).
-    // Using a user-picked date here could place the presencia outside the current
-    // year/quarter filter and make it disappear from the list.
-    const fecha_instalacion = presenciaInicial?.fecha_instalacion
+    // fecha_instalacion: preserve original when editing.
+    // Para nuevas presencias, usar la primera fecha de la sección Temporalidad si
+    // el usuario la llenó (ej. "Fecha de montaje"). Si no, usar today como fallback.
+    // Esto sincroniza fecha_instalacion con el rango que usa el filtro del dashboard.
+    let fecha_instalacion = presenciaInicial?.fecha_instalacion
       ? String(presenciaInicial.fecha_instalacion)
       : todayISO();
+
+    if (!presenciaInicial) {
+      const secTemporal = secciones.find(
+        (s) => s.activo && s.nombre?.toLowerCase().includes("temporal"),
+      );
+      if (secTemporal) {
+        const primerCampoFecha = secTemporal.campos.find(
+          (c) => c.tipo === "fecha",
+        );
+        if (primerCampoFecha && fieldValues[primerCampoFecha.id]) {
+          const v = String(fieldValues[primerCampoFecha.id]);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) fecha_instalacion = v;
+        }
+      }
+    }
 
     // Resolve proveedor name
     let proveedorNombre = proveedorNombreManual;

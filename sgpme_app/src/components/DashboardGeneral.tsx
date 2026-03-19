@@ -1038,50 +1038,63 @@ export default function DashboardGeneral({
   const metricasGoogle = calcularMetricasPlataforma("Google Ads");
   const metricasTikTok = calcularMetricasPlataforma("TikTok Ads");
 
-  // Datos para Presencia Tradicional — filtra por año + mes global
-  // El mes se extrae del primer campo fecha en sección Temporalidad (si existe),
-  // con fallback a cualquier fecha en fieldValues, y último fallback a fecha_instalacion.
+  // Datos para Presencia Tradicional — filtra por año + mes global.
+  // Usa rango de fechas de la sección Temporalidad del template (si existe):
+  //   - 1 fecha  → presencia activa desde esa fecha en adelante (onset)
+  //   - 2+ fechas → presencia activa dentro del rango [primera, última]
+  // Fallback: comparación exacta de año+mes contra fecha_instalacion.
   const presenciaTradicionalData = presencias.filter((presencia) => {
     if (!presencia.agencia || !filtraPorMarca(presencia.agencia)) return false;
-    if (new Date(presencia.fecha_instalacion).getFullYear() !== añoSeleccionado)
-      return false;
 
-    // Intentar extraer mes desde datos_extra_json
+    const selectedVal = añoSeleccionado * 12 + filtroMesGlobal;
+
+    // Intentar rango de fechas desde sección Temporalidad del template cacheado
     if (presencia.datos_extra_json) {
       try {
         const extras = JSON.parse(presencia.datos_extra_json);
         const fv: Record<string, string | number> = extras.fieldValues ?? {};
-
-        // Buscar sección Temporalidad en el template cacheado
         const tmpl = templatesCache[presencia.tipo];
+
         if (tmpl) {
           const sec = tmpl.secciones?.find(
-            (s) => s.activo && s.nombre?.toLowerCase().includes("temporal"),
+            (s: { activo: boolean; nombre: string }) =>
+              s.activo && s.nombre?.toLowerCase().includes("temporal"),
           );
-          const campoDB = sec?.campos?.find((c) => c.tipo === "fecha");
-          if (campoDB && fv[campoDB.id]) {
-            const d = new Date(String(fv[campoDB.id]) + "T00:00:00");
-            return d.getMonth() + 1 === filtroMesGlobal;
-          }
-        }
+          if (sec) {
+            const dateVals = (
+              (sec as { campos?: Array<{ id: string; tipo: string }> })
+                .campos ?? []
+            )
+              .filter((c) => c.tipo === "fecha")
+              .map((c) => fv[c.id])
+              .filter(
+                (v): v is string =>
+                  typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+              )
+              .map((s) => {
+                const d = new Date(s + "T00:00:00");
+                return d.getFullYear() * 12 + d.getMonth() + 1;
+              });
 
-        // Fallback: cualquier valor con formato YYYY-MM-DD en fieldValues
-        const anyDate = Object.values(fv).find(
-          (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
-        );
-        if (anyDate) {
-          const d = new Date(String(anyDate) + "T00:00:00");
-          return d.getMonth() + 1 === filtroMesGlobal;
+            if (dateVals.length === 1) {
+              // Solo fecha de inicio → presencia activa desde esa fecha en adelante
+              return selectedVal >= dateVals[0];
+            }
+            if (dateVals.length >= 2) {
+              const minVal = Math.min(...dateVals);
+              const maxVal = Math.max(...dateVals);
+              return minVal <= selectedVal && selectedVal <= maxVal;
+            }
+          }
         }
       } catch {
         /* ignore */
       }
     }
 
-    // Último fallback: mes de fecha_instalacion
-    return (
-      new Date(presencia.fecha_instalacion).getMonth() + 1 === filtroMesGlobal
-    );
+    // Fallback: comparación exacta de año+mes contra fecha_instalacion
+    const fi = new Date(presencia.fecha_instalacion + "T00:00:00");
+    return fi.getFullYear() * 12 + fi.getMonth() + 1 === selectedVal;
   });
 
   // Presencias por subcategoría (comparación case-insensitive)
