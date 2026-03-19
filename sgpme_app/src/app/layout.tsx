@@ -33,19 +33,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Limpiar service workers y caches viejos automáticamente */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (function() {
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && !sessionStorage.getItem('sw_cleared')) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
-      var unregistered = false;
-      regs.forEach(function(reg) { reg.unregister(); unregistered = true; });
-      if (unregistered && 'caches' in window) {
-        caches.keys().then(function(names) {
-          names.forEach(function(name) { caches.delete(name); });
-        }).then(function() { window.location.reload(); });
+      if (regs.length) {
+        regs.forEach(function(r) { r.unregister(); });
+        if ('caches' in window) caches.keys().then(function(n) { n.forEach(function(k) { caches.delete(k); }); });
+        sessionStorage.setItem('sw_cleared', '1');
+        window.location.reload();
       }
     });
   }
