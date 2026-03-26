@@ -7,7 +7,6 @@ import {
   CogIcon,
   UserCircleIcon,
   KeyIcon,
-  CommandLineIcon,
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/solid";
 import { useDevTools } from "@/contexts/DevToolsContext";
@@ -40,20 +39,7 @@ const menuItems = [
   },
 ];
 
-const devMenuItems = [
-  {
-    id: "dev-tools",
-    name: "Herramientas Dev",
-    icon: WrenchScrewdriverIcon,
-    description: "Herramientas de desarrollo y diagnóstico",
-  },
-  {
-    id: "dev-logs",
-    name: "Logs del Sistema",
-    icon: CommandLineIcon,
-    description: "Ver logs y estado del sistema",
-  },
-];
+
 
 export default function ConfigSidebar({
   isOpen,
@@ -153,38 +139,29 @@ export default function ConfigSidebar({
                             <div className="flex items-center">
                               <div className="flex-1 border-t border-gray-200"></div>
                               <span className="px-3 text-xs font-semibold text-amber-600 uppercase tracking-wider">
-                                Menú Desarrollador
+                                Desarrollador
                               </span>
                               <div className="flex-1 border-t border-gray-200"></div>
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            {devMenuItems.map((item) => (
-                              <button
-                                key={item.id}
-                                onClick={() => {
-                                  onClose();
-                                  openDevTools(
-                                    item.id === "dev-logs"
-                                      ? "activity"
-                                      : "system",
-                                  );
-                                }}
-                                className="w-full group flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition-colors duration-200"
-                              >
-                                <item.icon
-                                  className="mr-3 h-6 w-6 text-gray-400 group-hover:text-amber-500"
-                                  aria-hidden="true"
-                                />
-                                <div className="text-left">
-                                  <div className="font-medium">{item.name}</div>
-                                  <div className="text-xs text-gray-500 group-hover:text-amber-400">
-                                    {item.description}
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
+                          <button
+                            onClick={() => {
+                              onClose();
+                              openDevTools("system");
+                            }}
+                            className="w-full group flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition-colors duration-200"
+                          >
+                            <WrenchScrewdriverIcon
+                              className="mr-3 h-6 w-6 text-gray-400 group-hover:text-amber-500"
+                              aria-hidden="true"
+                            />
+                            <div className="text-left">
+                              <div className="font-medium">Menú Developer</div>
+                              <div className="text-xs text-gray-500 group-hover:text-amber-400">
+                                Herramientas, logs y diagnóstico
+                              </div>
+                            </div>
+                          </button>
                         </>
                       )}
                     </div>
