@@ -10,6 +10,7 @@ import ConfigSidebarCoordinador from "./ConfigSidebarCoordinador";
 import GestionAccesos from "./GestionAccesos";
 import GestionPerfilCoordinador from "./GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "./CambiarContrasenaCoordinador";
+import DevToolsPanel from "./DevToolsPanel";
 
 interface LayoutDashboardProps {
   children: React.ReactNode;
@@ -53,7 +54,12 @@ export default function LayoutDashboard({
 
   const handleMenuClick = (item: string) => {
     setActiveConfigView(item);
-    setConfigSidebarOpen(true);
+    // Close sidebar for full-screen panels
+    if (item === "dev-tools" || item === "dev-logs") {
+      setConfigSidebarOpen(false);
+    } else {
+      setConfigSidebarOpen(true);
+    }
   };
 
   const cerrarSesion = () => {
@@ -155,6 +161,18 @@ export default function LayoutDashboard({
           />
           {activeConfigView === "accesos" && (
             <GestionAccesos onClose={() => setActiveConfigView("")} />
+          )}
+          {activeConfigView === "dev-tools" && (
+            <DevToolsPanel
+              onClose={() => setActiveConfigView("")}
+              initialTab="system"
+            />
+          )}
+          {activeConfigView === "dev-logs" && (
+            <DevToolsPanel
+              onClose={() => setActiveConfigView("")}
+              initialTab="activity"
+            />
           )}
         </>
       )}

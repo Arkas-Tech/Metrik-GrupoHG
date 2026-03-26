@@ -450,3 +450,44 @@ class DiagramaConversion(Base):
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String, nullable=True)
+
+
+# ============ DEV TOOLS ============
+
+class RequestLog(Base):
+    __tablename__ = 'request_logs'
+
+    id = Column(Integer, primary_key=True, index=True)
+    method = Column(String, nullable=False)
+    path = Column(String, nullable=False)
+    status_code = Column(Integer, nullable=False)
+    response_time_ms = Column(Float, nullable=False)
+    user_id = Column(Integer, nullable=True)
+    user_role = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    error_detail = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+class ActivityLog(Base):
+    __tablename__ = 'activity_logs'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True)
+    user_name = Column(String, nullable=True)
+    action = Column(String, nullable=False)
+    entity_type = Column(String, nullable=True)
+    entity_id = Column(Integer, nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), index=True)
+
+
+class FeatureFlag(Base):
+    __tablename__ = 'feature_flags'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    enabled = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

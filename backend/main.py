@@ -1,11 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import asyncio
+import time
+import traceback
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools
+from jose import jwt, JWTError
 
 # Cargar variables de entorno
 load_dotenv()
@@ -54,6 +57,100 @@ app.add_middleware(
 
 models.Base.metadata.create_all(bind=engine)
 
+
+# ============ REQUEST LOGGING MIDDLEWARE ============
+
+SECRET_KEY = '22d259b81d5448bfc4616f6aa4f9beecdbf0304262876cb79eb86f3ec34ffea7'
+ALGORITHM = 'HS256'
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start = time.time()
+    error_detail = None
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+    except Exception as e:
+        error_detail = traceback.format_exc()
+        raise
+    finally:
+        duration_ms = round((time.time() - start) * 1000, 2)
+        path = request.url.path
+
+        # Skip logging for docs, static, and dev request-logs to avoid recursion
+        skip_paths = ['/docs', '/openapi.json', '/redoc', '/favicon.ico']
+        if not any(path.startswith(sp) for sp in skip_paths):
+            try:
+                # Extract user info from JWT if present
+                user_id = None
+                user_role = None
+                auth_header = request.headers.get('authorization', '')
+                if auth_header.startswith('Bearer '):
+                    try:
+                        token = auth_header[7:]
+                        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                        user_id = payload.get('id')
+                        user_role = payload.get('role')
+                    except (JWTError, Exception):
+                        pass
+
+                db = SessionLocal()
+                try:
+                    log_entry = models.RequestLog(
+                        method=request.method,
+                        path=path,
+                        status_code=status_code,
+                        response_time_ms=duration_ms,
+                        user_id=user_id,
+                        user_role=user_role,
+                        ip_address=request.client.host if request.client else None,
+                        error_detail=error_detail,
+                    )
+                    db.add(log_entry)
+
+                    # Auto-detect activity from write operations
+                    if request.method in ('POST', 'PUT', 'DELETE') and status_code < 400:
+                        entity_type = None
+                        action = request.method.lower()
+                        activity_paths = {
+                            '/facturas': 'factura',
+                            '/proyecciones': 'proyeccion',
+                            '/campanas': 'campana',
+                            '/presupuesto': 'presupuesto',
+                            '/embajadores': 'embajador',
+                            '/presencia': 'presencia',
+                            '/eventos': 'evento',
+                            '/admin': 'admin',
+                            '/marcas': 'marca',
+                        }
+                        for prefix, etype in activity_paths.items():
+                            if path.startswith(prefix):
+                                entity_type = etype
+                                break
+
+                        if entity_type:
+                            activity = models.ActivityLog(
+                                user_id=user_id,
+                                user_name=user_role,
+                                action=f'{action}_{entity_type}',
+                                entity_type=entity_type,
+                                details=f'{request.method} {path} -> {status_code}',
+                            )
+                            db.add(activity)
+
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                finally:
+                    db.close()
+            except Exception:
+                pass
+
+    return response
+
+
 # Incluir routers
 app.include_router(auth.router)
 app.include_router(marcas.router)
@@ -74,6 +171,7 @@ app.include_router(meta_ads.router)
 app.include_router(embajadores.router)
 app.include_router(conciliacion_bdc.router)
 app.include_router(diagramas_conversion.router)
+app.include_router(dev_tools.router)
 
 @app.get("/")
 async def root():
