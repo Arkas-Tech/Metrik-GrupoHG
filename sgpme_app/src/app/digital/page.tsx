@@ -137,7 +137,8 @@ const MetricasPage = () => {
     }
   }, [usuario, authLoading, router]);
 
-  const isAdmin = usuario?.tipo === "administrador" || usuario?.tipo === "developer";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
   const isAuditor = usuario?.tipo === "auditor";

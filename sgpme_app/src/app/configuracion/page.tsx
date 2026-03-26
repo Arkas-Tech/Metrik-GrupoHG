@@ -79,8 +79,13 @@ export default function ConfiguracionPage() {
   }, [usuario, authLoading, router]);
 
   useEffect(() => {
-    // Solo administradores pueden acceder a configuración
-    if (!authLoading && usuario && usuario.tipo !== "administrador") {
+    // Solo administradores y developers pueden acceder a configuración
+    if (
+      !authLoading &&
+      usuario &&
+      usuario.tipo !== "administrador" &&
+      usuario.tipo !== "developer"
+    ) {
       router.push("/dashboard");
     }
   }, [usuario, authLoading, router]);

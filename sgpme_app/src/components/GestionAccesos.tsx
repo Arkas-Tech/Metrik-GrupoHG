@@ -248,7 +248,8 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
                   ✕
                 </button>
               )}
-              {(usuario?.tipo === "administrador" || usuario?.tipo === "developer") && (
+              {(usuario?.tipo === "administrador" ||
+                usuario?.tipo === "developer") && (
                 <button
                   onClick={() => abrirModal()}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
@@ -295,7 +296,8 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
                     </span>
 
                     <div className="flex items-center space-x-2">
-                      {(usuario?.tipo === "administrador" || usuario?.tipo === "developer") &&
+                      {(usuario?.tipo === "administrador" ||
+                        usuario?.tipo === "developer") &&
                         user.id !== Number(usuario?.id) && (
                           <button
                             onClick={() => eliminarUsuario(user.id)}
@@ -376,7 +378,8 @@ export default function GestionAccesos({ onClose }: GestionAccesosProps) {
                     />
                   </div>
 
-                  {(usuario?.tipo === "administrador" || usuario?.tipo === "developer") && (
+                  {(usuario?.tipo === "administrador" ||
+                    usuario?.tipo === "developer") && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Rol

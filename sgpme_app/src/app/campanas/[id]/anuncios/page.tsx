@@ -49,7 +49,8 @@ const AnunciosPage = () => {
   const [activeConfigView, setActiveConfigView] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const isAdmin = usuario?.tipo === "administrador" || usuario?.tipo === "developer";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
 
   useEffect(() => {
     if (!authLoading && !usuario) {
