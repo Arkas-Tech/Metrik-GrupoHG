@@ -51,9 +51,14 @@ export const PROVEEDORES_ENDPOINTS = {
     `${API_BASE_URL}/proveedores/${id}/toggle-activo`,
 } as const;
 
+export const MAINTENANCE_ENDPOINTS = {
+  STATUS: `${API_BASE_URL}/maintenance/status`,
+  TOGGLE: `${API_BASE_URL}/maintenance/toggle`,
+} as const;
+
 export async function apiRequest(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> {
   const token = localStorage.getItem("token");
 

@@ -7,8 +7,9 @@ import time
 import traceback
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools, maintenance
 from jose import jwt, JWTError
+from starlette.responses import JSONResponse
 
 # Cargar variables de entorno
 load_dotenv()
@@ -58,10 +59,82 @@ app.add_middleware(
 models.Base.metadata.create_all(bind=engine)
 
 
-# ============ REQUEST LOGGING MIDDLEWARE ============
+# ============ CONSTANTS ============
 
 SECRET_KEY = '22d259b81d5448bfc4616f6aa4f9beecdbf0304262876cb79eb86f3ec34ffea7'
 ALGORITHM = 'HS256'
+
+
+# ============ MAINTENANCE MODE MIDDLEWARE ============
+
+@app.middleware("http")
+async def maintenance_middleware(request: Request, call_next):
+    path = request.url.path
+
+    # Always allow: maintenance status, docs, static, OPTIONS (CORS preflight)
+    exempt_paths = ['/maintenance/status', '/docs', '/openapi.json', '/redoc', '/favicon.ico']
+    if request.method == 'OPTIONS' or any(path.startswith(ep) for ep in exempt_paths):
+        return await call_next(request)
+
+    # Check maintenance mode
+    db = SessionLocal()
+    try:
+        flag = db.query(models.FeatureFlag).filter(
+            models.FeatureFlag.name == 'maintenance_mode'
+        ).first()
+        is_maintenance = flag and flag.enabled
+    except Exception:
+        is_maintenance = False
+    finally:
+        db.close()
+
+    if not is_maintenance:
+        return await call_next(request)
+
+    # Maintenance is ON — check if the request is from a developer
+    auth_header = request.headers.get('authorization', '')
+    if auth_header.startswith('Bearer '):
+        try:
+            token = auth_header[7:]
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get('role') == 'developer':
+                return await call_next(request)
+        except (Exception,):
+            pass
+
+    # Special case: allow /auth/token but only for developer users
+    if path == '/auth/token':
+        # Parse form body to get the email
+        try:
+            body = await request.body()
+            from urllib.parse import parse_qs
+            params = parse_qs(body.decode('utf-8'))
+            username = params.get('username', [''])[0].strip().lower()
+            db = SessionLocal()
+            try:
+                user = db.query(models.Users).filter(
+                    models.Users.email.ilike(username)
+                ).first()
+                if user and user.role == 'developer':
+                    # Reconstruct the request body since we consumed it
+                    from starlette.datastructures import Headers
+                    async def receive():
+                        return {'type': 'http.request', 'body': body}
+                    request._receive = receive
+                    return await call_next(request)
+            finally:
+                db.close()
+        except Exception:
+            pass
+
+    # Block everyone else
+    return JSONResponse(
+        status_code=503,
+        content={'detail': 'Sistema en mantenimiento', 'maintenance': True}
+    )
+
+
+# ============ REQUEST LOGGING MIDDLEWARE ============
 
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
@@ -172,6 +245,7 @@ app.include_router(embajadores.router)
 app.include_router(conciliacion_bdc.router)
 app.include_router(diagramas_conversion.router)
 app.include_router(dev_tools.router)
+app.include_router(maintenance.router)
 
 @app.get("/")
 async def root():

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import {
@@ -8,8 +8,10 @@ import {
   UserCircleIcon,
   KeyIcon,
   WrenchScrewdriverIcon,
+  ShieldExclamationIcon,
 } from "@heroicons/react/24/solid";
 import { useDevTools } from "@/contexts/DevToolsContext";
+import { MAINTENANCE_ENDPOINTS } from "@/lib/api";
 
 interface ConfigSidebarProps {
   isOpen: boolean;
@@ -39,8 +41,6 @@ const menuItems = [
   },
 ];
 
-
-
 export default function ConfigSidebar({
   isOpen,
   onClose,
@@ -48,7 +48,48 @@ export default function ConfigSidebar({
   isDeveloper = false,
 }: ConfigSidebarProps) {
   const { openDevTools } = useDevTools();
+  const [maintenanceActive, setMaintenanceActive] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   console.log("ConfigSidebar isOpen:", isOpen);
+
+  const fetchMaintenanceStatus = useCallback(async () => {
+    try {
+      const res = await fetch(MAINTENANCE_ENDPOINTS.STATUS);
+      if (res.ok) {
+        const data = await res.json();
+        setMaintenanceActive(data.active);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && isDeveloper) {
+      fetchMaintenanceStatus();
+    }
+  }, [isOpen, isDeveloper, fetchMaintenanceStatus]);
+
+  const handleToggleMaintenance = async () => {
+    setMaintenanceLoading(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(MAINTENANCE_ENDPOINTS.TOGGLE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMaintenanceActive(data.active);
+      }
+    } catch {
+      // ignore
+    }
+    setMaintenanceLoading(false);
+  };
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -159,6 +200,51 @@ export default function ConfigSidebar({
                               <div className="font-medium">Menú Developer</div>
                               <div className="text-xs text-gray-500 group-hover:text-amber-400">
                                 Herramientas, logs y diagnóstico
+                              </div>
+                            </div>
+                          </button>
+
+                          {/* Maintenance Mode Toggle */}
+                          <button
+                            onClick={handleToggleMaintenance}
+                            disabled={maintenanceLoading}
+                            className={`w-full group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                              maintenanceActive
+                                ? "text-red-700 bg-red-50 hover:bg-red-100"
+                                : "text-gray-700 hover:text-amber-600 hover:bg-amber-50"
+                            }`}
+                          >
+                            <ShieldExclamationIcon
+                              className={`mr-3 h-6 w-6 ${
+                                maintenanceActive
+                                  ? "text-red-500"
+                                  : "text-gray-400 group-hover:text-amber-500"
+                              }`}
+                              aria-hidden="true"
+                            />
+                            <div className="text-left flex-1">
+                              <div className="font-medium flex items-center justify-between">
+                                <span>Modo Mantenimiento</span>
+                                <span
+                                  className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    maintenanceActive
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-green-100 text-green-800"
+                                  }`}
+                                >
+                                  {maintenanceLoading
+                                    ? "..."
+                                    : maintenanceActive
+                                      ? "ACTIVO"
+                                      : "INACTIVO"}
+                                </span>
+                              </div>
+                              <div
+                                className={`text-xs ${maintenanceActive ? "text-red-500" : "text-gray-500 group-hover:text-amber-400"}`}
+                              >
+                                {maintenanceActive
+                                  ? "Click para desactivar — users bloqueados"
+                                  : "Click para activar — bloquea a todos los users"}
                               </div>
                             </div>
                           </button>
