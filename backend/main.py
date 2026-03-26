@@ -71,8 +71,8 @@ ALGORITHM = 'HS256'
 async def maintenance_middleware(request: Request, call_next):
     path = request.url.path
 
-    # Always allow: maintenance status, docs, static, OPTIONS (CORS preflight)
-    exempt_paths = ['/maintenance/status', '/docs', '/openapi.json', '/redoc', '/favicon.ico']
+    # Always allow: maintenance status, auth/token, docs, static, OPTIONS (CORS preflight)
+    exempt_paths = ['/maintenance/status', '/auth/token', '/docs', '/openapi.json', '/redoc', '/favicon.ico']
     if request.method == 'OPTIONS' or any(path.startswith(ep) for ep in exempt_paths):
         return await call_next(request)
 
@@ -100,31 +100,6 @@ async def maintenance_middleware(request: Request, call_next):
             if payload.get('role') == 'developer':
                 return await call_next(request)
         except (Exception,):
-            pass
-
-    # Special case: allow /auth/token but only for developer users
-    if path == '/auth/token':
-        # Parse form body to get the email
-        try:
-            body = await request.body()
-            from urllib.parse import parse_qs
-            params = parse_qs(body.decode('utf-8'))
-            username = params.get('username', [''])[0].strip().lower()
-            db = SessionLocal()
-            try:
-                user = db.query(models.Users).filter(
-                    models.Users.email.ilike(username)
-                ).first()
-                if user and user.role == 'developer':
-                    # Reconstruct the request body since we consumed it
-                    from starlette.datastructures import Headers
-                    async def receive():
-                        return {'type': 'http.request', 'body': body}
-                    request._receive = receive
-                    return await call_next(request)
-            finally:
-                db.close()
-        except Exception:
             pass
 
     # Block everyone else
