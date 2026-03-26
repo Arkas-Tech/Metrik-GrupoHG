@@ -205,49 +205,54 @@ export default function ConfigSidebar({
                           </button>
 
                           {/* Maintenance Mode Toggle */}
-                          <button
-                            onClick={handleToggleMaintenance}
-                            disabled={maintenanceLoading}
-                            className={`w-full group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                              maintenanceActive
-                                ? "text-red-700 bg-red-50 hover:bg-red-100"
-                                : "text-gray-700 hover:text-amber-600 hover:bg-amber-50"
-                            }`}
-                          >
+                          <div className="flex items-center px-4 py-3 rounded-lg bg-gray-50">
                             <ShieldExclamationIcon
-                              className={`mr-3 h-6 w-6 ${
+                              className={`mr-3 h-6 w-6 flex-shrink-0 ${
                                 maintenanceActive
                                   ? "text-red-500"
-                                  : "text-gray-400 group-hover:text-amber-500"
+                                  : "text-gray-400"
                               }`}
                               aria-hidden="true"
                             />
-                            <div className="text-left flex-1">
-                              <div className="font-medium flex items-center justify-between">
-                                <span>Modo Mantenimiento</span>
-                                <span
-                                  className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    maintenanceActive
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-green-100 text-green-800"
-                                  }`}
-                                >
-                                  {maintenanceLoading
-                                    ? "..."
-                                    : maintenanceActive
-                                      ? "ACTIVO"
-                                      : "INACTIVO"}
-                                </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-700">
+                                Modo Mantenimiento
                               </div>
                               <div
-                                className={`text-xs ${maintenanceActive ? "text-red-500" : "text-gray-500 group-hover:text-amber-400"}`}
+                                className={`text-xs ${
+                                  maintenanceActive
+                                    ? "text-red-500"
+                                    : "text-gray-500"
+                                }`}
                               >
-                                {maintenanceActive
-                                  ? "Click para desactivar — users bloqueados"
-                                  : "Click para activar — bloquea a todos los users"}
+                                {maintenanceLoading
+                                  ? "Actualizando..."
+                                  : maintenanceActive
+                                    ? "Activo — usuarios bloqueados"
+                                    : "Inactivo — acceso normal"}
                               </div>
                             </div>
-                          </button>
+                            {/* iOS-style toggle switch */}
+                            <button
+                              role="switch"
+                              aria-checked={maintenanceActive}
+                              onClick={handleToggleMaintenance}
+                              disabled={maintenanceLoading}
+                              className={`ml-3 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
+                                maintenanceActive
+                                  ? "bg-red-500 focus:ring-red-500"
+                                  : "bg-gray-300 focus:ring-amber-500"
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  maintenanceActive
+                                    ? "translate-x-5"
+                                    : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                          </div>
                         </>
                       )}
                     </div>

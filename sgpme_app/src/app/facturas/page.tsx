@@ -845,6 +845,7 @@ function FacturasPageContent() {
                   refreshTrigger={graficaKey}
                   año={filtros.año}
                   mes={filtros.mes}
+                  categoriaFiltro={filtros.categoria}
                 />
               </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Factura, FiltrosFactura, MESES, AÑOS } from "@/types";
 import { useCategorias } from "@/hooks/useCategorias";
+import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DateInput from "./DateInput";
 
 interface FiltrosFacturasProps {
@@ -17,6 +18,7 @@ export default function FiltrosFacturas({
   filtros: filtrosExternos,
 }: FiltrosFacturasProps) {
   const { nombresCategorias, loading: loadingCategorias } = useCategorias();
+  const { filtraPorMarca } = useMarcaGlobal();
 
   // Obtener mes y año actual
   const mesActual = MESES[new Date().getMonth()];
@@ -91,8 +93,11 @@ export default function FiltrosFacturas({
     setMostrarFiltrosAvanzados(false);
   };
 
-  // Filtrar facturas por mes, año y categoría para las estadísticas
+  // Filtrar facturas por agencia, mes, año y categoría para las estadísticas
   const facturasParaEstadisticas = facturas.filter((factura) => {
+    // Filtrar por agencia (marca global)
+    if (!filtraPorMarca(factura.marca)) return false;
+
     // Filtrar por año
     if (filtros.año) {
       const añoFactura = factura.fechaIngresada

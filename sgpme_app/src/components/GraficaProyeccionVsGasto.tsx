@@ -40,6 +40,7 @@ interface GraficaProyeccionVsGastoProps {
   año?: number;
   mes?: string;
   refreshTrigger?: number;
+  categoriaFiltro?: string;
 }
 
 // Mapeo de meses para filtrado
@@ -62,6 +63,7 @@ export default function GraficaProyeccionVsGasto({
   año,
   mes,
   refreshTrigger,
+  categoriaFiltro,
 }: GraficaProyeccionVsGastoProps) {
   const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
   const {
@@ -243,6 +245,15 @@ export default function GraficaProyeccionVsGasto({
     };
     (filtraPorMarca, cargarDatos());
   }, [marcaSeleccionada, año, mes, refreshTrigger]);
+
+  // Sincronizar categoría seleccionada con el filtro externo
+  useEffect(() => {
+    if (categoriaFiltro) {
+      setCategoriasSeleccionadas([categoriaFiltro]);
+    } else if (nombresCategorias.length > 0) {
+      setCategoriasSeleccionadas([...nombresCategorias]);
+    }
+  }, [categoriaFiltro, nombresCategorias.join(",")]);
 
   // Inicializar subcategorías seleccionadas cuando cambien las categorías
   useEffect(() => {
