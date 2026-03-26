@@ -291,7 +291,7 @@ function SystemStatusTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Cargando estado del sistema..." />;
@@ -562,7 +562,7 @@ function ErrorLogsTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Cargando errores..." />;
@@ -679,7 +679,7 @@ function UserDiagnosticsTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Diagnosticando usuarios..." />;
@@ -812,7 +812,7 @@ function PerformanceTab({
   }, [fetchApi, hours]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Analizando performance..." />;
@@ -1002,7 +1002,7 @@ function ActivityLogTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Cargando actividad..." />;
@@ -1153,7 +1153,7 @@ function SyncTab({
             key={service.id}
             onClick={() => triggerSync(service.id)}
             disabled={syncing !== null}
-            className={`bg-gradient-to-br ${service.color} rounded-lg p-6 text-left border border-white/10 hover:border-white/30 transition-all ${
+            className={`bg-linear-to-br ${service.color} rounded-lg p-6 text-left border border-white/10 hover:border-white/30 transition-all ${
               syncing === service.id
                 ? "animate-pulse"
                 : syncing
@@ -1209,7 +1209,7 @@ function DataHealthTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   if (loading) return <LoadingSpinner label="Validando datos..." />;
@@ -1390,7 +1390,7 @@ function FeatureFlagsTab({
   }, [fetchApi]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const toggleFlag = async (flag: FeatureFlagItem) => {

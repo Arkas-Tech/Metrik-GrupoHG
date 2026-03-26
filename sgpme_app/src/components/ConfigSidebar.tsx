@@ -10,6 +10,7 @@ import {
   CommandLineIcon,
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/solid";
+import { useDevTools } from "@/contexts/DevToolsContext";
 
 interface ConfigSidebarProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ export default function ConfigSidebar({
   onNavigate,
   isDeveloper = false,
 }: ConfigSidebarProps) {
+  const { openDevTools } = useDevTools();
   console.log("ConfigSidebar isOpen:", isOpen);
 
   return (
@@ -161,7 +163,12 @@ export default function ConfigSidebar({
                               <button
                                 key={item.id}
                                 onClick={() => {
-                                  onNavigate(item.id);
+                                  onClose();
+                                  openDevTools(
+                                    item.id === "dev-logs"
+                                      ? "activity"
+                                      : "system",
+                                  );
                                 }}
                                 className="w-full group flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition-colors duration-200"
                               >

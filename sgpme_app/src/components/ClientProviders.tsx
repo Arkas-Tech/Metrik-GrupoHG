@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AuthProvider as AuthBackendProvider } from "@/hooks/useAuthBackend";
 import { AuthConfigProvider } from "@/hooks/useAuthUnified";
 import { MarcaProvider } from "@/contexts/MarcaContext";
+import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 
 interface ClientProvidersProps {
@@ -23,7 +24,9 @@ export default function ClientProviders({
     <AuthConfigProvider useBackend={useBackend}>
       <AuthProvider>
         <AuthBackendProvider>
-          <MarcaProvider>{children}</MarcaProvider>
+          <MarcaProvider>
+            <DevToolsProvider>{children}</DevToolsProvider>
+          </MarcaProvider>
         </AuthBackendProvider>
       </AuthProvider>
     </AuthConfigProvider>
