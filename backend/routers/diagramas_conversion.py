@@ -157,6 +157,8 @@ async def delete_diagrama(
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
     if user.get("role") not in ["administrador", "admin", "developer"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar diagramas")
+    obj = db.query(DiagramaConversion).filter(DiagramaConversion.id == diagrama_id).first()
     if obj is None:
         raise HTTPException(status_code=404, detail="Diagrama no encontrado")
     db.delete(obj)

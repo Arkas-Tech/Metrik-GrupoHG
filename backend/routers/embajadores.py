@@ -110,6 +110,8 @@ async def delete_embajador(
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
     if user.get("role") not in ["administrador", "admin", "developer"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar embajadores")
+    obj = db.query(Embajadores).filter(Embajadores.id == embajador_id).first()
     if obj is None:
         raise HTTPException(status_code=404, detail="Embajador no encontrado")
     db.delete(obj)
