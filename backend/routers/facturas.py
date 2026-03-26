@@ -186,16 +186,13 @@ async def get_eventos_disponibles(user: user_dependency, db: db_dependency):
     
     from models import Eventos
     
-    # Obtener todos los eventos
-    eventos = db.query(Eventos).order_by(Eventos.fecha_inicio.desc()).all()
+    # Select only needed columns
+    eventos = db.query(Eventos.id, Eventos.nombre, Eventos.fecha_inicio)\
+        .order_by(Eventos.fecha_inicio.desc()).all()
     
     return [
-        EventoDisponible(
-            id=evento.id,
-            nombre=evento.nombre,
-            fecha_inicio=evento.fecha_inicio
-        )
-        for evento in eventos
+        EventoDisponible(id=e.id, nombre=e.nombre, fecha_inicio=e.fecha_inicio)
+        for e in eventos
     ]
 
 @router.get("/campanyas-disponibles", response_model=List[CampanyaDisponible], status_code=status.HTTP_200_OK)
@@ -210,16 +207,13 @@ async def get_campanyas_disponibles(user: user_dependency, db: db_dependency):
     
     from models import Campanas
     
-    # Obtener todas las campañas
-    campanyas = db.query(Campanas).order_by(Campanas.fecha_inicio.desc()).all()
+    # Select only needed columns
+    campanyas = db.query(Campanas.id, Campanas.nombre, Campanas.fecha_inicio)\
+        .order_by(Campanas.fecha_inicio.desc()).all()
     
     return [
-        CampanyaDisponible(
-            id=campanya.id,
-            nombre=campanya.nombre,
-            fecha_inicio=campanya.fecha_inicio
-        )
-        for campanya in campanyas
+        CampanyaDisponible(id=c.id, nombre=c.nombre, fecha_inicio=c.fecha_inicio)
+        for c in campanyas
     ]
 
 @router.get("/", response_model=list[FacturaResponse], status_code=status.HTTP_200_OK)

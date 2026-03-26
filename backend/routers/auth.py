@@ -58,12 +58,8 @@ class ResetPasswordRequest(BaseModel):
 
 
 def get_db():
-    print("DEBUG get_db: Creando sesión de base de datos")
     db = SessionLocal()
     try:
-        # Probar la conexión
-        user_count = db.query(Users).count()
-        print(f"DEBUG get_db: Conexión exitosa, {user_count} usuarios encontrados")
         yield db
     finally: 
         db.close()
@@ -71,20 +67,15 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 def authenticate_user(username: str, password: str, db):
-    # Normalizar email: quitar espacios y convertir a minúsculas
     username_clean = username.strip().lower()
-    print(f"DEBUG authenticate_user: Buscando usuario con email {username_clean}")
+    # Try email first, then fallback to username
     user = db.query(Users).filter(func.lower(Users.email) == username_clean).first()
     if not user:
-        print(f"DEBUG authenticate_user: Usuario con email {username_clean} no encontrado")
+        user = db.query(Users).filter(func.lower(Users.username) == username_clean).first()
+    if not user:
         return False
-    print(f"DEBUG authenticate_user: Usuario encontrado: {user.email}")
-    verification = bcrypt_context.verify(password.strip(), user.hashed_password)
-    print(f"DEBUG authenticate_user: Verificación contraseña: {verification}")
-    if not verification:
-        print(f"DEBUG authenticate_user: Contraseña incorrecta para {username_clean}")
+    if not bcrypt_context.verify(password.strip(), user.hashed_password):
         return False
-    print(f"DEBUG authenticate_user: Autenticación exitosa para {username_clean}")
     return user
 
 
@@ -268,16 +259,12 @@ async def delete_user(current_user: user_dependency, db: db_dependency, user_id:
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                                  db: db_dependency):
-    print(f"DEBUG: Intentando login con username: {form_data.username}")
     user = authenticate_user(form_data.username, form_data.password, db)
-    print(f"DEBUG: Resultado autenticación: {user}")
     if not user:
-        print(f"DEBUG: Autenticación falló para {form_data.username}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                     detail='Could not validate credentials')
     
     token = create_access_token(user.username, user.id, user.role, timedelta(hours=8))
-    print(f"DEBUG: Token creado exitosamente para {user.username}")
 
     return {'access_token': token, 'token_type': 'bearer'}
 

@@ -258,6 +258,29 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
 
     return result
 
+@router.get("/estadisticas", status_code=status.HTTP_200_OK)
+async def get_estadisticas_eventos(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    
+    eventos = db.query(Eventos).all()
+    
+    estadisticas = {
+        "realizados": sum(1 for e in eventos if e.estado == "Realizado"),
+        "prospectados": sum(1 for e in eventos if e.estado == "Prospectado"),
+        "confirmados": sum(1 for e in eventos if e.estado == "Confirmado"),
+        "porSuceder": sum(1 for e in eventos if e.estado == "Por Suceder"),
+        "cancelados": sum(1 for e in eventos if e.estado == "Cancelado"),
+        "total": len(eventos),
+        "presupuestoTotal": sum(e.presupuesto_estimado or 0 for e in eventos),
+        "presupuestoReal": sum(e.presupuesto_real or 0 for e in eventos),
+        "marcas": list(set(e.marca for e in eventos if e.marca)),
+        "responsables": list(set(e.responsable for e in eventos if e.responsable))
+    }
+    estadisticas["diferencia"] = estadisticas["presupuestoTotal"] - estadisticas["presupuestoReal"]
+    
+    return estadisticas
+
 @router.get("/{evento_id}", response_model=EventoResponse, status_code=status.HTTP_200_OK)
 async def read_evento(user: user_dependency, db: db_dependency, evento_id: int = Path(gt=0)):
     if user is None:
@@ -679,29 +702,3 @@ async def delete_brief(user: user_dependency, db: db_dependency, evento_id: int)
     # Eliminar el brief
     db.delete(brief)
     db.commit()
-
-@router.get("/estadisticas", status_code=status.HTTP_200_OK)
-async def get_estadisticas_eventos(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail='Authentication Failed')
-    
-    eventos = db.query(Eventos).all()
-    
-    # Calcular estadísticas
-    estadisticas = {
-        "realizados": sum(1 for e in eventos if e.estado == "Realizado"),
-        "prospectados": sum(1 for e in eventos if e.estado == "Prospectado"),
-        "confirmados": sum(1 for e in eventos if e.estado == "Confirmado"),
-        "porSuceder": sum(1 for e in eventos if e.estado == "Por Suceder"),
-        "cancelados": sum(1 for e in eventos if e.estado == "Cancelado"),
-        "total": len(eventos),
-        "presupuestoTotal": sum(e.presupuesto_estimado or 0 for e in eventos),
-        "presupuestoReal": sum(e.presupuesto_real or 0 for e in eventos),
-        "marcas": list(set(e.marca for e in eventos if e.marca)),
-        "responsables": list(set(e.responsable for e in eventos if e.responsable))
-    }
-    
-    # Calcular diferencia
-    estadisticas["diferencia"] = estadisticas["presupuestoTotal"] - estadisticas["presupuestoReal"]
-    
-    return estadisticas

@@ -77,6 +77,13 @@ async def toggle_maintenance(
     db.add(activity)
     db.commit()
 
+    # Invalidate the in-memory cache so the change takes effect immediately
+    try:
+        from main import invalidate_maintenance_cache
+        invalidate_maintenance_cache()
+    except ImportError:
+        pass
+
     return MaintenanceStatus(
         active=flag.enabled,
         message=flag.description or "Estamos realizando mejoras en la plataforma. Estaremos de vuelta en breve."

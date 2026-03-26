@@ -47,7 +47,7 @@ def obtener_metricas(
     current_user: dict = Depends(get_current_user)
 ):
     """Obtener todas las métricas con filtros opcionales"""
-    query = db.query(Metricas).outerjoin(Users, Metricas.user_id == Users.id)
+    query = db.query(Metricas)
     
     if marca:
         query = query.filter(Metricas.marca == marca)
@@ -60,10 +60,16 @@ def obtener_metricas(
     
     metricas = query.order_by(Metricas.fecha_modificacion.desc()).all()
     
-    # Agregar nombre completo del usuario
+    # Bulk load user names to avoid N+1 queries
+    user_ids = list(set(m.user_id for m in metricas if m.user_id))
+    users_map = {}
+    if user_ids:
+        users = db.query(Users).filter(Users.id.in_(user_ids)).all()
+        users_map = {u.id: u.full_name for u in users}
+    
     resultado = []
     for metrica in metricas:
-        metrica_dict = {
+        resultado.append({
             "id": metrica.id,
             "leads": metrica.leads,
             "citas": metrica.citas,
@@ -75,16 +81,8 @@ def obtener_metricas(
             "fecha_creacion": metrica.fecha_creacion,
             "fecha_modificacion": metrica.fecha_modificacion,
             "creado_por": metrica.creado_por,
-            "creado_por_nombre": None
-        }
-        
-        # Buscar nombre completo del usuario
-        if metrica.user_id:
-            usuario = db.query(Users).filter(Users.id == metrica.user_id).first()
-            if usuario:
-                metrica_dict["creado_por_nombre"] = usuario.full_name
-        
-        resultado.append(metrica_dict)
+            "creado_por_nombre": users_map.get(metrica.user_id)
+        })
     
     return resultado
 

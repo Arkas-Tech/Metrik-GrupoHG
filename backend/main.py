@@ -64,6 +64,34 @@ models.Base.metadata.create_all(bind=engine)
 SECRET_KEY = '22d259b81d5448bfc4616f6aa4f9beecdbf0304262876cb79eb86f3ec34ffea7'
 ALGORITHM = 'HS256'
 
+# ============ MAINTENANCE MODE CACHE ============
+_maintenance_cache = {'value': False, 'ts': 0}
+_MAINTENANCE_CACHE_TTL = 30  # seconds
+
+def _is_maintenance_active():
+    """Check maintenance mode with 30s in-memory cache to avoid DB hit per request."""
+    now = time.time()
+    if now - _maintenance_cache['ts'] < _MAINTENANCE_CACHE_TTL:
+        return _maintenance_cache['value']
+    try:
+        db = SessionLocal()
+        try:
+            flag = db.query(models.FeatureFlag).filter(
+                models.FeatureFlag.name == 'maintenance_mode'
+            ).first()
+            result = bool(flag and flag.enabled)
+        finally:
+            db.close()
+    except Exception:
+        result = False
+    _maintenance_cache['value'] = result
+    _maintenance_cache['ts'] = now
+    return result
+
+def invalidate_maintenance_cache():
+    """Called when maintenance is toggled to force immediate refresh."""
+    _maintenance_cache['ts'] = 0
+
 
 # ============ MAINTENANCE MODE MIDDLEWARE ============
 
@@ -72,23 +100,11 @@ async def maintenance_middleware(request: Request, call_next):
     path = request.url.path
 
     # Always allow: maintenance status, auth/token, docs, static, OPTIONS (CORS preflight)
-    exempt_paths = ['/maintenance/status', '/auth/token', '/docs', '/openapi.json', '/redoc', '/favicon.ico']
+    exempt_paths = ['/maintenance/status', '/auth/token', '/maintenance/toggle', '/docs', '/openapi.json', '/redoc', '/favicon.ico']
     if request.method == 'OPTIONS' or any(path.startswith(ep) for ep in exempt_paths):
         return await call_next(request)
 
-    # Check maintenance mode
-    db = SessionLocal()
-    try:
-        flag = db.query(models.FeatureFlag).filter(
-            models.FeatureFlag.name == 'maintenance_mode'
-        ).first()
-        is_maintenance = flag and flag.enabled
-    except Exception:
-        is_maintenance = False
-    finally:
-        db.close()
-
-    if not is_maintenance:
+    if not _is_maintenance_active():
         return await call_next(request)
 
     # Maintenance is ON — check if the request is from a developer
