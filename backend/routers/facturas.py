@@ -16,37 +16,37 @@ import mimetypes
 def can_access_facturas(user_role: str) -> bool:
     """Determina si el usuario puede acceder a facturas según su rol"""
     # Todos los roles pueden acceder a las facturas
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor', 'auditor', 'aud']
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor', 'auditor', 'aud']
 
 def can_modify_facturas(user_role: str) -> bool:
     """Determina si el usuario puede modificar facturas según su rol"""
-    # Solo administradores y coordinadores pueden modificar facturas
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Solo administradores, developers y coordinadores pueden modificar facturas
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def can_delete_facturas(user_role: str) -> bool:
     """Determina si el usuario puede eliminar facturas según su rol"""
-    # Administradores y coordinadores pueden eliminar facturas
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Administradores, developers y coordinadores pueden eliminar facturas
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def can_authorize_facturas(user_role: str) -> bool:
     """Determina si el usuario puede autorizar facturas según su rol"""
-    # Solo administradores pueden autorizar facturas
-    return user_role in ['administrador', 'admin']
+    # Solo administradores y developers pueden autorizar facturas
+    return user_role in ['administrador', 'admin', 'developer']
 
 def can_ingresar_facturas(user_role: str) -> bool:
     """Determina si el usuario puede ingresar facturas según su rol"""
-    # Administradores y coordinadores pueden ingresar facturas
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Administradores, developers y coordinadores pueden ingresar facturas
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def can_mark_paid_facturas(user_role: str) -> bool:
     """Determina si el usuario puede marcar facturas como pagadas según su rol"""
-    # Administradores y coordinadores pueden marcar como pagadas
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Administradores, developers y coordinadores pueden marcar como pagadas
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def get_facturas_query_for_user(query, user_role: str, user_id: int):
     """Aplica filtros a las facturas según el rol del usuario"""
-    if user_role in ['administrador', 'admin']:
-        # Los administradores ven todas las facturas
+    if user_role in ['administrador', 'admin', 'developer']:
+        # Los administradores y developers ven todas las facturas
         return query
     elif user_role in ['coordinador', 'coor']:
         # Los coordinadores ven todas las facturas también

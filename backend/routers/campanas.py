@@ -178,8 +178,7 @@ async def delete_campana(user: user_dependency, db: db_dependency, campana_id: i
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     # Solo administradores pueden eliminar
-    if user.get('role') not in ['administrador', 'admin']:
-        raise HTTPException(status_code=403, detail='No tienes permisos para eliminar campañas')
+    if user.get('role') not in ['administrador', 'admin', 'developer']:
     
     campana_model = db.query(Campanas).filter(Campanas.id == campana_id).first()
     

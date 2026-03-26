@@ -60,7 +60,8 @@ export default function ProyeccionesPage() {
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
 
@@ -506,6 +507,7 @@ export default function ProyeccionesPage() {
             isOpen={configSidebarOpen}
             onClose={() => setConfigSidebarOpen(false)}
             onNavigate={handleMenuClick}
+            isDeveloper={usuario?.tipo === "developer"}
           />
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />

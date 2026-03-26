@@ -86,7 +86,8 @@ export default function EmbajadoresPage() {
   const [form, setForm] = useState({ ...emptyForm });
   const [guardando, setGuardando] = useState(false);
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
 
@@ -628,6 +629,7 @@ export default function EmbajadoresPage() {
             setActiveConfigView(item);
             setConfigSidebarOpen(false);
           }}
+          isDeveloper={usuario?.tipo === "developer"}
         />
       )}
       {isCoordinador && (

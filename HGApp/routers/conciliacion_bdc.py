@@ -150,7 +150,10 @@ async def delete_conciliacion(
 ):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failed")
-    if user.get("role") not in ["administrador", "admin", "developer"]:
+    if user.get("role") not in ["administrador", "admin"]:
+        raise HTTPException(status_code=403, detail="Sin permisos para eliminar")
+    obj = (
+        db.query(ConciliacionBDC)
         .filter(ConciliacionBDC.id == conciliacion_id)
         .first()
     )

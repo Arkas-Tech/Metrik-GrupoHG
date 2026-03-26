@@ -70,8 +70,8 @@ async def get_presupuestos(
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
-    # Solo admins pueden ver todos los presupuestos sin filtro
-    if not marca_id and user.get('role') != 'administrador':
+    # Solo admins y developers pueden ver todos los presupuestos sin filtro
+    if not marca_id and user.get('role') not in ['administrador', 'developer']:
         raise HTTPException(
             status_code=403, 
             detail='Solo los administradores pueden ver todos los presupuestos'
@@ -139,7 +139,7 @@ async def create_or_update_presupuesto(user: user_dependency, db: db_dependency,
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    if user_role != 'administrador':
+    if user_role not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo los administradores pueden modificar el presupuesto')
     
     # Verificar que la marca existe
@@ -194,7 +194,7 @@ async def delete_presupuesto(
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    if user_role != 'administrador':
+    if user_role not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo los administradores pueden eliminar presupuestos')
     
     # Buscar el presupuesto

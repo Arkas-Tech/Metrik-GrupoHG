@@ -195,7 +195,8 @@ const CampanasPage = () => {
     eliminarCampana,
   } = useCampanas();
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
   const isAuditor = usuario?.tipo === "auditor";
@@ -1129,6 +1130,7 @@ const CampanasPage = () => {
         isOpen={configSidebarOpen}
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
+        isDeveloper={usuario?.tipo === "developer"}
       />
 
       {/* Modales para administradores */}

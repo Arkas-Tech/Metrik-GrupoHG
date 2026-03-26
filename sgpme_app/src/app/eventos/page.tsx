@@ -108,7 +108,8 @@ export default function EventosPage() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
 
@@ -1258,6 +1259,7 @@ export default function EventosPage() {
                                             ⏳ Brief Pendiente
                                           </span>
                                           {(usuario.tipo === "administrador" ||
+                                            usuario.tipo === "developer" ||
                                             usuario.tipo === "coordinador") && (
                                             <button
                                               onClick={(e) => {
@@ -1741,6 +1743,7 @@ export default function EventosPage() {
         isOpen={configSidebarOpen}
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
+        isDeveloper={usuario?.tipo === "developer"}
       />
 
       {/* Sidebar para coordinadores y administradores */}

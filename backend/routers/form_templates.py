@@ -119,7 +119,7 @@ async def upsert_template(
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
     # Solo administradores
-    if user.get('role') not in ('administrador', 'admin'):
+    if user.get('role') not in ('administrador', 'admin', 'developer'):
         raise HTTPException(status_code=403, detail='Solo administradores pueden modificar plantillas')
 
     template_str = json.dumps(payload.template, ensure_ascii=False)
@@ -148,7 +148,7 @@ async def delete_template(
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    if user.get('role') not in ('administrador', 'admin'):
+    if user.get('role') not in ('administrador', 'admin', 'developer'):
         raise HTTPException(status_code=403, detail='Solo administradores pueden eliminar plantillas')
 
     row = db.query(FormTemplate).filter(FormTemplate.subcategoria == subcategoria).first()

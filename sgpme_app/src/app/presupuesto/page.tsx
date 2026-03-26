@@ -34,7 +34,8 @@ export default function PresupuestoPage() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin =
+    usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
   const mostrarMenu = isAdmin || isCoordinador;
 
@@ -93,7 +94,8 @@ export default function PresupuestoPage() {
     return null;
   }
 
-  const esAdministrador = usuario.tipo === "administrador";
+  const esAdministrador =
+    usuario.tipo === "administrador" || usuario.tipo === "developer";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -162,6 +164,7 @@ export default function PresupuestoPage() {
             isOpen={configSidebarOpen}
             onClose={() => setConfigSidebarOpen(false)}
             onNavigate={handleMenuClick}
+            isDeveloper={usuario?.tipo === "developer"}
           />
           {activeConfigView === "gestion-accesos" && (
             <GestionAccesos onClose={() => setActiveConfigView("")} />

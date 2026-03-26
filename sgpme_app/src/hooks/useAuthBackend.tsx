@@ -39,6 +39,34 @@ const PERMISOS_POR_TIPO: Record<TipoUsuario, PermisosUsuario> = {
       auditoria: true,
     },
   },
+  developer: {
+    proyecciones: {
+      crear: true,
+      editar: true,
+      eliminar: true,
+      ver: true,
+      exportar: true,
+    },
+    facturas: {
+      crear: true,
+      editar: true,
+      eliminar: true,
+      ver: true,
+      autorizar: true,
+      marcarPagada: true,
+      exportar: true,
+    },
+    dashboard: {
+      verEstadisticas: true,
+      verMetricas: true,
+      verConsolidado: true,
+    },
+    sistema: {
+      gestionUsuarios: true,
+      configuracion: true,
+      auditoria: true,
+    },
+  },
   coordinador: {
     proyecciones: {
       crear: true,

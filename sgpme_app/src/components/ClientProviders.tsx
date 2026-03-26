@@ -23,9 +23,7 @@ export default function ClientProviders({
     <AuthConfigProvider useBackend={useBackend}>
       <AuthProvider>
         <AuthBackendProvider>
-          <MarcaProvider>
-            {children}
-          </MarcaProvider>
+          <MarcaProvider>{children}</MarcaProvider>
         </AuthBackendProvider>
       </AuthProvider>
     </AuthConfigProvider>

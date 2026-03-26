@@ -35,10 +35,11 @@ export default function LayoutDashboard({
   console.log("usuario del hook:", JSON.stringify(usuario, null, 2));
   console.log("usuario?.tipo:", usuario?.tipo);
 
-  // Mostrar menú solo para administradores y coordinadores
+  // Mostrar menú solo para administradores, developers y coordinadores
   const tipoUsuario = usuario?.tipo?.toLowerCase() || "";
   const mostrarMenu =
     tipoUsuario === "administrador" ||
+    tipoUsuario === "developer" ||
     tipoUsuario === "coordinador" ||
     tipoUsuario.includes("admin") ||
     tipoUsuario.includes("coord");
@@ -143,13 +144,14 @@ export default function LayoutDashboard({
         {children}
       </main>
 
-      {/* Sidebar para Administradores */}
+      {/* Sidebar para Administradores y Developers */}
       {!esCoordinador && (
         <>
           <ConfigSidebar
             isOpen={configSidebarOpen}
             onClose={() => setConfigSidebarOpen(false)}
             onNavigate={handleMenuClick}
+            isDeveloper={tipoUsuario === "developer"}
           />
           {activeConfigView === "accesos" && (
             <GestionAccesos onClose={() => setActiveConfigView("")} />

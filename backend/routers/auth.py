@@ -112,10 +112,13 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get("/users", status_code=status.HTTP_200_OK)
 async def get_all_users(user: user_dependency, db: db_dependency):
-    if user is None or user.get('role') != 'administrador':
+    if user is None or user.get('role') not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo administradores pueden acceder a esta función')
     
     users = db.query(Users).all()
+    # Ocultar usuarios developer de la vista de administradores
+    if user.get('role') == 'administrador':
+        users = [u for u in users if u.role != 'developer']
     return [{
         'id': u.id,
         'username': u.username,
@@ -140,8 +143,12 @@ async def get_coordinadores(user: user_dependency, db: db_dependency):
 async def create_user(user: user_dependency,
                       db: db_dependency, 
                       create_user_request: CreateUserRequest):
-    if user is None or user.get('role') != 'administrador':
+    if user is None or user.get('role') not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo administradores pueden crear usuarios')
+    
+    # No se puede crear usuarios con rol developer
+    if create_user_request.role == 'developer':
+        raise HTTPException(status_code=403, detail='No se puede asignar el rol developer')
     
     # Verificar si el usuario ya existe
     existing_user = db.query(Users).filter(
@@ -178,14 +185,20 @@ async def update_user(current_user: user_dependency, db: db_dependency,
     if current_user is None:
         raise HTTPException(status_code=401, detail='No autenticado')
     
-    # Permitir a administradores modificar cualquier usuario
+    # Permitir a administradores y developers modificar cualquier usuario
     # Permitir a coordinadores modificar solo su propio perfil
-    if current_user.get('role') != 'administrador' and current_user.get('id') != user_id:
+    if current_user.get('role') not in ['administrador', 'developer'] and current_user.get('id') != user_id:
         raise HTTPException(status_code=403, detail='No tienes permisos para modificar este usuario')
     
     user_to_update = db.query(Users).filter(Users.id == user_id).first()
     if not user_to_update:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    
+    # Proteger rol developer: no se puede cambiar a/desde developer
+    if user_to_update.role == 'developer' and current_user.get('role') != 'developer':
+        raise HTTPException(status_code=403, detail='No se puede modificar usuarios developer')
+    if update_request.role == 'developer':
+        raise HTTPException(status_code=403, detail='No se puede asignar el rol developer')
     
     # Verificar duplicados (excluyendo el usuario actual)
     existing_user = db.query(Users).filter(
@@ -201,8 +214,8 @@ async def update_user(current_user: user_dependency, db: db_dependency,
     user_to_update.email = update_request.email
     user_to_update.full_name = update_request.full_name
     
-    # Solo administradores pueden cambiar roles
-    if current_user.get('role') == 'administrador':
+    # Solo administradores y developers pueden cambiar roles
+    if current_user.get('role') in ['administrador', 'developer']:
         user_to_update.role = update_request.role
     
     # Solo actualizar contraseña si se proporciona una nueva
@@ -222,7 +235,7 @@ async def update_user(current_user: user_dependency, db: db_dependency,
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
 async def delete_user(current_user: user_dependency, db: db_dependency, user_id: int):
-    if current_user is None or current_user.get('role') != 'administrador':
+    if current_user is None or current_user.get('role') not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo administradores pueden eliminar usuarios')
     
     # No permitir que se eliminen a sí mismos
@@ -232,6 +245,10 @@ async def delete_user(current_user: user_dependency, db: db_dependency, user_id:
     user_to_delete = db.query(Users).filter(Users.id == user_id).first()
     if not user_to_delete:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    
+    # No se puede eliminar usuarios developer
+    if user_to_delete.role == 'developer':
+        raise HTTPException(status_code=403, detail='No se puede eliminar usuarios developer')
     
     try:
         db.delete(user_to_delete)

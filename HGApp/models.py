@@ -381,3 +381,45 @@ class FormTemplate(Base):
     template_json = Column(Text, nullable=False)
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class ConciliacionBDC(Base):
+    __tablename__ = 'conciliacion_bdc'
+
+    id = Column(Integer, primary_key=True, index=True)
+    marca = Column(String, nullable=False)
+    semana_inicio = Column(Date, nullable=False)
+    semana_fin = Column(Date, nullable=False)
+    mes = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    leads_activos = Column(Text, nullable=True)
+    leads_cerrados = Column(Text, nullable=True)
+    comparacion_medios = Column(Text, nullable=True)
+    notas_generales = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    creado_por = Column(String, nullable=True)
+
+
+class DiagramaConversion(Base):
+    __tablename__ = 'diagramas_conversion'
+
+    id = Column(Integer, primary_key=True, index=True)
+    marca = Column(String, nullable=False)
+    modelo = Column(String, nullable=False)
+    mes = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    canal_proyeccion = Column(String, nullable=True)
+    canal_conversion = Column(String, nullable=True)
+    departamento = Column(String, nullable=True)
+    anuncio = Column(String, nullable=True)
+    oferta_comercial = Column(String, nullable=True)
+    tipo = Column(String, nullable=True)
+    preguntas = Column(Text, nullable=True)
+    objetivo = Column(String, nullable=True)
+    tipo_destino = Column(String, nullable=True)
+    destino = Column(String, nullable=True)
+    notas = Column(Text, nullable=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    creado_por = Column(String, nullable=True)

@@ -40,6 +40,34 @@ const PERMISOS_POR_TIPO: Record<TipoUsuario, PermisosUsuario> = {
       auditoria: true,
     },
   },
+  developer: {
+    proyecciones: {
+      crear: true,
+      editar: true,
+      eliminar: true,
+      ver: true,
+      exportar: true,
+    },
+    facturas: {
+      crear: true,
+      editar: true,
+      eliminar: true,
+      ver: true,
+      autorizar: true,
+      marcarPagada: true,
+      exportar: true,
+    },
+    dashboard: {
+      verEstadisticas: true,
+      verMetricas: true,
+      verConsolidado: true,
+    },
+    sistema: {
+      gestionUsuarios: true,
+      configuracion: true,
+      auditoria: true,
+    },
+  },
   coordinador: {
     proyecciones: {
       crear: true,
@@ -423,8 +451,9 @@ export function useAuth() {
 }
 
 export const obtenerNombreRol = (tipo: TipoUsuario): string => {
-  const nombres = {
+  const nombres: Record<TipoUsuario, string> = {
     administrador: "Administrador",
+    developer: "Developer",
     coordinador: "Coordinador",
     auditor: "Auditor",
   };
@@ -432,8 +461,9 @@ export const obtenerNombreRol = (tipo: TipoUsuario): string => {
 };
 
 export const obtenerColorRol = (tipo: TipoUsuario): string => {
-  const colores = {
+  const colores: Record<TipoUsuario, string> = {
     administrador: "bg-purple-100 text-purple-800",
+    developer: "bg-amber-100 text-amber-800",
     coordinador: "bg-blue-100 text-blue-800",
     auditor: "bg-green-100 text-green-800",
   };
@@ -441,9 +471,10 @@ export const obtenerColorRol = (tipo: TipoUsuario): string => {
 };
 
 export const obtenerDescripcionRol = (tipo: TipoUsuario): string => {
-  const descripciones = {
+  const descripciones: Record<TipoUsuario, string> = {
     administrador:
       "Acceso completo al sistema, gestión de usuarios y configuración",
+    developer: "Acceso completo al sistema con herramientas de desarrollo",
     coordinador:
       "Gestión de proyecciones y facturas, sin permisos de eliminación",
     auditor: "Solo lectura y exportación, acceso a auditoría del sistema",

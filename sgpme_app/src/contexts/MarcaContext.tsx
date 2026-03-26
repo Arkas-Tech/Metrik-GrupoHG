@@ -44,7 +44,8 @@ export function MarcaProvider({ children }: { children: ReactNode }) {
   const marcasPermitidas = useMemo(() => {
     // Si no hay usuario o es admin, mostrar todas
     if (!usuario) return [...MARCAS];
-    if (usuario.tipo === "administrador") return [...MARCAS];
+    if (usuario.tipo === "administrador" || usuario.tipo === "developer")
+      return [...MARCAS];
 
     const agencias = usuario.permisos_agencias;
     // Si no tiene agencias asignadas, lista vacía

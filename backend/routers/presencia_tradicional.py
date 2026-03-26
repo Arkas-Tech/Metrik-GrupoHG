@@ -206,8 +206,7 @@ async def delete_presencia(user: user_dependency, db: db_dependency, presencia_i
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     # Solo administradores pueden eliminar
-    if user.get('role') not in ['administrador', 'admin']:
-        raise HTTPException(status_code=403, detail='No tienes permisos para eliminar presencias')
+    if user.get('role') not in ['administrador', 'admin', 'developer']:
     
     presencia_model = db.query(PresenciaTradicional).filter(PresenciaTradicional.id == presencia_id).first()
     

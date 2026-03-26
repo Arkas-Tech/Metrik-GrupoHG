@@ -42,7 +42,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 
 
 def _require_admin(user: dict):
-    if user is None or user.get("role") != "administrador":
+    if user is None or user.get("role") not in ["administrador", "developer"]:
         raise HTTPException(status_code=403, detail="Acceso solo para administradores")
 
 

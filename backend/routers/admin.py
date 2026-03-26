@@ -31,10 +31,14 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get("/user", status_code=status.HTTP_200_OK)
 async def read_all_users(user: user_dependency, db: db_dependency):
-    if user is None or user.get('role') not in ['administrador', 'admin']:
+    if user is None or user.get('role') not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     users = db.query(Users).all()
+    
+    # Ocultar usuarios developer de la vista de administradores
+    if user.get('role') in ['administrador', 'admin']:
+        users = [u for u in users if u.role != 'developer']
     
     # Parsear JSON strings a objetos para permisos
     result = []
@@ -56,8 +60,10 @@ async def read_all_users(user: user_dependency, db: db_dependency):
 async def create_user(user: user_dependency,
                       db: db_dependency, 
                       create_user_request: CreateUserRequest):
-    if user is None or user.get('role') not in ['administrador', 'admin']:
+    if user is None or user.get('role') not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
+    if create_user_request.role == 'developer':
+        raise HTTPException(status_code=403, detail='No se puede asignar el rol developer')
     create_user_model = Users(
         email=create_user_request.email,
         username=create_user_request.username,
@@ -73,18 +79,20 @@ async def create_user(user: user_dependency,
 async def delete_user(user: user_dependency,
                        db: db_dependency,
                        user_id: int = Path(gt=0)):
-    if user is None or user.get('role') not in ['administrador', 'admin']:
+    if user is None or user.get('role') not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     user_model = db.query(Users).filter(Users.id == user_id).first()
     if user_model is None:
         raise HTTPException(status_code=404, detail='No se encontró Usuario')
+    if user_model.role == 'developer':
+        raise HTTPException(status_code=403, detail='No se puede eliminar usuarios developer')
     db.query(Users).filter(Users.id == user_id).delete()
     db.commit()
 
 
 @router.get("/marca", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependency, db: db_dependency):
-    if user is None or user.get('role') not in ['administrador', 'admin']:
+    if user is None or user.get('role') not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return db.query(Marcas).all()
 
@@ -96,12 +104,16 @@ async def update_user_permisos(
     user_id: int = Path(gt=0),
     permisos_data: UpdatePermisosRequest = Body(...)
 ):
-    if user is None or user.get('role') not in ['administrador', 'admin']:
+    if user is None or user.get('role') not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_model = db.query(Users).filter(Users.id == user_id).first()
     if user_model is None:
         raise HTTPException(status_code=404, detail='Usuario no encontrado')
+    
+    # Proteger usuarios developer
+    if user_model.role == 'developer' and user.get('role') != 'developer':
+        raise HTTPException(status_code=403, detail='No se puede modificar permisos de developers')
     
     # Actualizar permisos de navegación si se proporcionan
     if permisos_data.permisos is not None:

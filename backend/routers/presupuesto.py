@@ -150,7 +150,7 @@ async def create_or_update_presupuesto_mensual(
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    if user_role != 'administrador':
+    if user_role not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo los administradores pueden crear/modificar presupuestos')
     
     # Obtener categorías activas de la base de datos
@@ -225,7 +225,7 @@ async def update_presupuesto_mensual(
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    if user_role != 'administrador':
+    if user_role not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo los administradores pueden modificar presupuestos')
     
     # Obtener categorías activas de la base de datos
@@ -288,7 +288,7 @@ async def delete_presupuesto_mensual(
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    if user_role != 'administrador':
+    if user_role not in ['administrador', 'developer']:
         raise HTTPException(status_code=403, detail='Solo los administradores pueden eliminar presupuestos')
     
     # Buscar el presupuesto

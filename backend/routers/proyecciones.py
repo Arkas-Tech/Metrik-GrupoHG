@@ -11,22 +11,22 @@ from datetime import datetime
 def can_access_data(user_role: str) -> bool:
     """Determina si el usuario puede acceder a los datos según su rol"""
     # Todos los roles pueden acceder a los datos
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor', 'auditor', 'aud']
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor', 'auditor', 'aud']
 
 def can_modify_data(user_role: str) -> bool:
     """Determina si el usuario puede modificar datos según su rol"""
-    # Solo administradores y coordinadores pueden modificar datos
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Solo administradores, developers y coordinadores pueden modificar datos
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def can_delete_data(user_role: str) -> bool:
     """Determina si el usuario puede eliminar datos según su rol"""
-    # Administradores y coordinadores pueden eliminar datos
-    return user_role in ['administrador', 'admin', 'coordinador', 'coor']
+    # Administradores, developers y coordinadores pueden eliminar datos
+    return user_role in ['administrador', 'admin', 'developer', 'coordinador', 'coor']
 
 def get_query_for_user(query, user_role: str, user_id: int):
     """Aplica filtros según el rol del usuario"""
-    if user_role in ['administrador', 'admin']:
-        # Los administradores ven todo
+    if user_role in ['administrador', 'admin', 'developer']:
+        # Los administradores y developers ven todo
         return query
     elif user_role in ['coordinador', 'coor']:
         # Los coordinadores ven todo también
@@ -336,8 +336,8 @@ async def aprobar_proyeccion(user: user_dependency, db: db_dependency, proyeccio
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
     user_role = user.get('role', '')
-    # Solo administradores pueden aprobar
-    if user_role not in ['administrador', 'admin']:
+    # Solo administradores y developers pueden aprobar
+    if user_role not in ['administrador', 'admin', 'developer']:
         raise HTTPException(status_code=403, detail='Solo administradores pueden aprobar proyecciones')
     
     proyeccion = db.query(Proyecciones).filter(Proyecciones.id == proyeccion_id).first()

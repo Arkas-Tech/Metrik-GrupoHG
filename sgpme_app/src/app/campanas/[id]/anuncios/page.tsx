@@ -49,7 +49,7 @@ const AnunciosPage = () => {
   const [activeConfigView, setActiveConfigView] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const isAdmin = usuario?.tipo === "administrador";
+  const isAdmin = usuario?.tipo === "administrador" || usuario?.tipo === "developer";
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -516,6 +516,7 @@ const AnunciosPage = () => {
         isOpen={configSidebarOpen}
         onClose={() => setConfigSidebarOpen(false)}
         onNavigate={handleMenuClick}
+        isDeveloper={usuario?.tipo === "developer"}
       />
     </div>
   );
