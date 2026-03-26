@@ -150,6 +150,114 @@ async def read_all_eventos(user: user_dependency, db: db_dependency,
         
     return query.order_by(Eventos.fecha_inicio.desc()).all()
 
+
+@router.get("/with-briefs", status_code=status.HTTP_200_OK)
+async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
+                                        marca: Optional[str] = Query(None),
+                                        estado: Optional[str] = Query(None)):
+    """Devuelve todos los eventos con sus briefs incluidos en una sola consulta."""
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    query = db.query(Eventos)
+    if marca:
+        query = query.filter(Eventos.marca == marca)
+    if estado:
+        query = query.filter(Eventos.estado == estado)
+
+    eventos = query.order_by(Eventos.fecha_inicio.desc()).all()
+    evento_ids = [e.id for e in eventos]
+
+    # Bulk load all briefs for these eventos
+    briefs = db.query(BriefsEventos).filter(BriefsEventos.evento_id.in_(evento_ids)).all()
+    briefs_map = {b.evento_id: b for b in briefs}
+    brief_ids = [b.id for b in briefs]
+
+    # Bulk load actividades and cronogramas
+    actividades = db.query(ActividadesEventos).filter(
+        ActividadesEventos.brief_id.in_(brief_ids)
+    ).order_by(ActividadesEventos.orden).all() if brief_ids else []
+    
+    cronogramas = db.query(CronogramasEventos).filter(
+        CronogramasEventos.brief_id.in_(brief_ids)
+    ).order_by(CronogramasEventos.orden).all() if brief_ids else []
+
+    # Bulk load creator names
+    user_ids = list(set(b.user_id for b in briefs if b.user_id))
+    users_map = {}
+    if user_ids:
+        users = db.query(Users).filter(Users.id.in_(user_ids)).all()
+        users_map = {u.id: u.full_name or u.username for u in users}
+
+    # Index actividades and cronogramas by brief_id
+    acts_by_brief = {}
+    for a in actividades:
+        acts_by_brief.setdefault(a.brief_id, []).append(a)
+    crons_by_brief = {}
+    for c in cronogramas:
+        crons_by_brief.setdefault(c.brief_id, []).append(c)
+
+    result = []
+    for evento in eventos:
+        brief = briefs_map.get(evento.id)
+        brief_data = None
+        if brief:
+            creado_por = users_map.get(brief.user_id, brief.creado_por) if brief.user_id else brief.creado_por
+            brief_data = {
+                "id": brief.id,
+                "evento_id": brief.evento_id,
+                "objetivo_especifico": brief.objetivo_especifico,
+                "audiencia_detallada": brief.audiencia_detallada,
+                "mensaje_clave": brief.mensaje_clave,
+                "actividades": [
+                    {"id": a.id, "nombre": a.nombre, "descripcion": a.descripcion,
+                     "duracion": a.duracion, "responsable": a.responsable,
+                     "recursos": a.recursos, "orden": a.orden}
+                    for a in acts_by_brief.get(brief.id, [])
+                ],
+                "cronograma": [
+                    {"id": c.id, "actividad": c.actividad,
+                     "fecha_inicio": c.fecha_inicio.isoformat() if c.fecha_inicio else None,
+                     "fecha_fin": c.fecha_fin.isoformat() if c.fecha_fin else None,
+                     "responsable": c.responsable, "estado": c.estado, "orden": c.orden}
+                    for c in crons_by_brief.get(brief.id, [])
+                ],
+                "requerimientos": brief.requerimientos,
+                "proveedores": brief.proveedores,
+                "logistica": brief.logistica,
+                "presupuesto_detallado": brief.presupuesto_detallado,
+                "observaciones_especiales": brief.observaciones_especiales,
+                "fecha_creacion": brief.fecha_creacion.isoformat() if brief.fecha_creacion else None,
+                "fecha_modificacion": brief.fecha_modificacion.isoformat() if brief.fecha_modificacion else None,
+                "creado_por": creado_por,
+                "aprobado_por": brief.aprobado_por,
+                "fecha_aprobacion": brief.fecha_aprobacion.isoformat() if brief.fecha_aprobacion else None,
+            }
+
+        result.append({
+            "id": evento.id,
+            "nombre": evento.nombre,
+            "descripcion": evento.descripcion,
+            "tipo_evento": evento.tipo_evento,
+            "fecha_inicio": evento.fecha_inicio.isoformat() if evento.fecha_inicio else None,
+            "fecha_fin": evento.fecha_fin.isoformat() if evento.fecha_fin else None,
+            "ubicacion": evento.ubicacion,
+            "marca": evento.marca,
+            "responsable": evento.responsable,
+            "estado": evento.estado,
+            "objetivo": evento.objetivo,
+            "audiencia": evento.audiencia,
+            "presupuesto_estimado": evento.presupuesto_estimado,
+            "presupuesto_real": evento.presupuesto_real,
+            "observaciones": evento.observaciones,
+            "creado_por": evento.creado_por,
+            "fecha_creacion": evento.fecha_creacion.isoformat() if evento.fecha_creacion else None,
+            "fecha_modificacion": evento.fecha_modificacion.isoformat() if evento.fecha_modificacion else None,
+            "brief": brief_data,
+        })
+
+    return result
+
 @router.get("/{evento_id}", response_model=EventoResponse, status_code=status.HTTP_200_OK)
 async def read_evento(user: user_dependency, db: db_dependency, evento_id: int = Path(gt=0)):
     if user is None:
@@ -361,7 +469,7 @@ async def create_brief(user: user_dependency, db: db_dependency,
         fecha_aprobacion=brief_model.fecha_aprobacion
     )
 
-@router.get("/{evento_id}/brief", response_model=BriefEventoResponse, status_code=status.HTTP_200_OK)
+@router.get("/{evento_id}/brief", response_model=Optional[BriefEventoResponse], status_code=status.HTTP_200_OK)
 async def get_brief(user: user_dependency, db: db_dependency, evento_id: int):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
@@ -375,7 +483,7 @@ async def get_brief(user: user_dependency, db: db_dependency, evento_id: int):
     # Obtener el brief con join a Users para obtener el nombre completo
     brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
     if brief is None:
-        raise HTTPException(status_code=404, detail='Brief no encontrado')
+        return None
     
     # Obtener nombre completo del creador
     creado_por_nombre = brief.creado_por  # Default al username

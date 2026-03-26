@@ -87,7 +87,9 @@ class PresenciaTradicionalResponse(BaseModel):
 async def read_all_presencia(user: user_dependency, db: db_dependency,
                              marca: Optional[str] = Query(None),
                              agencia: Optional[str] = Query(None),
-                             tipo: Optional[str] = Query(None)):
+                             tipo: Optional[str] = Query(None),
+                             limit: Optional[int] = Query(None, ge=1),
+                             offset: int = Query(0, ge=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -99,7 +101,11 @@ async def read_all_presencia(user: user_dependency, db: db_dependency,
         query = query.filter(PresenciaTradicional.agencia.ilike(agencia))
     if tipo:
         query = query.filter(PresenciaTradicional.tipo.ilike(tipo))
-        
+    
+    query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+
     presencias = query.all()
     return presencias
 

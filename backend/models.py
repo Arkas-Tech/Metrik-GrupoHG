@@ -61,8 +61,8 @@ class Facturas(Base):
     fecha_factura = Column(Date)
     fecha_vencimiento = Column(Date)
     fecha_ingresada = Column(Date, nullable=True)
-    estado = Column(String)
-    marca = Column(String)
+    estado = Column(String, index=True)
+    marca = Column(String, index=True)
     categoria = Column(String)
     subcategoria = Column(String, nullable=True)
     descripcion = Column(Text)
@@ -74,8 +74,8 @@ class Facturas(Base):
     productos = Column(Text, nullable=True)
     observaciones = Column(Text)
     proyeccion_id = Column(Integer, ForeignKey('proyecciones.id'), nullable=True)
-    evento_id = Column(Integer, ForeignKey('eventos.id'), nullable=True)
-    campanya_id = Column(Integer, ForeignKey('campanyas.id'), nullable=True)
+    evento_id = Column(Integer, ForeignKey('eventos.id'), nullable=True, index=True)
+    campanya_id = Column(Integer, ForeignKey('campanyas.id'), nullable=True, index=True)
     mes_asignado = Column(String, nullable=True)
     año_asignado = Column(Integer, nullable=True)
     fecha_creacion = Column(DateTime, server_default=func.now())
@@ -87,7 +87,7 @@ class FacturaArchivos(Base):
     __tablename__ = 'factura_archivos'
 
     id = Column(Integer, primary_key=True, index=True)
-    factura_id = Column(Integer, ForeignKey('facturas.id'))
+    factura_id = Column(Integer, ForeignKey('facturas.id'), index=True)
     nombre_archivo = Column(String)
     tipo_archivo = Column(String)  # 'PDF', 'XML', etc.
     contenido_archivo = Column(LargeBinary)  # Archivo en base64
@@ -101,7 +101,7 @@ class FacturaCotizaciones(Base):
     __tablename__ = 'factura_cotizaciones'
 
     id = Column(Integer, primary_key=True, index=True)
-    factura_id = Column(Integer, ForeignKey('facturas.id'))
+    factura_id = Column(Integer, ForeignKey('facturas.id'), index=True)
     proveedor = Column(String)
     monto = Column(Float)
     nombre_archivo = Column(String)
@@ -169,7 +169,7 @@ class BriefsEventos(Base):
     __tablename__ = 'briefs_eventos'
 
     id = Column(Integer, primary_key=True, index=True)
-    evento_id = Column(Integer, ForeignKey('eventos.id'))
+    evento_id = Column(Integer, ForeignKey('eventos.id'), index=True)
     objetivo_especifico = Column(Text)
     audiencia_detallada = Column(Text)
     mensaje_clave = Column(Text)
@@ -190,7 +190,7 @@ class ActividadesEventos(Base):
     __tablename__ = 'actividades_eventos'
 
     id = Column(Integer, primary_key=True, index=True)
-    brief_id = Column(Integer, ForeignKey('briefs_eventos.id'))
+    brief_id = Column(Integer, ForeignKey('briefs_eventos.id'), index=True)
     nombre = Column(String)
     descripcion = Column(Text)
     duracion = Column(String)
@@ -204,7 +204,7 @@ class CronogramasEventos(Base):
     __tablename__ = 'cronogramas_eventos'
 
     id = Column(Integer, primary_key=True, index=True)
-    brief_id = Column(Integer, ForeignKey('briefs_eventos.id'))
+    brief_id = Column(Integer, ForeignKey('briefs_eventos.id'), index=True)
     actividad = Column(String)
     fecha_inicio = Column(DateTime)
     fecha_fin = Column(DateTime)
@@ -459,8 +459,8 @@ class RequestLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     method = Column(String, nullable=False)
-    path = Column(String, nullable=False)
-    status_code = Column(Integer, nullable=False)
+    path = Column(String, nullable=False, index=True)
+    status_code = Column(Integer, nullable=False, index=True)
     response_time_ms = Column(Float, nullable=False)
     user_id = Column(Integer, nullable=True)
     user_role = Column(String, nullable=True)

@@ -129,7 +129,9 @@ async def read_all_proyecciones(user: user_dependency, db: db_dependency,
                                marca: Optional[str] = Query(None),
                                año: Optional[int] = Query(None),
                                periodo: Optional[str] = Query(None),
-                               categoria: Optional[str] = Query(None)):
+                               categoria: Optional[str] = Query(None),
+                               limit: Optional[int] = Query(None, ge=1),
+                               offset: int = Query(0, ge=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -150,7 +152,11 @@ async def read_all_proyecciones(user: user_dependency, db: db_dependency,
         query = query.filter(Proyecciones.periodo == periodo)
     if categoria:
         query = query.filter(Proyecciones.categoria == categoria)
-        
+    
+    query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+
     return query.all()
 
 @router.get("/{proyeccion_id}", response_model=ProyeccionResponse, status_code=status.HTTP_200_OK)

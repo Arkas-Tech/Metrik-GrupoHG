@@ -70,7 +70,7 @@ async def system_status(user: user_dependency, db: db_dependency):
     table_counts = {}
     tables = [
         'users', 'marcas', 'eventos', 'facturas', 'proyecciones',
-        'campanas', 'embajadores', 'presencia_tradicional',
+        'campanyas', 'embajadores', 'presencia_tradicional',
         'presupuesto_anual', 'presupuesto_mensual', 'proveedores',
         'request_logs', 'activity_logs', 'feature_flags',
         'conciliacion_bdc', 'diagramas_conversion'
@@ -80,6 +80,7 @@ async def system_status(user: user_dependency, db: db_dependency):
             result = db.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
             table_counts[table_name] = result.scalar()
         except Exception:
+            db.rollback()
             table_counts[table_name] = -1
 
     db_size = 'N/A'

@@ -84,7 +84,9 @@ async def get_proveedor_by_rfc(user: user_dependency, db: db_dependency, rfc: st
 @router.get("/", response_model=list[ProveedorResponse], status_code=status.HTTP_200_OK)
 async def read_all_proveedores(user: user_dependency, db: db_dependency,
                               categoria: Optional[str] = Query(None),
-                              activo: Optional[bool] = Query(None)):
+                              activo: Optional[bool] = Query(None),
+                              limit: Optional[int] = Query(None, ge=1),
+                              offset: int = Query(0, ge=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -95,7 +97,11 @@ async def read_all_proveedores(user: user_dependency, db: db_dependency,
         query = query.filter(Proveedores.categoria == categoria)
     if activo is not None:
         query = query.filter(Proveedores.activo == activo)
-        
+    
+    query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+
     return query.all()
 
 @router.get("/{proveedor_id}", response_model=ProveedorResponse, status_code=status.HTTP_200_OK)

@@ -52,8 +52,9 @@ interface CronogramaBriefBackend {
   estado: string;
 }
 
-/* interface BriefBackend {
+interface BriefBackendInline {
   id: number;
+  evento_id: number;
   objetivo_especifico: string;
   audiencia_detallada: string;
   mensaje_clave: string;
@@ -64,23 +65,18 @@ interface CronogramaBriefBackend {
   logistica?: string;
   presupuesto_detallado?: string;
   observaciones_especiales?: string;
-  fecha_creacion: string;
+  fecha_creacion?: string;
   fecha_modificacion?: string;
   creado_por?: string;
   aprobado_por?: string;
   fecha_aprobacion?: string;
-} */
+}
 
-/* interface GastoEventoBackend {
-  id: number;
-  evento_id: number;
-  concepto: string;
-  monto: number;
-  fecha: string;
-  estado: string;
-  notas?: string;
-  comprobante?: string;
-} */
+interface EventoWithBrief extends EventoBackend {
+  brief?: BriefBackendInline | null;
+  fecha_creacion: string;
+  fecha_modificacion?: string;
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -92,92 +88,82 @@ export function useEventos() {
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetchConToken(`${API_URL}/eventos/`);
+      const response = await fetchConToken(`${API_URL}/eventos/with-briefs`);
 
       if (!response.ok) {
         throw new Error(`Error al cargar eventos: ${response.status}`);
       }
 
-      const data = await response.json();
-      const eventosMapeados = await Promise.all(
-        data.map(async (evento: EventoBackend) => {
-          let brief = undefined;
+      const data: EventoWithBrief[] = await response.json();
+      const eventosMapeados = data.map((evento) => {
+        let brief = undefined;
 
-          try {
-            const briefResponse = await fetchConToken(
-              `${API_URL}/eventos/${evento.id}/brief`,
-            );
-            if (briefResponse.ok) {
-              const briefData = await briefResponse.json();
-              brief = {
-                id: briefData.id.toString(),
-                eventoId: evento.id.toString(),
-                objetivoEspecifico: briefData.objetivo_especifico,
-                audienciaDetallada: briefData.audiencia_detallada,
-                mensajeClave: briefData.mensaje_clave,
-                actividades: briefData.actividades.map(
-                  (act: ActividadBriefBackend) => ({
-                    id: act.id.toString(),
-                    nombre: act.nombre,
-                    descripcion: act.descripcion,
-                    duracion: act.duracion,
-                    responsable: act.responsable,
-                    recursos: act.recursos,
-                  }),
-                ),
-                cronograma: briefData.cronograma.map(
-                  (cron: CronogramaBriefBackend) => ({
-                    id: cron.id.toString(),
-                    actividad: cron.actividad,
-                    fechaInicio: cron.fecha_inicio,
-                    fechaFin: cron.fecha_fin,
-                    responsable: cron.responsable,
-                    estado: cron.estado,
-                  }),
-                ),
-                requerimientos: briefData.requerimientos || "",
-                proveedores: briefData.proveedores || "",
-                logistica: briefData.logistica || "",
-                presupuestoDetallado: briefData.presupuesto_detallado || "",
-                observacionesEspeciales:
-                  briefData.observaciones_especiales || "",
-                fechaCreacion: briefData.fecha_creacion.split("T")[0],
-                fechaModificacion: briefData.fecha_modificacion,
-                creadoPor: briefData.creado_por,
-                aprobadoPor: briefData.aprobado_por,
-                fechaAprobacion: briefData.fecha_aprobacion,
-              };
-            }
-          } catch {
-            console.log(
-              `No hay brief para evento ${evento.id} o error al cargarlo`,
-            );
-          }
-
-          return {
-            id: evento.id.toString(),
-            nombre: evento.nombre,
-            descripcion: evento.descripcion || "",
-            tipoEvento: evento.tipo_evento,
-            fechaInicio: evento.fecha_inicio,
-            fechaFin: evento.fecha_fin,
-            ubicacion: evento.ubicacion || "",
-            marca: evento.marca,
-            responsable: evento.responsable,
-            estado: evento.estado,
-            objetivo: evento.objetivo || "",
-            audiencia: evento.audiencia || "",
-            presupuestoEstimado: evento.presupuesto_estimado || 0,
-            presupuestoReal: evento.presupuesto_real,
-            observaciones: evento.observaciones || "",
-            gastosProyectados: [],
-            brief,
-            fechaCreacion: evento.fecha_creacion,
-            fechaModificacion: evento.fecha_modificacion,
-            creadoPor: evento.creado_por,
+        if (evento.brief) {
+          const b = evento.brief;
+          brief = {
+            id: b.id.toString(),
+            eventoId: evento.id.toString(),
+            objetivoEspecifico: b.objetivo_especifico,
+            audienciaDetallada: b.audiencia_detallada,
+            mensajeClave: b.mensaje_clave,
+            actividades: (b.actividades || []).map(
+              (act: ActividadBriefBackend) => ({
+                id: act.id.toString(),
+                nombre: act.nombre,
+                descripcion: act.descripcion,
+                duracion: act.duracion,
+                responsable: act.responsable,
+                recursos: act.recursos,
+              }),
+            ),
+            cronograma: (b.cronograma || []).map(
+              (cron: CronogramaBriefBackend) => ({
+                id: cron.id.toString(),
+                actividad: cron.actividad,
+                fechaInicio: cron.fecha_inicio,
+                fechaFin: cron.fecha_fin,
+                responsable: cron.responsable,
+                estado: cron.estado,
+              }),
+            ),
+            requerimientos: b.requerimientos || "",
+            proveedores: b.proveedores || "",
+            logistica: b.logistica || "",
+            presupuestoDetallado: b.presupuesto_detallado || "",
+            observacionesEspeciales: b.observaciones_especiales || "",
+            fechaCreacion: b.fecha_creacion
+              ? b.fecha_creacion.split("T")[0]
+              : "",
+            fechaModificacion: b.fecha_modificacion,
+            creadoPor: b.creado_por,
+            aprobadoPor: b.aprobado_por,
+            fechaAprobacion: b.fecha_aprobacion,
           };
-        }),
-      );
+        }
+
+        return {
+          id: evento.id.toString(),
+          nombre: evento.nombre,
+          descripcion: evento.descripcion || "",
+          tipoEvento: evento.tipo_evento,
+          fechaInicio: evento.fecha_inicio,
+          fechaFin: evento.fecha_fin,
+          ubicacion: evento.ubicacion || "",
+          marca: evento.marca,
+          responsable: evento.responsable || "",
+          estado: evento.estado,
+          objetivo: evento.objetivo || "",
+          audiencia: evento.audiencia || "",
+          presupuestoEstimado: evento.presupuesto_estimado || 0,
+          presupuestoReal: evento.presupuesto_real,
+          observaciones: evento.observaciones || "",
+          gastosProyectados: [],
+          brief,
+          fechaCreacion: evento.fecha_creacion,
+          fechaModificacion: evento.fecha_modificacion,
+          creadoPor: evento.creado_por,
+        };
+      });
       setEventos(eventosMapeados);
       setError(null);
     } catch (err) {

@@ -227,7 +227,9 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
                            marca: Optional[str] = Query(None),
                            estado: Optional[str] = Query(None),
                            categoria: Optional[str] = Query(None),
-                           autorizada: Optional[bool] = Query(None)):
+                           autorizada: Optional[bool] = Query(None),
+                           limit: Optional[int] = Query(None, ge=1),
+                           offset: int = Query(0, ge=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -248,14 +250,48 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
         query = query.filter(Facturas.categoria == categoria)
     if autorizada is not None:
         query = query.filter(Facturas.autorizada == autorizada)
-        
+    
+    query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+
     facturas = query.all()
     
-    # Agregar archivos y cotizaciones a cada factura
+    # Bulk load related data to avoid N+1 queries
+    factura_ids = [f.id for f in facturas]
+    
+    # Bulk load archivos
+    all_archivos = db.query(FacturaArchivos).filter(
+        FacturaArchivos.factura_id.in_(factura_ids)
+    ).all() if factura_ids else []
+    archivos_by_factura = {}
+    for archivo in all_archivos:
+        archivos_by_factura.setdefault(archivo.factura_id, []).append(archivo)
+    
+    # Bulk load cotizaciones
+    all_cotizaciones = db.query(FacturaCotizaciones).filter(
+        FacturaCotizaciones.factura_id.in_(factura_ids)
+    ).all() if factura_ids else []
+    cotizaciones_by_factura = {}
+    for cotizacion in all_cotizaciones:
+        cotizaciones_by_factura.setdefault(cotizacion.factura_id, []).append(cotizacion)
+    
+    # Bulk load evento names
+    evento_ids = list(set(f.evento_id for f in facturas if f.evento_id))
+    eventos_map = {}
+    if evento_ids:
+        eventos_list = db.query(Eventos).filter(Eventos.id.in_(evento_ids)).all()
+        eventos_map = {e.id: e.nombre for e in eventos_list}
+    
+    # Bulk load campaña names
+    campanya_ids = list(set(f.campanya_id for f in facturas if f.campanya_id))
+    campanyas_map = {}
+    if campanya_ids:
+        campanyas_list = db.query(Campanas).filter(Campanas.id.in_(campanya_ids)).all()
+        campanyas_map = {c.id: c.nombre for c in campanyas_list}
+
     facturas_con_archivos = []
     for factura in facturas:
-        # Obtener archivos
-        archivos = db.query(FacturaArchivos).filter(FacturaArchivos.factura_id == factura.id).all()
         archivos_response = [
             ArchivoResponse(
                 id=archivo.id,
@@ -264,11 +300,9 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
                 tamaño_archivo=archivo.tamaño_archivo,
                 fecha_subida=archivo.fecha_subida.strftime("%Y-%m-%d %H:%M:%S"),
                 seccion=archivo.seccion
-            ) for archivo in archivos
+            ) for archivo in archivos_by_factura.get(factura.id, [])
         ]
         
-        # Obtener cotizaciones
-        cotizaciones = db.query(FacturaCotizaciones).filter(FacturaCotizaciones.factura_id == factura.id).all()
         cotizaciones_response = [
             CotizacionResponse(
                 id=cotizacion.id,
@@ -278,22 +312,11 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
                 tamaño_archivo=cotizacion.tamaño_archivo,
                 fecha_subida=cotizacion.fecha_subida.strftime("%Y-%m-%d %H:%M:%S"),
                 observaciones=cotizacion.observaciones
-            ) for cotizacion in cotizaciones
+            ) for cotizacion in cotizaciones_by_factura.get(factura.id, [])
         ]
         
-        # Obtener nombre del evento si existe
-        evento_nombre = None
-        if factura.evento_id:
-            evento = db.query(Eventos).filter(Eventos.id == factura.evento_id).first()
-            if evento:
-                evento_nombre = evento.nombre
-        
-        # Obtener nombre de la campaña si existe
-        campanya_nombre = None
-        if factura.campanya_id:
-            campanya = db.query(Campanas).filter(Campanas.id == factura.campanya_id).first()
-            if campanya:
-                campanya_nombre = campanya.nombre
+        evento_nombre = eventos_map.get(factura.evento_id) if factura.evento_id else None
+        campanya_nombre = campanyas_map.get(factura.campanya_id) if factura.campanya_id else None
         
         facturas_con_archivos.append(FacturaResponse(
             id=factura.id,
