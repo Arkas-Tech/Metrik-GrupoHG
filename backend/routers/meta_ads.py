@@ -371,54 +371,46 @@ async def get_period_metrics(
         if not account_id:
             continue
         try:
-            data = _meta_api(token, f"{account_id}/campaigns", {
-                "fields": "id",
-                "filtering": json.dumps([{"field": "effective_status", "operator": "NOT_IN", "value": ["DELETED", "ARCHIVED"]}]),
-                "limit": "500",
-            })
-            campaign_ids = [c["id"] for c in data.get("data", []) if c.get("id")]
-
             # Obtener optimization_goal por campaña (una sola llamada por cuenta)
             opt_goals = _get_optimization_goals(token, account_id)
 
-            for cid in campaign_ids:
-                try:
-                    insights = _meta_api(token, f"{cid}/insights", {
-                        "fields": "impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_inline_link_click",
-                        "time_range": json.dumps({"since": start, "until": end}),
-                    })
-                    rows = insights.get("data", [])
-                    if not rows:
-                        continue
-                    row = rows[0]
-
-                    impressions = int(row.get("impressions", 0) or 0)
-                    clicks = int(row.get("clicks", 0) or 0)
-                    spend = float(row.get("spend", 0) or 0)
-                    ctr = float(row.get("ctr", 0) or 0)
-
-                    # Resultados según el objetivo de optimización de la campaña
-                    actions = row.get("actions", [])
-                    og = opt_goals.get(cid, "")
-                    conversions = _extract_resultados(actions, og)
-
-                    # Interactions = all clicks
-                    interactions = int(row.get("clicks", 0) or 0)
-
-                    # CxC (cost per inline link click)
-                    cxc = float(row.get("cost_per_inline_link_click", 0) or 0)
-
-                    result[cid] = {
-                        "alcance": impressions,
-                        "interacciones": interactions,
-                        "leads": max(0, int(conversions)),
-                        "gasto_actual": round(spend, 2),
-                        "ctr": round(ctr, 4),
-                        "conversion": round((conversions / interactions * 100) if interactions > 0 else 0, 2),
-                        "cxc_porcentaje": round(cxc, 2),
-                    }
-                except Exception:
+            # Una sola llamada para todas las campañas de la cuenta en el período
+            insights_data = _meta_api(token, f"{account_id}/insights", {
+                "fields": "campaign_id,impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_inline_link_click",
+                "level": "campaign",
+                "time_range": json.dumps({"since": start, "until": end}),
+                "limit": "500",
+            })
+            for row in insights_data.get("data", []):
+                cid = row.get("campaign_id")
+                if not cid:
                     continue
+
+                impressions = int(row.get("impressions", 0) or 0)
+                clicks = int(row.get("clicks", 0) or 0)
+                spend = float(row.get("spend", 0) or 0)
+                ctr = float(row.get("ctr", 0) or 0)
+
+                # Resultados según el objetivo de optimización de la campaña
+                actions = row.get("actions", [])
+                og = opt_goals.get(cid, "")
+                conversions = _extract_resultados(actions, og)
+
+                # Interactions = all clicks
+                interactions = int(row.get("clicks", 0) or 0)
+
+                # CxC (cost per inline link click)
+                cxc = float(row.get("cost_per_inline_link_click", 0) or 0)
+
+                result[cid] = {
+                    "alcance": impressions,
+                    "interacciones": interactions,
+                    "leads": max(0, int(conversions)),
+                    "gasto_actual": round(spend, 2),
+                    "ctr": round(ctr, 4),
+                    "conversion": round((conversions / interactions * 100) if interactions > 0 else 0, 2),
+                    "cxc_porcentaje": round(cxc, 2),
+                }
         except Exception:
             continue
 
