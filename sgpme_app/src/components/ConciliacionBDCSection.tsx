@@ -498,9 +498,7 @@ export default function ConciliacionBDCSection() {
     setFMarca(marcasPermitidas.length === 1 ? marcasPermitidas[0] : "");
     setFInicio(w.i);
     setFFin(w.f);
-    setFActivos(
-      ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })),
-    );
+    setFActivos(ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })));
     setFCerrados(CERRADOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })));
     setFMedios(
       MEDIOS_DEF.map((m) => ({ medio: m, bdc: 0, mkt: 0, notas: "" })),

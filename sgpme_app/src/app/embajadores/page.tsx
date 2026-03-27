@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useAuth,
   obtenerNombreRol,
@@ -12,6 +12,7 @@ import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
 import NavBar from "@/components/NavBar";
 import { fetchConToken } from "@/lib/auth-utils";
 import { showToast } from "@/lib/toast";
+import { compressImage } from "@/lib/imageCompression";
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -20,13 +21,34 @@ import {
   Bars3Icon,
   XMarkIcon,
   UserGroupIcon,
+  PhotoIcon,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon as CheckCircleSolid } from "@heroicons/react/24/solid";
 import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
+import Image from "next/image";
 
 interface Plataforma {
   plataforma: string;
   usuario: string;
+}
+
+interface ImagenEmb {
+  id: string;
+  nombre: string;
+  url: string;
+  link: string;
+}
+
+interface CumplimientoEntry {
+  mes: number;
+  anio: number;
+  checked: boolean;
+  checked_por: string;
+  fecha: string;
 }
 
 interface Embajador {
@@ -38,6 +60,8 @@ interface Embajador {
   audiencia: number;
   marca: string | null;
   creado_por: string | null;
+  imagenes_json: string | null;
+  cumplimiento_json: string | null;
 }
 
 const PLATAFORMAS_OPCIONES = [
@@ -57,6 +81,7 @@ const emptyForm = {
   leads: "",
   audiencia: "",
   plataformas: [{ plataforma: "Instagram", usuario: "" }] as Plataforma[],
+  imagenes: [] as ImagenEmb[],
 };
 
 function formatAudiencia(n: number): string {
@@ -65,8 +90,32 @@ function formatAudiencia(n: number): string {
   return String(n);
 }
 
+function buildProfileUrl(plataforma: string, usuario: string): string | null {
+  const u = usuario.replace(/^@/, "").trim();
+  if (!u) return null;
+  switch (plataforma) {
+    case "Instagram":
+      return `https://www.instagram.com/${u}`;
+    case "TikTok":
+      return `https://www.tiktok.com/@${u}`;
+    case "YouTube":
+      return `https://www.youtube.com/@${u}`;
+    case "Facebook":
+      return `https://www.facebook.com/${u}`;
+    case "X (Twitter)":
+      return `https://x.com/${u}`;
+    case "Twitch":
+      return `https://www.twitch.tv/${u}`;
+    case "LinkedIn":
+      return `https://www.linkedin.com/in/${u}`;
+    default:
+      return null;
+  }
+}
+
 export default function EmbajadoresPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     usuario,
     cerrarSesion: cerrarSesionAuth,
@@ -86,6 +135,13 @@ export default function EmbajadoresPage() {
   const [editando, setEditando] = useState<Embajador | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [guardando, setGuardando] = useState(false);
+
+  // Image carousel popup
+  const [carouselEmb, setCarouselEmb] = useState<Embajador | null>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  // File input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin =
     usuario?.tipo === "administrador" || usuario?.tipo === "developer";
@@ -135,7 +191,7 @@ export default function EmbajadoresPage() {
 
   const abrirNuevo = () => {
     setEditando(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, imagenes: [] });
     setModalOpen(true);
   };
 
@@ -147,6 +203,12 @@ export default function EmbajadoresPage() {
     } catch {
       /* ignore */
     }
+    let imagenes: ImagenEmb[] = [];
+    try {
+      if (emb.imagenes_json) imagenes = JSON.parse(emb.imagenes_json);
+    } catch {
+      /* ignore */
+    }
     setForm({
       nombre: emb.nombre,
       marca: emb.marca || "",
@@ -154,6 +216,7 @@ export default function EmbajadoresPage() {
       leads: String(emb.leads),
       audiencia: String(emb.audiencia),
       plataformas,
+      imagenes,
     });
     setModalOpen(true);
   };
@@ -177,6 +240,100 @@ export default function EmbajadoresPage() {
       return { ...f, plataformas: copy };
     });
 
+  // ── Image helpers ───────────────────────────────────────────────────────────
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files) return;
+    const arr = Array.from(files);
+    for (const file of arr) {
+      try {
+        const result = await compressImage(file);
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          setForm((f) => ({
+            ...f,
+            imagenes: [
+              ...f.imagenes,
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                nombre: file.name,
+                url: dataUrl,
+                link: "",
+              },
+            ],
+          }));
+        };
+        reader.readAsDataURL(result.file);
+      } catch {
+        showToast(`Error al procesar ${file.name}`, "error");
+      }
+    }
+  };
+
+  const removeImage = (id: string) =>
+    setForm((f) => ({
+      ...f,
+      imagenes: f.imagenes.filter((img) => img.id !== id),
+    }));
+
+  const updateImageField = (
+    id: string,
+    key: "nombre" | "link",
+    value: string,
+  ) =>
+    setForm((f) => ({
+      ...f,
+      imagenes: f.imagenes.map((img) =>
+        img.id === id ? { ...img, [key]: value } : img,
+      ),
+    }));
+
+  // ── Cumplimiento toggle ─────────────────────────────────────────────────────
+
+  const hoy = new Date();
+  const mesActual = hoy.getMonth() + 1;
+  const anioActual = hoy.getFullYear();
+
+  const getCumplimiento = (emb: Embajador): CumplimientoEntry[] => {
+    try {
+      return emb.cumplimiento_json ? JSON.parse(emb.cumplimiento_json) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const isCumplimientoChecked = (emb: Embajador) => {
+    const entries = getCumplimiento(emb);
+    return entries.some(
+      (e) => e.mes === mesActual && e.anio === anioActual && e.checked,
+    );
+  };
+
+  const toggleCumplimiento = async (emb: Embajador) => {
+    if (isCumplimientoChecked(emb)) return; // ya marcado, no se puede desmarcar
+    try {
+      const res = await fetchConToken(
+        `${API_URL}/embajadores/${emb.id}/cumplimiento`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mes: mesActual,
+            anio: anioActual,
+            checked: true,
+          }),
+        },
+      );
+      if (res.ok) {
+        await cargarEmbajadores();
+        showToast("Cumplimiento marcado", "success");
+      }
+    } catch {
+      showToast("Error al marcar cumplimiento", "error");
+    }
+  };
+
   const handleGuardar = async () => {
     if (!form.nombre.trim()) {
       showToast("El nombre es obligatorio", "error");
@@ -192,6 +349,7 @@ export default function EmbajadoresPage() {
       plataformas_json: JSON.stringify(
         form.plataformas.filter((p) => p.usuario.trim()),
       ),
+      imagenes_json: JSON.stringify(form.imagenes),
     };
     try {
       const url = editando
@@ -296,11 +454,19 @@ export default function EmbajadoresPage() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() =>
+                router.push(
+                  searchParams.get("from") === "digital"
+                    ? "/digital"
+                    : "/dashboard",
+                )
+              }
               className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeftIcon className="w-5 h-5 mr-2" />
-              Dashboard
+              {searchParams.get("from") === "digital"
+                ? "Volver a Digital"
+                : "Volver a Dashboard"}
             </button>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Embajadores</h2>
@@ -343,6 +509,13 @@ export default function EmbajadoresPage() {
               } catch {
                 /* ignore */
               }
+              let imagenes: ImagenEmb[] = [];
+              try {
+                if (emb.imagenes_json) imagenes = JSON.parse(emb.imagenes_json);
+              } catch {
+                /* ignore */
+              }
+              const checked = isCumplimientoChecked(emb);
 
               return (
                 <div
@@ -386,22 +559,38 @@ export default function EmbajadoresPage() {
                     </div>
                   </div>
 
-                  {/* Plataformas */}
+                  {/* Plataformas - clickable links */}
                   {plataformas.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                         Plataformas
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {plataformas.map((p, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium"
-                          >
-                            {p.plataforma}
-                            {p.usuario ? ` · ${p.usuario}` : ""}
-                          </span>
-                        ))}
+                        {plataformas.map((p, i) => {
+                          const profileUrl = buildProfileUrl(
+                            p.plataforma,
+                            p.usuario,
+                          );
+                          const label = `${p.plataforma}${p.usuario ? ` · ${p.usuario}` : ""}`;
+                          return profileUrl ? (
+                            <a
+                              key={i}
+                              href={profileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
+                            >
+                              {label}
+                            </a>
+                          ) : (
+                            <span
+                              key={i}
+                              className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium"
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -427,6 +616,50 @@ export default function EmbajadoresPage() {
                         {formatAudiencia(emb.audiencia)}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Ver publicaciones + Cumplimiento */}
+                  <div className="flex items-center gap-3 border-t border-gray-100 pt-4 mt-4">
+                    {imagenes.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setCarouselEmb(emb);
+                          setCarouselIdx(0);
+                        }}
+                        className="flex items-center gap-1.5 text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors"
+                      >
+                        <PhotoIcon className="w-4 h-4" />
+                        Ver publicaciones ({imagenes.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => toggleCumplimiento(emb)}
+                      disabled={checked}
+                      className={`flex items-center gap-1.5 text-sm font-medium transition-colors ml-auto ${
+                        checked
+                          ? "text-green-600 cursor-default"
+                          : "text-gray-400 hover:text-green-600 cursor-pointer"
+                      }`}
+                      title={
+                        checked
+                          ? `Cumplimiento marcado - ${
+                              getCumplimiento(emb).find(
+                                (e) =>
+                                  e.mes === mesActual && e.anio === anioActual,
+                              )?.checked_por || ""
+                            }`
+                          : "Marcar cumplimiento del mes"
+                      }
+                    >
+                      {checked ? (
+                        <CheckCircleSolid className="w-5 h-5" />
+                      ) : (
+                        <CheckCircleIcon className="w-5 h-5" />
+                      )}
+                      <span className="text-xs">
+                        {checked ? "Cumplido" : "Cumplimiento"}
+                      </span>
+                    </button>
                   </div>
                 </div>
               );
@@ -595,6 +828,86 @@ export default function EmbajadoresPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
+
+              {/* Imágenes / Publicaciones */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Publicaciones
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
+                  >
+                    <PlusIcon className="w-3.5 h-3.5" /> Agregar imágenes
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    multiple
+                    onChange={(e) => handleImageUpload(e.target.files)}
+                    className="hidden"
+                  />
+                </div>
+                {form.imagenes.length > 0 && (
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {form.imagenes.map((img) => (
+                      <div
+                        key={img.id}
+                        className="flex gap-2 items-start bg-gray-50 rounded-lg p-2"
+                      >
+                        <div className="w-16 h-16 rounded overflow-hidden shrink-0 bg-gray-200">
+                          <Image
+                            src={img.url}
+                            alt={img.nombre}
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <input
+                            type="text"
+                            value={img.nombre}
+                            onChange={(e) =>
+                              updateImageField(img.id, "nombre", e.target.value)
+                            }
+                            placeholder="Nombre de la publicación"
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
+                          />
+                          <input
+                            type="text"
+                            value={img.link}
+                            onChange={(e) =>
+                              updateImageField(img.id, "link", e.target.value)
+                            }
+                            placeholder="Link del anuncio (opcional)"
+                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(img.id)}
+                          className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {form.imagenes.length === 0 && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-400 text-sm cursor-pointer hover:border-purple-400 hover:text-purple-500 transition-colors"
+                  >
+                    <PhotoIcon className="w-8 h-8 mx-auto mb-1" />
+                    Haz clic para subir imágenes de publicaciones
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 p-6 border-t border-gray-200">
@@ -665,6 +978,104 @@ export default function EmbajadoresPage() {
           </div>
         </div>
       )}
+
+      {/* Carousel popup de publicaciones */}
+      {carouselEmb &&
+        (() => {
+          let imgs: ImagenEmb[] = [];
+          try {
+            if (carouselEmb.imagenes_json)
+              imgs = JSON.parse(carouselEmb.imagenes_json);
+          } catch {
+            /* ignore */
+          }
+          if (imgs.length === 0) return null;
+          const current = imgs[carouselIdx] || imgs[0];
+          return (
+            <div
+              className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4"
+              onClick={() => setCarouselEmb(null)}
+            >
+              <div
+                className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Publicaciones de {carouselEmb.nombre}
+                  </h3>
+                  <button
+                    onClick={() => setCarouselEmb(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Image */}
+                <div
+                  className="relative bg-gray-100 flex items-center justify-center"
+                  style={{ minHeight: "400px" }}
+                >
+                  <Image
+                    src={current.url}
+                    alt={current.nombre}
+                    width={600}
+                    height={400}
+                    className="max-w-full max-h-[60vh] object-contain"
+                  />
+                  {imgs.length > 1 && (
+                    <>
+                      <button
+                        onClick={() =>
+                          setCarouselIdx((prev) =>
+                            prev <= 0 ? imgs.length - 1 : prev - 1,
+                          )
+                        }
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                      >
+                        <ChevronLeftIcon className="w-5 h-5 text-gray-700" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCarouselIdx((prev) =>
+                            prev >= imgs.length - 1 ? 0 : prev + 1,
+                          )
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                      >
+                        <ChevronRightIcon className="w-5 h-5 text-gray-700" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Caption */}
+                <div className="p-4 border-t border-gray-200 text-center">
+                  <p className="text-sm font-medium text-gray-900">
+                    {current.nombre}
+                  </p>
+                  {current.link && (
+                    <a
+                      href={current.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-purple-600 hover:underline mt-1 inline-block"
+                    >
+                      Ver anuncio →
+                    </a>
+                  )}
+                  {imgs.length > 1 && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      {carouselIdx + 1} / {imgs.length}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

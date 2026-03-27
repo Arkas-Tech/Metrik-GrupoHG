@@ -6,6 +6,8 @@ from starlette import status
 from models import Embajadores
 from database import SessionLocal
 from .auth import get_current_user
+import json
+from datetime import datetime
 
 router = APIRouter(prefix="/embajadores", tags=["embajadores"])
 
@@ -29,6 +31,7 @@ class EmbajadorRequest(BaseModel):
     leads: Optional[int] = 0
     audiencia: Optional[int] = 0
     marca: Optional[str] = None
+    imagenes_json: Optional[str] = None
 
 
 class EmbajadorResponse(BaseModel):
@@ -40,6 +43,8 @@ class EmbajadorResponse(BaseModel):
     audiencia: int
     marca: Optional[str] = None
     creado_por: Optional[str] = None
+    imagenes_json: Optional[str] = None
+    cumplimiento_json: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -72,6 +77,7 @@ async def create_embajador(
         leads=req.leads or 0,
         audiencia=req.audiencia or 0,
         marca=req.marca,
+        imagenes_json=req.imagenes_json,
         creado_por=user.get("username"),
     )
     db.add(obj)
@@ -98,6 +104,7 @@ async def update_embajador(
     obj.leads = req.leads or 0
     obj.audiencia = req.audiencia or 0
     obj.marca = req.marca
+    obj.imagenes_json = req.imagenes_json
     db.commit()
 
 
@@ -116,3 +123,53 @@ async def delete_embajador(
         raise HTTPException(status_code=404, detail="Embajador no encontrado")
     db.delete(obj)
     db.commit()
+
+
+class CumplimientoRequest(BaseModel):
+    mes: int
+    anio: int
+    checked: bool
+
+
+@router.put("/{embajador_id}/cumplimiento", status_code=status.HTTP_200_OK)
+async def toggle_cumplimiento(
+    user: user_dependency,
+    db: db_dependency,
+    req: CumplimientoRequest,
+    embajador_id: int = Path(gt=0),
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failed")
+    obj = db.query(Embajadores).filter(Embajadores.id == embajador_id).first()
+    if obj is None:
+        raise HTTPException(status_code=404, detail="Embajador no encontrado")
+
+    registros: list = []
+    if obj.cumplimiento_json:
+        try:
+            registros = json.loads(obj.cumplimiento_json)
+        except Exception:
+            registros = []
+
+    # Buscar si ya existe un registro para ese mes/año
+    existente = next((r for r in registros if r.get("mes") == req.mes and r.get("anio") == req.anio), None)
+
+    if existente:
+        # Una vez activado no se puede desactivar
+        if existente.get("checked") and not req.checked:
+            raise HTTPException(status_code=400, detail="El cumplimiento ya fue marcado y no se puede desactivar")
+        existente["checked"] = req.checked
+        existente["checked_por"] = user.get("username")
+        existente["fecha"] = datetime.now().isoformat()
+    else:
+        registros.append({
+            "mes": req.mes,
+            "anio": req.anio,
+            "checked": req.checked,
+            "checked_por": user.get("username"),
+            "fecha": datetime.now().isoformat(),
+        })
+
+    obj.cumplimiento_json = json.dumps(registros)
+    db.commit()
+    return {"cumplimiento_json": obj.cumplimiento_json}

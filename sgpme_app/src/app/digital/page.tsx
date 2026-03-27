@@ -1001,7 +1001,7 @@ const MetricasPage = () => {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Embajadores</h2>
               <button
-                onClick={() => router.push("/embajadores")}
+                onClick={() => router.push("/embajadores?from=digital")}
                 className="text-sm text-purple-600 hover:text-purple-800 font-medium"
               >
                 Ver todos →
@@ -1017,7 +1017,7 @@ const MetricasPage = () => {
                   <div className="text-center py-10 text-gray-400">
                     <p className="text-sm">No hay embajadores registrados.</p>
                     <button
-                      onClick={() => router.push("/embajadores")}
+                      onClick={() => router.push("/embajadores?from=digital")}
                       className="mt-3 text-purple-600 hover:underline text-sm font-medium"
                     >
                       Administrar embajadores →

@@ -2903,7 +2903,9 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=meta&from=dashboard")}
+              onClick={() =>
+                router.push("/campanas?plataforma=meta&from=dashboard")
+              }
               className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
@@ -2955,7 +2957,9 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=google&from=dashboard")}
+              onClick={() =>
+                router.push("/campanas?plataforma=google&from=dashboard")
+              }
               className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
@@ -3004,7 +3008,9 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=tiktok&from=dashboard")}
+              onClick={() =>
+                router.push("/campanas?plataforma=tiktok&from=dashboard")
+              }
               className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
@@ -3018,7 +3024,7 @@ export default function DashboardGeneral({
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-900">Embajadores</h2>
           <button
-            onClick={() => router.push("/embajadores")}
+            onClick={() => router.push("/embajadores?from=dashboard")}
             className="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
           >
             Ver embajadores
@@ -3034,7 +3040,7 @@ export default function DashboardGeneral({
               <div className="text-center py-10 text-gray-400">
                 <p className="text-sm">No hay embajadores registrados.</p>
                 <button
-                  onClick={() => router.push("/embajadores")}
+                  onClick={() => router.push("/embajadores?from=dashboard")}
                   className="mt-3 text-purple-600 hover:underline text-sm font-medium"
                 >
                   Administrar embajadores →

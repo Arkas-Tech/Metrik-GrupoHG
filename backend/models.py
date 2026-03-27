@@ -252,6 +252,8 @@ class Embajadores(Base):
     leads = Column(Integer, default=0)
     audiencia = Column(Integer, default=0)  # número real, ej. 85400
     marca = Column(String, nullable=True)
+    imagenes_json = Column(Text, nullable=True)  # JSON: [{"id","nombre","url","link"}]
+    cumplimiento_json = Column(Text, nullable=True)  # JSON: [{"mes":1,"anio":2026,"checked":true,"checked_por":"user","fecha":"..."}]
     fecha_creacion = Column(DateTime, server_default=func.now())
     creado_por = Column(String, nullable=True)
 
