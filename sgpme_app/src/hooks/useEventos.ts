@@ -62,6 +62,7 @@ interface CronogramaBriefBackend {
 interface BriefBackendInline {
   id: number;
   evento_id: number;
+  marca?: string;
   objetivo_especifico: string;
   audiencia_detallada: string;
   mensaje_clave: string;
@@ -80,6 +81,8 @@ interface BriefBackendInline {
 }
 
 interface EventoWithBrief extends EventoBackend {
+  briefs?: BriefBackendInline[] | null;
+  // Backward compat: backend may still send single brief
   brief?: BriefBackendInline | null;
   fecha_creacion: string;
   fecha_modificacion?: string;
@@ -95,48 +98,45 @@ export function useEventos() {
 
   const mapEventos = useCallback((data: EventoWithBrief[]): Evento[] => {
     return data.map((evento) => {
-      let brief = undefined;
-
-      if (evento.brief) {
-        const b = evento.brief;
-        brief = {
-          id: b.id.toString(),
-          eventoId: evento.id.toString(),
-          objetivoEspecifico: b.objetivo_especifico,
-          audienciaDetallada: b.audiencia_detallada,
-          mensajeClave: b.mensaje_clave,
-          actividades: (b.actividades || []).map(
-            (act: ActividadBriefBackend) => ({
-              id: act.id.toString(),
-              nombre: act.nombre,
-              descripcion: act.descripcion,
-              duracion: act.duracion,
-              responsable: act.responsable,
-              recursos: act.recursos,
-            }),
-          ),
-          cronograma: (b.cronograma || []).map(
-            (cron: CronogramaBriefBackend) => ({
-              id: cron.id.toString(),
-              actividad: cron.actividad,
-              fechaInicio: cron.fecha_inicio,
-              fechaFin: cron.fecha_fin,
-              responsable: cron.responsable,
-              estado: cron.estado,
-            }),
-          ),
-          requerimientos: b.requerimientos || "",
-          proveedores: b.proveedores || "",
-          logistica: b.logistica || "",
-          presupuestoDetallado: b.presupuesto_detallado || "",
-          observacionesEspeciales: b.observaciones_especiales || "",
-          fechaCreacion: b.fecha_creacion ? b.fecha_creacion.split("T")[0] : "",
-          fechaModificacion: b.fecha_modificacion,
-          creadoPor: b.creado_por,
-          aprobadoPor: b.aprobado_por,
-          fechaAprobacion: b.fecha_aprobacion,
-        };
-      }
+      const rawBriefs = evento.briefs || (evento.brief ? [evento.brief] : []);
+      const briefs: BriefEvento[] = rawBriefs.map((b) => ({
+        id: b.id.toString(),
+        eventoId: evento.id.toString(),
+        marca: b.marca || undefined,
+        objetivoEspecifico: b.objetivo_especifico,
+        audienciaDetallada: b.audiencia_detallada,
+        mensajeClave: b.mensaje_clave,
+        actividades: (b.actividades || []).map(
+          (act: ActividadBriefBackend) => ({
+            id: act.id.toString(),
+            nombre: act.nombre,
+            descripcion: act.descripcion,
+            duracion: act.duracion,
+            responsable: act.responsable,
+            recursos: act.recursos,
+          }),
+        ),
+        cronograma: (b.cronograma || []).map(
+          (cron: CronogramaBriefBackend) => ({
+            id: cron.id.toString(),
+            actividad: cron.actividad,
+            fechaInicio: cron.fecha_inicio,
+            fechaFin: cron.fecha_fin,
+            responsable: cron.responsable,
+            estado: cron.estado,
+          }),
+        ),
+        requerimientos: b.requerimientos || "",
+        proveedores: b.proveedores || "",
+        logistica: b.logistica || "",
+        presupuestoDetallado: b.presupuesto_detallado || "",
+        observacionesEspeciales: b.observaciones_especiales || "",
+        fechaCreacion: b.fecha_creacion ? b.fecha_creacion.split("T")[0] : "",
+        fechaModificacion: b.fecha_modificacion,
+        creadoPor: b.creado_por,
+        aprobadoPor: b.aprobado_por,
+        fechaAprobacion: b.fecha_aprobacion,
+      }));
 
       return {
         id: evento.id.toString(),
@@ -155,7 +155,7 @@ export function useEventos() {
         presupuestoReal: evento.presupuesto_real,
         observaciones: evento.observaciones || "",
         gastosProyectados: [],
-        brief,
+        briefs: briefs.length > 0 ? briefs : undefined,
         fechaCreacion: evento.fecha_creacion,
         fechaModificacion: evento.fecha_modificacion,
         creadoPor: evento.creado_por,
@@ -451,6 +451,7 @@ export function useEventos() {
         if (!evento) return null;
 
         const briefParaBackend = {
+          marca: brief.marca || null,
           objetivo_especifico: brief.objetivoEspecifico,
           audiencia_detallada: brief.audienciaDetallada,
           mensaje_clave: brief.mensajeClave,
@@ -486,8 +487,11 @@ export function useEventos() {
         };
 
         // Intentar PUT primero (actualizar). Si devuelve 404 (no existe aún), usar POST.
+        const marcaParam = brief.marca
+          ? `?marca=${encodeURIComponent(brief.marca)}`
+          : "";
         let response = await fetchConToken(
-          `${API_URL}/eventos/${eventoId}/brief`,
+          `${API_URL}/eventos/${eventoId}/brief${marcaParam}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -519,6 +523,7 @@ export function useEventos() {
         const briefMapeado: BriefEvento = {
           id: briefCreado.id.toString(),
           eventoId: briefCreado.evento_id.toString(),
+          marca: briefCreado.marca || undefined,
           objetivoEspecifico: briefCreado.objetivo_especifico,
           audienciaDetallada: briefCreado.audiencia_detallada,
           mensajeClave: briefCreado.mensaje_clave,
@@ -554,9 +559,18 @@ export function useEventos() {
           fechaAprobacion: briefCreado.fecha_aprobacion,
         };
 
+        const existingBriefs = evento.briefs || [];
+        const updatedBriefs = existingBriefs.some(
+          (b) => b.marca === briefMapeado.marca,
+        )
+          ? existingBriefs.map((b) =>
+              b.marca === briefMapeado.marca ? briefMapeado : b,
+            )
+          : [...existingBriefs, briefMapeado];
+
         const eventoActualizado: Evento = {
           ...evento,
-          brief: briefMapeado,
+          briefs: updatedBriefs,
           fechaModificacion: new Date().toISOString(),
         };
 
@@ -613,15 +627,16 @@ export function useEventos() {
   }, [eventos.length, cargarEstadisticas]);
 
   const eliminarBrief = useCallback(
-    async (eventoId: string): Promise<boolean> => {
+    async (eventoId: string, marca?: string): Promise<boolean> => {
       try {
         const evento = eventos.find((e) => e.id === eventoId);
-        if (!evento || !evento.brief) {
+        if (!evento || !evento.briefs?.length) {
           throw new Error("No se encontró el brief para este evento");
         }
 
+        const marcaParam = marca ? `?marca=${encodeURIComponent(marca)}` : "";
         const response = await fetchConToken(
-          `${API_URL}/eventos/${eventoId}/brief`,
+          `${API_URL}/eventos/${eventoId}/brief${marcaParam}`,
           {
             method: "DELETE",
           },
@@ -633,7 +648,16 @@ export function useEventos() {
 
         // Actualizar el evento en el estado local eliminando el brief
         setEventos((prev) =>
-          prev.map((e) => (e.id === eventoId ? { ...e, brief: undefined } : e)),
+          prev.map((e) => {
+            if (e.id !== eventoId) return e;
+            const remainingBriefs = (e.briefs || []).filter(
+              (b) => b.marca !== marca,
+            );
+            return {
+              ...e,
+              briefs: remainingBriefs.length > 0 ? remainingBriefs : undefined,
+            };
+          }),
         );
 
         return true;
@@ -649,11 +673,18 @@ export function useEventos() {
   );
 
   const exportarBriefPDF = useCallback(
-    async (eventoId: string, facturas: Factura[] = []): Promise<boolean> => {
+    async (
+      eventoId: string,
+      facturas: Factura[] = [],
+      marca?: string,
+    ): Promise<boolean> => {
       try {
         const evento = eventos.find((e) => e.id === eventoId);
+        const brief = marca
+          ? evento?.briefs?.find((b) => b.marca === marca)
+          : evento?.briefs?.[0];
 
-        if (!evento || !evento.brief) {
+        if (!evento || !brief) {
           alert("No se encontró el brief para este evento");
           return false;
         }
@@ -691,9 +722,7 @@ export function useEventos() {
         try {
           const pdf = new jsPDF("p", "mm", "a4");
 
-          const evidencia = JSON.parse(
-            evento.brief.observacionesEspeciales || "{}",
-          );
+          const evidencia = JSON.parse(brief.observacionesEspeciales || "{}");
 
           let yPos = 20;
           const pageHeight = pdf.internal.pageSize.getHeight();
@@ -886,7 +915,10 @@ export function useEventos() {
             const porAsignacion: Record<string, typeof evidencia.imagenes> = {};
             const sinAsignacion: typeof evidencia.imagenes = [];
             for (const imagen of evidencia.imagenes) {
-              const cat = imagen.asignacion || (imagen as typeof imagen & { categoria?: string }).categoria || "";
+              const cat =
+                imagen.asignacion ||
+                (imagen as typeof imagen & { categoria?: string }).categoria ||
+                "";
               if (cat) {
                 if (!porAsignacion[cat]) porAsignacion[cat] = [];
                 porAsignacion[cat].push(imagen);
@@ -901,7 +933,9 @@ export function useEventos() {
               addText(asignacion.toUpperCase(), 14, true);
               addSpace(3);
 
-              for (const [index, imagen] of porAsignacion[asignacion].entries()) {
+              for (const [index, imagen] of porAsignacion[
+                asignacion
+              ].entries()) {
                 if (yPos > pageHeight - 100) {
                   pdf.addPage();
                   yPos = 20;
@@ -1083,14 +1117,18 @@ export function useEventos() {
 
   // On-demand: fetch full brief with images for a specific event
   const cargarBriefCompleto = useCallback(
-    async (eventoId: string): Promise<Evento | null> => {
+    async (eventoId: string, marca?: string): Promise<Evento | null> => {
       const evento = eventos.find((e) => e.id === eventoId);
       if (!evento) return null;
 
+      const targetBrief = marca
+        ? evento.briefs?.find((b) => b.marca === marca)
+        : evento.briefs?.[0];
+
       // If brief already has images loaded, return as-is
-      if (evento.brief?.observacionesEspeciales) {
+      if (targetBrief?.observacionesEspeciales) {
         try {
-          const obs = JSON.parse(evento.brief.observacionesEspeciales);
+          const obs = JSON.parse(targetBrief.observacionesEspeciales);
           if (obs.imagenes && obs.imagenes.length > 0 && obs.imagenes[0].url) {
             return evento;
           }
@@ -1099,11 +1137,12 @@ export function useEventos() {
         }
       }
 
-      if (!evento.brief) return evento;
+      if (!targetBrief) return evento;
 
       try {
+        const marcaParam = marca ? `?marca=${encodeURIComponent(marca)}` : "";
         const response = await fetchConToken(
-          `${API_URL}/eventos/${eventoId}/brief`,
+          `${API_URL}/eventos/${eventoId}/brief${marcaParam}`,
         );
         if (!response.ok) return evento;
 
@@ -1111,6 +1150,7 @@ export function useEventos() {
         const briefMapeado: BriefEvento = {
           id: briefData.id.toString(),
           eventoId: briefData.evento_id.toString(),
+          marca: briefData.marca || undefined,
           objetivoEspecifico: briefData.objetivo_especifico,
           audienciaDetallada: briefData.audiencia_detallada,
           mensajeClave: briefData.mensaje_clave,
@@ -1148,7 +1188,10 @@ export function useEventos() {
           fechaAprobacion: briefData.fecha_aprobacion,
         };
 
-        const eventoConBrief = { ...evento, brief: briefMapeado };
+        const updatedBriefs = (evento.briefs || []).map((b) =>
+          b.id === briefMapeado.id ? briefMapeado : b,
+        );
+        const eventoConBrief = { ...evento, briefs: updatedBriefs };
         setEventos((prev) =>
           prev.map((e) => (e.id === eventoId ? eventoConBrief : e)),
         );

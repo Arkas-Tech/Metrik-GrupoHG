@@ -87,6 +87,7 @@ class CronogramaEventoRequest(BaseModel):
     orden: Optional[int] = 0
 
 class BriefEventoRequest(BaseModel):
+    marca: Optional[str] = None
     objetivo_especifico: str
     audiencia_detallada: str
     mensaje_clave: str
@@ -121,6 +122,7 @@ class CronogramaEventoResponse(BaseModel):
 class BriefEventoResponse(BaseModel):
     id: int
     evento_id: int
+    marca: Optional[str]
     objetivo_especifico: str
     audiencia_detallada: str
     mensaje_clave: str
@@ -189,7 +191,9 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
 
     # Bulk load all briefs for these eventos
     briefs = db.query(BriefsEventos).filter(BriefsEventos.evento_id.in_(evento_ids)).all()
-    briefs_map = {b.evento_id: b for b in briefs}
+    briefs_by_evento: dict[int, list] = {}
+    for b in briefs:
+        briefs_by_evento.setdefault(b.evento_id, []).append(b)
     brief_ids = [b.id for b in briefs]
 
     # Bulk load actividades and cronogramas
@@ -218,13 +222,14 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
 
     result = []
     for evento in eventos:
-        brief = briefs_map.get(evento.id)
-        brief_data = None
-        if brief:
+        evento_briefs = briefs_by_evento.get(evento.id, [])
+        briefs_data = []
+        for brief in evento_briefs:
             creado_por = users_map.get(brief.user_id, brief.creado_por) if brief.user_id else brief.creado_por
-            brief_data = {
+            briefs_data.append({
                 "id": brief.id,
                 "evento_id": brief.evento_id,
+                "marca": brief.marca,
                 "objetivo_especifico": brief.objetivo_especifico,
                 "audiencia_detallada": brief.audiencia_detallada,
                 "mensaje_clave": brief.mensaje_clave,
@@ -251,7 +256,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
                 "creado_por": creado_por,
                 "aprobado_por": brief.aprobado_por,
                 "fecha_aprobacion": brief.fecha_aprobacion.isoformat() if brief.fecha_aprobacion else None,
-            }
+            })
 
         result.append({
             "id": evento.id,
@@ -272,7 +277,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
             "creado_por": evento.creado_por,
             "fecha_creacion": evento.fecha_creacion.isoformat() if evento.fecha_creacion else None,
             "fecha_modificacion": evento.fecha_modificacion.isoformat() if evento.fecha_modificacion else None,
-            "brief": brief_data,
+            "briefs": briefs_data,
         })
 
     return result
@@ -379,10 +384,10 @@ async def delete_evento(user: user_dependency, db: db_dependency, evento_id: int
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
 
-    # Buscar el brief asociado al evento
-    brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
+    # Buscar los briefs asociados al evento
+    event_briefs = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).all()
     
-    if brief:
+    for brief in event_briefs:
         # Eliminar actividades del brief
         db.query(ActividadesEventos).filter(ActividadesEventos.brief_id == brief.id).delete()
         
@@ -410,14 +415,20 @@ async def create_brief(user: user_dependency, db: db_dependency,
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
     
-    # Verificar si ya existe un brief para este evento
-    existing_brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
+    # Verificar si ya existe un brief para este evento+marca
+    existing_query = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id)
+    if brief_request.marca:
+        existing_query = existing_query.filter(BriefsEventos.marca == brief_request.marca)
+    else:
+        existing_query = existing_query.filter(BriefsEventos.marca.is_(None))
+    existing_brief = existing_query.first()
     if existing_brief:
-        raise HTTPException(status_code=400, detail='Ya existe un brief para este evento')
+        raise HTTPException(status_code=400, detail='Ya existe un reporte para esta agencia en este evento')
     
     # Crear el brief
     brief_model = BriefsEventos(
         evento_id=evento_id,
+        marca=brief_request.marca,
         objetivo_especifico=brief_request.objetivo_especifico,
         audiencia_detallada=brief_request.audiencia_detallada,
         mensaje_clave=brief_request.mensaje_clave,
@@ -493,6 +504,7 @@ async def create_brief(user: user_dependency, db: db_dependency,
     return BriefEventoResponse(
         id=brief_model.id,
         evento_id=brief_model.evento_id,
+        marca=brief_model.marca,
         objetivo_especifico=brief_model.objetivo_especifico,
         audiencia_detallada=brief_model.audiencia_detallada,
         mensaje_clave=brief_model.mensaje_clave,
@@ -511,7 +523,8 @@ async def create_brief(user: user_dependency, db: db_dependency,
     )
 
 @router.get("/{evento_id}/brief", response_model=Optional[BriefEventoResponse], status_code=status.HTTP_200_OK)
-async def get_brief(user: user_dependency, db: db_dependency, evento_id: int):
+async def get_brief(user: user_dependency, db: db_dependency, evento_id: int,
+                    marca: Optional[str] = Query(None)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -521,8 +534,11 @@ async def get_brief(user: user_dependency, db: db_dependency, evento_id: int):
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
     
-    # Obtener el brief con join a Users para obtener el nombre completo
-    brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
+    # Obtener el brief filtrado por marca si se proporciona
+    query = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id)
+    if marca:
+        query = query.filter(BriefsEventos.marca == marca)
+    brief = query.first()
     if brief is None:
         return None
     
@@ -568,6 +584,7 @@ async def get_brief(user: user_dependency, db: db_dependency, evento_id: int):
     return BriefEventoResponse(
         id=brief.id,
         evento_id=brief.evento_id,
+        marca=brief.marca,
         objetivo_especifico=brief.objetivo_especifico,
         audiencia_detallada=brief.audiencia_detallada,
         mensaje_clave=brief.mensaje_clave,
@@ -597,12 +614,21 @@ async def update_brief(user: user_dependency, db: db_dependency,
     if evento is None:
         raise HTTPException(status_code=404, detail='Evento no encontrado')
     
-    # Obtener el brief existente
-    brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
+    # Obtener el brief existente por evento+marca
+    query = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id)
+    if brief_request.marca:
+        query = query.filter(BriefsEventos.marca == brief_request.marca)
+    else:
+        query = query.filter(BriefsEventos.marca.is_(None))
+    brief = query.first()
+    if brief is None:
+        # Fallback: buscar sin filtro de marca (compat con briefs legacy)
+        brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
     if brief is None:
         raise HTTPException(status_code=404, detail='Brief no encontrado')
     
     # Actualizar el brief
+    brief.marca = brief_request.marca
     brief.objetivo_especifico = brief_request.objetivo_especifico
     brief.audiencia_detallada = brief_request.audiencia_detallada
     brief.mensaje_clave = brief_request.mensaje_clave
@@ -680,6 +706,7 @@ async def update_brief(user: user_dependency, db: db_dependency,
     return BriefEventoResponse(
         id=brief.id,
         evento_id=brief.evento_id,
+        marca=brief.marca,
         objetivo_especifico=brief.objetivo_especifico,
         audiencia_detallada=brief.audiencia_detallada,
         mensaje_clave=brief.mensaje_clave,
@@ -698,7 +725,8 @@ async def update_brief(user: user_dependency, db: db_dependency,
     )
 
 @router.delete("/{evento_id}/brief", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_brief(user: user_dependency, db: db_dependency, evento_id: int):
+async def delete_brief(user: user_dependency, db: db_dependency, evento_id: int,
+                       marca: Optional[str] = Query(None)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
@@ -709,7 +737,10 @@ async def delete_brief(user: user_dependency, db: db_dependency, evento_id: int)
         raise HTTPException(status_code=404, detail='Evento no encontrado')
     
     # Obtener el brief
-    brief = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id).first()
+    query = db.query(BriefsEventos).filter(BriefsEventos.evento_id == evento_id)
+    if marca:
+        query = query.filter(BriefsEventos.marca == marca)
+    brief = query.first()
     if brief is None:
         raise HTTPException(status_code=404, detail='Brief no encontrado')
     

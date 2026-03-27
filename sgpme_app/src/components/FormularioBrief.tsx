@@ -10,6 +10,8 @@ import ImageModal from "./ImageModal";
 interface FormularioBriefProps {
   evento: Evento;
   briefInicial?: BriefEvento;
+  marcaSeleccionada?: string;
+  agenciasDisponibles?: string[];
   onSubmit: (
     brief: Omit<
       BriefEvento,
@@ -47,10 +49,16 @@ const ASIGNACIONES_IMAGEN = [
 export default function FormularioBrief({
   evento,
   briefInicial,
+  marcaSeleccionada,
+  agenciasDisponibles,
   onSubmit,
   onCancel,
   loading = false,
 }: FormularioBriefProps) {
+  const [marcaActual, setMarcaActual] = useState<string>(
+    marcaSeleccionada || briefInicial?.marca || agenciasDisponibles?.[0] || "",
+  );
+
   const formData = {
     actividades: briefInicial?.actividades || [],
     cronograma: briefInicial?.cronograma || [],
@@ -346,6 +354,7 @@ export default function FormularioBrief({
     try {
       const briefCompleto = {
         ...formData,
+        marca: marcaActual || undefined,
         objetivoEspecifico: "",
         audienciaDetallada: "",
         mensajeClave: "",
@@ -409,6 +418,30 @@ export default function FormularioBrief({
           </div>
         </div>
       </div>
+
+      {agenciasDisponibles && agenciasDisponibles.length > 1 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            🏢 Seleccionar Agencia para este Reporte
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {agenciasDisponibles.map((ag) => (
+              <button
+                key={ag}
+                type="button"
+                onClick={() => setMarcaActual(ag)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  marcaActual === ag
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {ag}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">

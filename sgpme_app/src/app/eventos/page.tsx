@@ -23,6 +23,7 @@ import {
   eventoPerteneceAMarca,
   eventoPerteneceAMarcas,
   formatearMarca,
+  obtenerArrayMarcas,
 } from "@/lib/evento-utils";
 import { Bars3Icon } from "@heroicons/react/24/outline";
 import ConfigSidebar from "@/components/ConfigSidebar";
@@ -82,6 +83,9 @@ export default function EventosPage() {
   const [filtroBriefs, setFiltroBriefs] = useState<
     "disponibles" | "pendientes"
   >("disponibles");
+  const [briefMarcaSeleccionada, setBriefMarcaSeleccionada] = useState<
+    string | undefined
+  >(undefined);
 
   // Navegación con soporte para botón atrás del navegador
   const navegarA = (
@@ -177,7 +181,9 @@ export default function EventosPage() {
   }, [eventos, marcaSeleccionada, marcasPermitidas]);
 
   const calcularMetricasBriefs = useMemo(() => {
-    const eventosConBrief = eventosFiltrados.filter((evento) => evento.brief);
+    const eventosConBrief = eventosFiltrados.filter(
+      (evento) => evento.briefs && evento.briefs.length > 0,
+    );
     let totalLeads = 0;
     let totalPruebasManejo = 0;
     let totalCotizaciones = 0;
@@ -186,25 +192,27 @@ export default function EventosPage() {
     let totalAsistentes = 0;
 
     eventosConBrief.forEach((evento) => {
-      try {
-        const observacionesBrief = JSON.parse(
-          evento.brief?.observacionesEspeciales || "{}",
-        );
-        const evidencia = observacionesBrief.evidencia || {};
-        const metricas = observacionesBrief.metricas || {};
+      (evento.briefs || []).forEach((brief) => {
+        try {
+          const observacionesBrief = JSON.parse(
+            brief.observacionesEspeciales || "{}",
+          );
+          const evidencia = observacionesBrief.evidencia || {};
+          const metricas = observacionesBrief.metricas || {};
 
-        if (evidencia.leads) totalLeads += evidencia.leads;
-        if (evidencia.asistentes) totalAsistentes += evidencia.asistentes;
+          if (evidencia.leads) totalLeads += evidencia.leads;
+          if (evidencia.asistentes) totalAsistentes += evidencia.asistentes;
 
-        if (metricas.pruebasManejo)
-          totalPruebasManejo += metricas.pruebasManejo;
-        if (metricas.cotizaciones) totalCotizaciones += metricas.cotizaciones;
-        if (metricas.solicitudesCredito)
-          totalSolicitudesCredito += metricas.solicitudesCredito;
-        if (metricas.ventas) totalVentas += metricas.ventas;
-      } catch (error) {
-        console.error("Error parsing métricas del evento:", evento.id, error);
-      }
+          if (metricas.pruebasManejo)
+            totalPruebasManejo += metricas.pruebasManejo;
+          if (metricas.cotizaciones) totalCotizaciones += metricas.cotizaciones;
+          if (metricas.solicitudesCredito)
+            totalSolicitudesCredito += metricas.solicitudesCredito;
+          if (metricas.ventas) totalVentas += metricas.ventas;
+        } catch (error) {
+          console.error("Error parsing métricas del evento:", evento.id, error);
+        }
+      });
     });
 
     return {
@@ -320,14 +328,16 @@ export default function EventosPage() {
     }
   };
 
-  const manejarVerTemplate = async (evento: Evento) => {
-    const eventoConBrief = await cargarBriefCompleto(evento.id);
+  const manejarVerTemplate = async (evento: Evento, marca?: string) => {
+    const eventoConBrief = await cargarBriefCompleto(evento.id, marca);
+    setBriefMarcaSeleccionada(marca);
     setEventoEditando(eventoConBrief || evento);
     navegarA("template");
   };
 
-  const manejarVerPreview = async (evento: Evento) => {
-    const eventoConBrief = await cargarBriefCompleto(evento.id);
+  const manejarVerPreview = async (evento: Evento, marca?: string) => {
+    const eventoConBrief = await cargarBriefCompleto(evento.id, marca);
+    setBriefMarcaSeleccionada(marca);
     setEventoEditando(eventoConBrief || evento);
     navegarA("preview");
   };
@@ -335,24 +345,29 @@ export default function EventosPage() {
   const manejarExportarBriefPDF = async () => {
     if (eventoEditando) {
       try {
-        await exportarBriefPDF(eventoEditando.id, facturas);
+        await exportarBriefPDF(
+          eventoEditando.id,
+          facturas,
+          briefMarcaSeleccionada,
+        );
       } catch (error) {
         console.error("Error al exportar PDF:", error);
       }
     }
   };
 
-  const manejarEliminarBrief = async (evento: Evento) => {
-    if (!evento.brief) return;
+  const manejarEliminarBrief = async (evento: Evento, marca?: string) => {
+    if (!evento.briefs?.length) return;
 
+    const agenciaLabel = marca ? ` de la agencia "${marca}"` : "";
     const confirmacion = window.confirm(
-      `¿Estás seguro de que deseas eliminar el reporte del evento "${evento.nombre}"?\n\nEsta acción no se puede deshacer.`,
+      `¿Estás seguro de que deseas eliminar el reporte${agenciaLabel} del evento "${evento.nombre}"?\n\nEsta acción no se puede deshacer.`,
     );
 
     if (!confirmacion) return;
 
     try {
-      const exito = await eliminarBrief(evento.id);
+      const exito = await eliminarBrief(evento.id, marca);
       if (exito) {
         showToast("Reporte eliminado correctamente", "success");
         await cargarEventos();
@@ -570,7 +585,7 @@ export default function EventosPage() {
                       onVerBrief={async (eventoId) => {
                         const eventoConBrief =
                           await cargarBriefCompleto(eventoId);
-                        if (eventoConBrief && eventoConBrief.brief) {
+                        if (eventoConBrief && eventoConBrief.briefs?.length) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
@@ -598,7 +613,7 @@ export default function EventosPage() {
                       onVerBrief={async (eventoId) => {
                         const eventoConBrief =
                           await cargarBriefCompleto(eventoId);
-                        if (eventoConBrief && eventoConBrief.brief) {
+                        if (eventoConBrief && eventoConBrief.briefs?.length) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
@@ -626,7 +641,7 @@ export default function EventosPage() {
                       onVerBrief={async (eventoId) => {
                         const eventoConBrief =
                           await cargarBriefCompleto(eventoId);
-                        if (eventoConBrief && eventoConBrief.brief) {
+                        if (eventoConBrief && eventoConBrief.briefs?.length) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
@@ -999,13 +1014,24 @@ export default function EventosPage() {
                   <div className="flex gap-4 text-sm">
                     <div className="bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                       <span className="font-medium text-green-800">
-                        📋 {eventosFiltrados.filter((e) => e.brief).length}{" "}
+                        📋{" "}
+                        {eventosFiltrados.reduce(
+                          (sum, e) => sum + (e.briefs?.length || 0),
+                          0,
+                        )}{" "}
                         Reportes Completados
                       </span>
                     </div>
                     <div className="bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
                       <span className="font-medium text-orange-800">
-                        ⏳ {eventosFiltrados.filter((e) => !e.brief).length}{" "}
+                        ⏳{" "}
+                        {eventosFiltrados.reduce((sum, e) => {
+                          const totalMarcas = obtenerArrayMarcas(
+                            e.marca,
+                          ).length;
+                          const briefsHechos = e.briefs?.length || 0;
+                          return sum + Math.max(0, totalMarcas - briefsHechos);
+                        }, 0)}{" "}
                         Reportes Pendientes
                       </span>
                     </div>
@@ -1206,81 +1232,131 @@ export default function EventosPage() {
                                   </div>
                                   <div className="space-y-3">
                                     <h4 className="font-medium text-gray-900 flex items-center">
-                                      📄 Reporte del Evento
+                                      📄 Reportes del Evento
+                                      {(() => {
+                                        const marcas = obtenerArrayMarcas(
+                                          evento.marca,
+                                        );
+                                        const hechos =
+                                          evento.briefs?.length || 0;
+                                        return (
+                                          <span className="ml-2 text-xs text-gray-500">
+                                            ({hechos}/{marcas.length})
+                                          </span>
+                                        );
+                                      })()}
                                     </h4>
                                     <div className="space-y-2">
-                                      {evento.brief ? (
-                                        <div>
-                                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 mb-2">
-                                            ✓ Reporte Completado
-                                          </span>
-                                          <div className="flex flex-col gap-2">
-                                            {usuario.tipo === "auditor" ? (
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  manejarVerTemplate(evento);
-                                                }}
-                                                className="px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
-                                              >
-                                                📋 Ver Reporte Completo
-                                              </button>
-                                            ) : (
-                                              <div className="flex gap-2 flex-wrap">
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEventoEditando(evento);
-                                                    navegarA("brief");
-                                                  }}
-                                                  className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
-                                                >
-                                                  ✏️ Editar Reporte
-                                                </button>
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    manejarVerPreview(evento);
-                                                  }}
-                                                  className="px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
-                                                >
-                                                  👁️ Preview
-                                                </button>
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    manejarEliminarBrief(
-                                                      evento,
-                                                    );
-                                                  }}
-                                                  className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors"
-                                                >
-                                                  🗑️ Borrar
-                                                </button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div>
-                                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-600 mb-2">
-                                            ⏳ Reporte Pendiente
-                                          </span>
-                                          {(usuario.tipo === "administrador" ||
-                                            usuario.tipo === "developer" ||
-                                            usuario.tipo === "coordinador") && (
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEventoEditando(evento);
-                                                navegarA("brief");
-                                              }}
-                                              className="px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors block"
+                                      {obtenerArrayMarcas(evento.marca).map(
+                                        (marca) => {
+                                          const briefDeAgencia =
+                                            evento.briefs?.find(
+                                              (b) => b.marca === marca,
+                                            );
+                                          return (
+                                            <div
+                                              key={marca}
+                                              className="border border-gray-100 rounded p-2"
                                             >
-                                              ➕ Crear Reporte
-                                            </button>
-                                          )}
-                                        </div>
+                                              <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs font-medium text-gray-700">
+                                                  {marca}
+                                                </span>
+                                                {briefDeAgencia ? (
+                                                  <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    ✓ Completado
+                                                  </span>
+                                                ) : (
+                                                  <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600">
+                                                    ⏳ Pendiente
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {briefDeAgencia ? (
+                                                <div className="flex gap-2 flex-wrap">
+                                                  {usuario.tipo ===
+                                                  "auditor" ? (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        manejarVerTemplate(
+                                                          evento,
+                                                          marca,
+                                                        );
+                                                      }}
+                                                      className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
+                                                    >
+                                                      📋 Ver Reporte
+                                                    </button>
+                                                  ) : (
+                                                    <>
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setBriefMarcaSeleccionada(
+                                                            marca,
+                                                          );
+                                                          setEventoEditando(
+                                                            evento,
+                                                          );
+                                                          navegarA("brief");
+                                                        }}
+                                                        className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
+                                                      >
+                                                        ✏️ Editar
+                                                      </button>
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          manejarVerPreview(
+                                                            evento,
+                                                            marca,
+                                                          );
+                                                        }}
+                                                        className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
+                                                      >
+                                                        👁️ Preview
+                                                      </button>
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          manejarEliminarBrief(
+                                                            evento,
+                                                            marca,
+                                                          );
+                                                        }}
+                                                        className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors"
+                                                      >
+                                                        🗑️
+                                                      </button>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                (usuario.tipo ===
+                                                  "administrador" ||
+                                                  usuario.tipo ===
+                                                    "developer" ||
+                                                  usuario.tipo ===
+                                                    "coordinador") && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setBriefMarcaSeleccionada(
+                                                        marca,
+                                                      );
+                                                      setEventoEditando(evento);
+                                                      navegarA("brief");
+                                                    }}
+                                                    className="px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
+                                                  >
+                                                    ➕ Crear Reporte
+                                                  </button>
+                                                )
+                                              )}
+                                            </div>
+                                          );
+                                        },
                                       )}
                                     </div>
                                   </div>
@@ -1349,7 +1425,11 @@ export default function EventosPage() {
                         }`}
                       >
                         Cerrados (
-                        {eventosFiltrados.filter((e) => e.brief).length})
+                        {eventosFiltrados.reduce(
+                          (sum, e) => sum + (e.briefs?.length || 0),
+                          0,
+                        )}
+                        )
                       </button>
                       <button
                         onClick={() => setFiltroBriefs("pendientes")}
@@ -1360,7 +1440,14 @@ export default function EventosPage() {
                         }`}
                       >
                         Pendientes (
-                        {eventosFiltrados.filter((e) => !e.brief).length})
+                        {
+                          eventosFiltrados.filter((e) => {
+                            const total = obtenerArrayMarcas(e.marca).length;
+                            const hechos = e.briefs?.length || 0;
+                            return hechos < total;
+                          }).length
+                        }
+                        )
                       </button>
                     </div>
                   </div>
@@ -1376,7 +1463,10 @@ export default function EventosPage() {
 
               <div className="p-6">
                 {filtroBriefs === "disponibles" ? (
-                  eventosFiltrados.filter((e) => e.brief).length === 0 ? (
+                  eventosFiltrados.reduce(
+                    (sum, e) => sum + (e.briefs?.length || 0),
+                    0,
+                  ) === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <div className="text-4xl mb-2">📋</div>
                       <p>No hay reportes cerrados</p>
@@ -1384,13 +1474,18 @@ export default function EventosPage() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {eventosFiltrados
-                        .filter((e) => e.brief)
+                        .flatMap((evento) =>
+                          (evento.briefs || []).map((brief) => ({
+                            evento,
+                            brief,
+                          })),
+                        )
                         .slice(0, 6)
-                        .map((evento) => {
+                        .map(({ evento, brief }) => {
                           let briefData = null;
                           try {
                             const observaciones = JSON.parse(
-                              evento.brief?.observacionesEspeciales || "{}",
+                              brief.observacionesEspeciales || "{}",
                             );
                             briefData = observaciones.evidencia;
                           } catch (error) {
@@ -1399,7 +1494,7 @@ export default function EventosPage() {
 
                           return (
                             <div
-                              key={evento.id}
+                              key={`${evento.id}-${brief.marca}`}
                               className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
                             >
                               <div className="flex justify-between items-start mb-3">
@@ -1408,8 +1503,9 @@ export default function EventosPage() {
                                     {evento.nombre}
                                   </h4>
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                                    <span className="bg-gray-100 px-2 py-1 rounded">
-                                      {formatearMarca(evento.marca)}
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium">
+                                      {brief.marca ||
+                                        formatearMarca(evento.marca)}
                                     </span>
                                     <span>•</span>
                                     <span>
@@ -1469,7 +1565,9 @@ export default function EventosPage() {
                               <div className="flex gap-2 mt-3">
                                 {usuario?.tipo === "auditor" ? (
                                   <button
-                                    onClick={() => manejarVerTemplate(evento)}
+                                    onClick={() =>
+                                      manejarVerTemplate(evento, brief.marca)
+                                    }
                                     className="flex-1 px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
                                   >
                                     📋 Ver Reporte Completo
@@ -1477,13 +1575,16 @@ export default function EventosPage() {
                                 ) : (
                                   <>
                                     <button
-                                      onClick={() => manejarVerPreview(evento)}
+                                      onClick={() =>
+                                        manejarVerPreview(evento, brief.marca)
+                                      }
                                       className="flex-1 px-3 py-2 bg-purple-100 text-purple-700 text-xs rounded-md hover:bg-purple-200 transition-colors"
                                     >
                                       👁️ Preview
                                     </button>
                                     <button
                                       onClick={() => {
+                                        setBriefMarcaSeleccionada(brief.marca);
                                         setEventoEditando(evento);
                                         navegarA("brief");
                                       }}
@@ -1493,7 +1594,10 @@ export default function EventosPage() {
                                     </button>
                                     <button
                                       onClick={() =>
-                                        manejarEliminarBrief(evento)
+                                        manejarEliminarBrief(
+                                          evento,
+                                          brief.marca,
+                                        )
                                       }
                                       className="px-3 py-2 bg-red-100 text-red-700 text-xs rounded-md hover:bg-red-200 transition-colors"
                                       title="Borrar Reporte"
@@ -1509,7 +1613,11 @@ export default function EventosPage() {
                     </div>
                   )
                 ) : /* Vista de Pendientes */
-                eventosFiltrados.filter((e) => !e.brief).length === 0 ? (
+                eventosFiltrados.filter((e) => {
+                    const total = obtenerArrayMarcas(e.marca).length;
+                    const hechos = e.briefs?.length || 0;
+                    return hechos < total;
+                  }).length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-2">✅</div>
                     <p>Todos los eventos tienen reporte</p>
@@ -1517,44 +1625,79 @@ export default function EventosPage() {
                 ) : (
                   <div className="space-y-3">
                     {eventosFiltrados
-                      .filter((e) => !e.brief)
+                      .filter((e) => {
+                        const total = obtenerArrayMarcas(e.marca).length;
+                        const hechos = e.briefs?.length || 0;
+                        return hechos < total;
+                      })
                       .slice(0, 10)
-                      .map((evento) => (
-                        <div
-                          key={evento.id}
-                          className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between"
-                        >
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-sm mb-1">
-                              {evento.nombre}
-                            </h4>
-                            <div className="flex items-center gap-3 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <span className="font-medium">
-                                  Responsable:
-                                </span>
-                                {evento.responsable || "No especificado"}
-                              </span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <span className="font-medium">Fecha:</span>
-                                {parsearFecha(
-                                  evento.fechaInicio,
-                                ).toLocaleDateString("es-MX")}
-                              </span>
+                      .map((evento) => {
+                        const marcas = obtenerArrayMarcas(evento.marca);
+                        const totalMarcas = marcas.length;
+                        const briefsHechos = evento.briefs?.length || 0;
+                        const faltantes = totalMarcas - briefsHechos;
+                        const marcasSinReporte = marcas.filter(
+                          (m) => !evento.briefs?.some((b) => b.marca === m),
+                        );
+                        return (
+                          <div
+                            key={evento.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                                  {evento.nombre}
+                                </h4>
+                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <span className="font-medium">
+                                      Responsable:
+                                    </span>
+                                    {evento.responsable || "No especificado"}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <span className="font-medium">Fecha:</span>
+                                    {parsearFecha(
+                                      evento.fechaInicio,
+                                    ).toLocaleDateString("es-MX")}
+                                  </span>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-700">
+                                    Crear {faltantes}/{totalMarcas} reportes
+                                  </span>
+                                  <div className="flex gap-1 flex-wrap">
+                                    {marcasSinReporte.map((marca) => (
+                                      <span
+                                        key={marca}
+                                        className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
+                                      >
+                                        {marca}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setBriefMarcaSeleccionada(
+                                    marcasSinReporte.length === 1
+                                      ? marcasSinReporte[0]
+                                      : undefined,
+                                  );
+                                  setEventoEditando(evento);
+                                  navegarA("brief");
+                                }}
+                                className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
+                              >
+                                📋 Crear Reporte
+                              </button>
                             </div>
                           </div>
-                          <button
-                            onClick={() => {
-                              setEventoEditando(evento);
-                              navegarA("brief");
-                            }}
-                            className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
-                          >
-                            📋 Crear Reporte
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -1587,7 +1730,7 @@ export default function EventosPage() {
               }}
               onVerBrief={async (eventoId) => {
                 const eventoConBrief = await cargarBriefCompleto(eventoId);
-                if (eventoConBrief && eventoConBrief.brief) {
+                if (eventoConBrief && eventoConBrief.briefs?.length) {
                   setEventoEditando(eventoConBrief);
                   setVistaActual("template");
                 }
@@ -1621,7 +1764,7 @@ export default function EventosPage() {
               }}
               onVerBrief={async (eventoId) => {
                 const eventoConBrief = await cargarBriefCompleto(eventoId);
-                if (eventoConBrief && eventoConBrief.brief) {
+                if (eventoConBrief && eventoConBrief.briefs?.length) {
                   setEventoEditando(eventoConBrief);
                   setVistaActual("template");
                 }
@@ -1700,7 +1843,21 @@ export default function EventosPage() {
             </div>
             <FormularioBrief
               evento={eventoEditando}
-              briefInicial={eventoEditando.brief}
+              briefInicial={
+                briefMarcaSeleccionada
+                  ? eventoEditando.briefs?.find(
+                      (b) => b.marca === briefMarcaSeleccionada,
+                    )
+                  : eventoEditando.briefs?.[0]
+              }
+              marcaSeleccionada={briefMarcaSeleccionada}
+              agenciasDisponibles={obtenerArrayMarcas(
+                eventoEditando.marca,
+              ).filter(
+                (m) =>
+                  !eventoEditando.briefs?.some((b) => b.marca === m) ||
+                  m === briefMarcaSeleccionada,
+              )}
               onSubmit={manejarGuardarBrief}
               onCancel={() => setVistaActual("dashboard")}
               loading={loading}
@@ -1709,43 +1866,57 @@ export default function EventosPage() {
         )}
         {vistaActual === "template" &&
           eventoEditando &&
-          eventoEditando.brief && (
-            <div>
-              <div className="mb-6">
-                <button
-                  onClick={() => setVistaActual("dashboard")}
-                  className="text-blue-600 hover:text-blue-800 mb-4"
-                >
-                  ← Volver a Eventos
-                </button>
+          (() => {
+            const briefSeleccionado = briefMarcaSeleccionada
+              ? eventoEditando.briefs?.find(
+                  (b) => b.marca === briefMarcaSeleccionada,
+                )
+              : eventoEditando.briefs?.[0];
+            return briefSeleccionado ? (
+              <div>
+                <div className="mb-6">
+                  <button
+                    onClick={() => setVistaActual("dashboard")}
+                    className="text-blue-600 hover:text-blue-800 mb-4"
+                  >
+                    ← Volver a Eventos
+                  </button>
+                </div>
+                <BriefTemplate
+                  evento={eventoEditando}
+                  brief={briefSeleccionado}
+                  onDescargarPDF={manejarExportarBriefPDF}
+                />
               </div>
-              <BriefTemplate
-                evento={eventoEditando}
-                brief={eventoEditando.brief}
-                onDescargarPDF={manejarExportarBriefPDF}
-              />
-            </div>
-          )}
+            ) : null;
+          })()}
         {vistaActual === "preview" &&
           eventoEditando &&
-          eventoEditando.brief && (
-            <div>
-              <div className="mb-6">
-                <button
-                  onClick={() => setVistaActual("dashboard")}
-                  className="text-blue-600 hover:text-blue-800 mb-4"
-                >
-                  ← Volver a Eventos
-                </button>
+          (() => {
+            const briefSeleccionado = briefMarcaSeleccionada
+              ? eventoEditando.briefs?.find(
+                  (b) => b.marca === briefMarcaSeleccionada,
+                )
+              : eventoEditando.briefs?.[0];
+            return briefSeleccionado ? (
+              <div>
+                <div className="mb-6">
+                  <button
+                    onClick={() => setVistaActual("dashboard")}
+                    className="text-blue-600 hover:text-blue-800 mb-4"
+                  >
+                    ← Volver a Eventos
+                  </button>
+                </div>
+                <BriefTemplate
+                  evento={eventoEditando}
+                  brief={briefSeleccionado}
+                  onDescargarPDF={manejarExportarBriefPDF}
+                  isPreview={true}
+                />
               </div>
-              <BriefTemplate
-                evento={eventoEditando}
-                brief={eventoEditando.brief}
-                onDescargarPDF={manejarExportarBriefPDF}
-                isPreview={true}
-              />
-            </div>
-          )}
+            ) : null;
+          })()}
       </main>
       <ConfigSidebar
         isOpen={configSidebarOpen}

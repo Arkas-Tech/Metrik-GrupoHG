@@ -354,7 +354,7 @@ export interface Evento {
   coordenadasResponsable?: string;
   tipoEvento: string;
   gastosProyectados: GastoEvento[];
-  brief?: BriefEvento;
+  briefs?: BriefEvento[];
   fechaCreacion: string;
   fechaModificacion?: string;
   creadoPor: string;
@@ -375,6 +375,7 @@ export interface GastoEvento {
 export interface BriefEvento {
   id: string;
   eventoId: string;
+  marca?: string;
   objetivoEspecifico: string;
   audienciaDetallada: string;
   mensajeClave: string;

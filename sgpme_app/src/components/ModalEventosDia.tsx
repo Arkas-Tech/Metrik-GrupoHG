@@ -266,14 +266,22 @@ export default function ModalEventosDia({
                                     <h5 className="font-medium text-gray-900 mb-2">
                                       Reporte del Evento
                                     </h5>
-                                    {evento.brief ? (
+                                    {evento.briefs &&
+                                    evento.briefs.length > 0 ? (
                                       <div className="space-y-2">
                                         <div className="flex items-center space-x-2">
                                           <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                             <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                            Reporte Disponible
+                                            {evento.briefs.length} Reporte
+                                            {evento.briefs.length > 1
+                                              ? "s"
+                                              : ""}{" "}
+                                            Disponible
+                                            {evento.briefs.length > 1
+                                              ? "s"
+                                              : ""}
                                           </span>
-                                          {evento.brief.aprobadoPor && (
+                                          {evento.briefs[0]?.aprobadoPor && (
                                             <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                               ✓ Aprobado
                                             </span>

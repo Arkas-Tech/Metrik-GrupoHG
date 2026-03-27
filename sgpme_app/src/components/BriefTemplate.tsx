@@ -119,6 +119,11 @@ export default function BriefTemplate({
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold mb-2">{evento.nombre}</h1>
+            {brief.marca && (
+              <span className="inline-flex px-3 py-1 mb-2 text-sm font-semibold rounded-full bg-white/30 text-white">
+                Reporte: {brief.marca}
+              </span>
+            )}
             <div className="flex flex-wrap gap-4 text-blue-100">
               <div className="flex items-center">
                 <CalendarIcon className="h-5 w-5 mr-2" />
@@ -473,7 +478,10 @@ export default function BriefTemplate({
               const porAsignacion: Record<string, ImagenEvento[]> = {};
               const sinAsignacion: ImagenEvento[] = [];
               imagenes.forEach((imagen: ImagenEvento) => {
-                const cat = imagen.asignacion || (imagen as ImagenEvento & { categoria?: string }).categoria || "";
+                const cat =
+                  imagen.asignacion ||
+                  (imagen as ImagenEvento & { categoria?: string }).categoria ||
+                  "";
                 if (cat) {
                   if (!porAsignacion[cat]) porAsignacion[cat] = [];
                   porAsignacion[cat].push(imagen);

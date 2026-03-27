@@ -170,6 +170,7 @@ class BriefsEventos(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     evento_id = Column(Integer, ForeignKey('eventos.id'), index=True)
+    marca = Column(String, nullable=True)  # Agencia específica del reporte
     objetivo_especifico = Column(Text)
     audiencia_detallada = Column(Text)
     mensaje_clave = Column(Text)
