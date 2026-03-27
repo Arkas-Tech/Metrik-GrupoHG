@@ -17,6 +17,7 @@ import {
   formatearMarca,
 } from "@/lib/evento-utils";
 import { fetchConToken } from "@/lib/auth-utils";
+import { invalidateCacheByPrefix } from "@/lib/dataCache";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 const MESES_ORDEN = [
@@ -163,6 +164,8 @@ export default function DashboardGeneral({
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
   const {
     presencias,
+    cargando: cargandoPresencias,
+    error: errorPresencias,
     cargarPresencias,
     crearPresencia,
     actualizarPresencia,
@@ -3068,7 +3071,22 @@ export default function DashboardGeneral({
           </h2>
         </div>
 
-        {subcategoriasMediosTradicionales.length === 0 ? (
+        {cargandoPresencias && presencias.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+            <p className="text-sm">Cargando presencias...</p>
+          </div>
+        ) : errorPresencias && presencias.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-500 mb-3">{errorPresencias}</p>
+            <button
+              onClick={() => { invalidateCacheByPrefix("presencias:"); cargarPresencias(); }}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : subcategoriasMediosTradicionales.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No hay subcategorías configuradas en Medios Tradicionales.</p>
           </div>

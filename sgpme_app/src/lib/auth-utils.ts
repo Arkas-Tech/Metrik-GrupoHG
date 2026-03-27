@@ -92,24 +92,21 @@ export const fetchConToken = async (url: string, options: RequestInit = {}) => {
     headers,
   });
 
+  // 401: sesión expirada — limpiar token y redirigir al login solo si es un
+  // endpoint de autenticación de usuario, no por cualquier llamada a la API.
+  // Esto evita la cascada: 401 en presencias → borra token → todos los demás
+  // endpoints también fallan → loop de redirección.
   if (response.status === 401) {
-    localStorage.removeItem("token");
-    const nuevoToken = await obtenerTokenAutomatico();
-
-    if (nuevoToken) {
-      const nuevasHeaders: Record<string, string> = {
-        Authorization: `Bearer ${nuevoToken}`,
-        ...(options.headers as Record<string, string>),
-      };
-
-      if (!(options.body instanceof FormData)) {
-        nuevasHeaders["Content-Type"] = "application/json";
+    // Solo desloguear si el endpoint de perfil de usuario también devuelve 401
+    const isAuthEndpoint =
+      normalizedUrl.includes("/auth/user") ||
+      normalizedUrl.includes("/auth/token");
+    if (isAuthEndpoint) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
       }
-
-      response = await fetch(normalizedUrl, {
-        ...options,
-        headers: nuevasHeaders,
-      });
     }
   }
 
