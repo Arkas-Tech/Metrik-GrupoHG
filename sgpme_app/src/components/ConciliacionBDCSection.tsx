@@ -18,7 +18,6 @@ interface LeadEstado {
   estado: string;
   bdc: number;
   mkt: number;
-  ventas?: number;
 }
 interface MedioComp {
   medio: string;
@@ -46,6 +45,7 @@ const ACTIVOS_DEF = [
   "Contactado",
   "Cita agendada",
   "Cita cumplida",
+  "Ventas",
 ];
 const CERRADOS_DEF = [
   "No compran",
@@ -154,14 +154,13 @@ function agregadoPorEstado(
   rs: Conciliacion[],
   campo: "leads_activos" | "leads_cerrados",
 ) {
-  const map = new Map<string, { bdc: number; mkt: number; ventas: number }>();
+  const map = new Map<string, { bdc: number; mkt: number }>();
   for (const r of rs) {
     for (const item of r[campo]) {
-      const prev = map.get(item.estado) || { bdc: 0, mkt: 0, ventas: 0 };
+      const prev = map.get(item.estado) || { bdc: 0, mkt: 0 };
       map.set(item.estado, {
         bdc: prev.bdc + (item.bdc || 0),
         mkt: prev.mkt + (item.mkt || 0),
-        ventas: prev.ventas + (item.ventas || 0),
       });
     }
   }
@@ -246,16 +245,11 @@ function TarjetaResumen({
 function TablaLeads({
   titulo,
   filas,
-  showVentas = false,
 }: {
   titulo: string;
   filas: LeadEstado[];
-  showVentas?: boolean;
 }) {
   const totBDC = sumL(filas, "bdc");
-  const totVentas = showVentas
-    ? filas.reduce((s, r) => s + (r.ventas || 0), 0)
-    : 0;
   return (
     <div className="mb-4">
       <h5 className="text-sm font-bold text-gray-700 mb-2">{titulo}</h5>
@@ -265,31 +259,18 @@ function TablaLeads({
             <tr className="bg-gray-100 text-gray-600">
               <th className="text-left px-3 py-2">Estado</th>
               <th className="px-3 py-2 text-center w-20">BDC</th>
-              {showVentas && (
-                <th className="px-3 py-2 text-center w-20">Ventas</th>
-              )}
             </tr>
           </thead>
           <tbody>
             {filas.map((f, i) => (
               <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-3 py-1.5 text-gray-700">{f.estado}</td>
-                <td className="px-3 py-1.5 text-center font-medium">
-                  {f.bdc}
-                </td>
-                {showVentas && (
-                  <td className="px-3 py-1.5 text-center font-medium">
-                    {f.ventas ?? 0}
-                  </td>
-                )}
+                <td className="px-3 py-1.5 text-center font-medium">{f.bdc}</td>
               </tr>
             ))}
             <tr className="bg-gray-200 font-bold">
               <td className="px-3 py-1.5 text-gray-800">TOTAL</td>
               <td className="px-3 py-1.5 text-center">{totBDC}</td>
-              {showVentas && (
-                <td className="px-3 py-1.5 text-center">{totVentas}</td>
-              )}
             </tr>
           </tbody>
         </table>
@@ -517,7 +498,9 @@ export default function ConciliacionBDCSection() {
     setFMarca(marcasPermitidas.length === 1 ? marcasPermitidas[0] : "");
     setFInicio(w.i);
     setFFin(w.f);
-    setFActivos(ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0, ventas: 0 })));
+    setFActivos(
+      ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })),
+    );
     setFCerrados(CERRADOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })));
     setFMedios(
       MEDIOS_DEF.map((m) => ({ medio: m, bdc: 0, mkt: 0, notas: "" })),
@@ -533,8 +516,8 @@ export default function ConciliacionBDCSection() {
     setFFin(c.semana_fin);
     setFActivos(
       c.leads_activos.length > 0
-        ? c.leads_activos.map((x) => ({ ...x, ventas: x.ventas ?? 0 }))
-        : ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0, ventas: 0 })),
+        ? c.leads_activos.map((x) => ({ ...x }))
+        : ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })),
     );
     setFCerrados(
       c.leads_cerrados.length > 0
@@ -595,7 +578,7 @@ export default function ConciliacionBDCSection() {
   };
 
   /* ── Form: update helpers ── */
-  const updActivo = (i: number, k: "bdc" | "mkt" | "ventas", v: number) =>
+  const updActivo = (i: number, k: "bdc" | "mkt", v: number) =>
     setFActivos((p) => p.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   const updCerrado = (
     i: number,
@@ -956,7 +939,6 @@ export default function ConciliacionBDCSection() {
                           <tr className="text-gray-500">
                             <th className="text-left py-1">Estado</th>
                             <th className="text-center py-1 w-14">BDC</th>
-                            <th className="text-center py-1 w-14">Ventas</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -966,7 +948,6 @@ export default function ConciliacionBDCSection() {
                                 {f.estado}
                               </td>
                               <td className="py-0.5 text-center">{f.bdc}</td>
-                              <td className="py-0.5 text-center">{f.ventas ?? 0}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1089,7 +1070,6 @@ export default function ConciliacionBDCSection() {
                                 <TablaLeads
                                   titulo="Leads Activos"
                                   filas={r.leads_activos}
-                                  showVentas
                                 />
                                 <TablaLeads
                                   titulo="Leads Cerrados"
@@ -1228,7 +1208,6 @@ export default function ConciliacionBDCSection() {
                       <tr className="bg-green-50 text-green-800">
                         <th className="text-left px-3 py-2">Estado</th>
                         <th className="px-3 py-2 text-center w-24">BDC</th>
-                        <th className="px-3 py-2 text-center w-24">Ventas</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1255,30 +1234,12 @@ export default function ConciliacionBDCSection() {
                               className="w-full border rounded px-2 py-1 text-center text-gray-900"
                             />
                           </td>
-                          <td className="px-3 py-1.5">
-                            <input
-                              type="number"
-                              min={0}
-                              value={f.ventas ?? ""}
-                              onChange={(e) =>
-                                updActivo(
-                                  i,
-                                  "ventas",
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full border rounded px-2 py-1 text-center text-gray-900"
-                            />
-                          </td>
                         </tr>
                       ))}
                       <tr className="bg-green-100 font-bold">
                         <td className="px-3 py-1.5">TOTAL</td>
                         <td className="px-3 py-1.5 text-center">
                           {sumL(fActivos, "bdc")}
-                        </td>
-                        <td className="px-3 py-1.5 text-center">
-                          {fActivos.reduce((s, r) => s + (r.ventas || 0), 0)}
                         </td>
                       </tr>
                     </tbody>
