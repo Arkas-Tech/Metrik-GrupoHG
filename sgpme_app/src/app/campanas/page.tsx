@@ -69,6 +69,7 @@ interface AnuncioApiItem {
   nombre: string;
   tipo?: string;
   estado?: string;
+  full_image_url?: string;
   thumbnail_url?: string;
   image_url?: string;
   titulo?: string;
@@ -582,7 +583,7 @@ const CampanasPage = () => {
     try {
       if (campana.plataforma === "Meta Ads" && campana.meta_ads_id) {
         const resp = await fetchConToken(
-          `${API_URL}/meta-ads/campanas/${campana.meta_ads_id}/anuncios`,
+          `${API_URL}/meta-ads/campanas/${campana.meta_ads_id}/anuncios?marca=${encodeURIComponent(campana.marca || "")}`,
         );
         if (resp.ok) setAnunciosApiData(await resp.json());
       } else if (campana.plataforma === "Google Ads" && campana.google_ads_id) {
@@ -1405,7 +1406,7 @@ const CampanasPage = () => {
                     {anunciosApiData.map((ad: AnuncioApiItem) => {
                       const imgSrc =
                         campanaAnuncios.plataforma === "Meta Ads"
-                          ? ad.thumbnail_url || ad.image_url || ""
+                          ? ad.full_image_url || ad.image_url || ad.thumbnail_url || ""
                           : ad.imagenes?.[0]?.url || "";
                       return (
                         <div
@@ -1418,7 +1419,7 @@ const CampanasPage = () => {
                               src={imgSrc}
                               alt={ad.nombre}
                               onClick={() => setImagenPreview(imgSrc)}
-                              className="w-full h-44 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                              className="w-full h-56 object-contain bg-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
                             />
                           ) : (
                             <div className="w-full h-44 bg-gray-100 flex flex-col items-center justify-center text-gray-400 text-sm p-3 overflow-hidden">
@@ -1816,7 +1817,7 @@ const CampanasPage = () => {
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4"
           onClick={() => setImagenPreview(null)}
         >
-          <div className="relative max-w-[60%] max-h-[90vh] w-full h-full flex items-center justify-center">
+          <div className="relative max-w-[90%] max-h-[90vh] w-full h-full flex items-center justify-center">
             <button
               onClick={() => setImagenPreview(null)}
               className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"

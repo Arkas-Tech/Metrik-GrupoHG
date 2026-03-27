@@ -342,8 +342,9 @@ async def list_meta_campaign_ads(
     campaign_id: str,
     user: user_dependency,
     db: db_dependency,
+    marca: Optional[str] = Query(None),
 ):
-    """Retorna los anuncios de una campaña con thumbnail/image URL."""
+    """Retorna los anuncios de una campaña con imagen de alta calidad cuando es posible."""
     if user is None:
         raise HTTPException(status_code=401)
     cfg = _get_meta_config(db)
@@ -351,20 +352,48 @@ async def list_meta_campaign_ads(
         raise HTTPException(status_code=503, detail="Meta Ads no configurado")
 
     token = cfg["access_token"]
+    account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
+
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,creative{thumbnail_url,image_url,body,title,call_to_action_type}",
+        "fields": "id,name,effective_status,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type}",
         "limit": "100",
     })
 
+    ads = data.get("data", [])
+
+    # Batch-fetch full-size image URLs via adimages (one call for all hashes)
+    hash_to_full_url: dict = {}
+    if account_id:
+        hashes = [
+            ad["creative"]["image_hash"]
+            for ad in ads
+            if ad.get("creative", {}).get("image_hash")
+        ]
+        if hashes:
+            try:
+                imgs = _meta_api(token, f"{account_id}/adimages", {
+                    "hashes": json.dumps(hashes),
+                    "fields": "hash,url",
+                    "limit": "500",
+                })
+                for img in imgs.get("data", []):
+                    if img.get("hash") and img.get("url"):
+                        hash_to_full_url[img["hash"]] = img["url"]
+            except Exception:
+                pass
+
     results = []
-    for ad in data.get("data", []):
+    for ad in ads:
         creative = ad.get("creative") or {}
+        image_hash = creative.get("image_hash", "")
+        full_url = hash_to_full_url.get(image_hash, "") if image_hash else ""
         results.append({
             "id": str(ad.get("id", "")),
             "nombre": ad.get("name", ""),
             "estado": ad.get("effective_status", ""),
-            "thumbnail_url": creative.get("thumbnail_url", ""),
+            "full_image_url": full_url,
             "image_url": creative.get("image_url", ""),
+            "thumbnail_url": creative.get("thumbnail_url", ""),
             "titulo": creative.get("title", ""),
             "cuerpo": creative.get("body", ""),
         })
