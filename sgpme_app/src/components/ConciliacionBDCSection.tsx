@@ -18,6 +18,7 @@ interface LeadEstado {
   estado: string;
   bdc: number;
   mkt: number;
+  ventas?: number;
 }
 interface MedioComp {
   medio: string;
@@ -153,13 +154,14 @@ function agregadoPorEstado(
   rs: Conciliacion[],
   campo: "leads_activos" | "leads_cerrados",
 ) {
-  const map = new Map<string, { bdc: number; mkt: number }>();
+  const map = new Map<string, { bdc: number; mkt: number; ventas: number }>();
   for (const r of rs) {
     for (const item of r[campo]) {
-      const prev = map.get(item.estado) || { bdc: 0, mkt: 0 };
+      const prev = map.get(item.estado) || { bdc: 0, mkt: 0, ventas: 0 };
       map.set(item.estado, {
         bdc: prev.bdc + (item.bdc || 0),
         mkt: prev.mkt + (item.mkt || 0),
+        ventas: prev.ventas + (item.ventas || 0),
       });
     }
   }
@@ -201,33 +203,42 @@ function TarjetaResumen({
   bdc,
   mkt,
   color,
+  showMkt = true,
 }: {
   label: string;
   bdc: number;
   mkt: number;
   color: string;
+  showMkt?: boolean;
 }) {
   return (
     <div
       className={`rounded-xl p-5 border-2 ${color} flex flex-col items-center`}
     >
       <h4 className="text-sm font-semibold text-gray-600 mb-3">{label}</h4>
-      <div className="grid grid-cols-3 gap-4 w-full text-center">
-        <div>
+      {showMkt ? (
+        <div className="grid grid-cols-3 gap-4 w-full text-center">
+          <div>
+            <p className="text-xs text-gray-500">BDC</p>
+            <p className="text-xl font-bold text-gray-900">{bdc}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">MKT</p>
+            <p className="text-xl font-bold text-gray-900">{mkt}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Dif.</p>
+            <p className="text-xl font-bold">
+              <DifSpan a={bdc} b={mkt} />
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full text-center">
           <p className="text-xs text-gray-500">BDC</p>
-          <p className="text-xl font-bold text-gray-900">{bdc}</p>
+          <p className="text-2xl font-bold text-gray-900">{bdc}</p>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">MKT</p>
-          <p className="text-xl font-bold text-gray-900">{mkt}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500">Dif.</p>
-          <p className="text-xl font-bold">
-            <DifSpan a={bdc} b={mkt} />
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -235,12 +246,16 @@ function TarjetaResumen({
 function TablaLeads({
   titulo,
   filas,
+  showVentas = false,
 }: {
   titulo: string;
   filas: LeadEstado[];
+  showVentas?: boolean;
 }) {
   const totBDC = sumL(filas, "bdc");
-  const totMKT = sumL(filas, "mkt");
+  const totVentas = showVentas
+    ? filas.reduce((s, r) => s + (r.ventas || 0), 0)
+    : 0;
   return (
     <div className="mb-4">
       <h5 className="text-sm font-bold text-gray-700 mb-2">{titulo}</h5>
@@ -250,28 +265,31 @@ function TablaLeads({
             <tr className="bg-gray-100 text-gray-600">
               <th className="text-left px-3 py-2">Estado</th>
               <th className="px-3 py-2 text-center w-20">BDC</th>
-              <th className="px-3 py-2 text-center w-20">MKT</th>
-              <th className="px-3 py-2 text-center w-20">Dif.</th>
+              {showVentas && (
+                <th className="px-3 py-2 text-center w-20">Ventas</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {filas.map((f, i) => (
               <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-3 py-1.5 text-gray-700">{f.estado}</td>
-                <td className="px-3 py-1.5 text-center font-medium">{f.bdc}</td>
-                <td className="px-3 py-1.5 text-center font-medium">{f.mkt}</td>
-                <td className="px-3 py-1.5 text-center">
-                  <DifSpan a={f.bdc} b={f.mkt} />
+                <td className="px-3 py-1.5 text-center font-medium">
+                  {f.bdc}
                 </td>
+                {showVentas && (
+                  <td className="px-3 py-1.5 text-center font-medium">
+                    {f.ventas ?? 0}
+                  </td>
+                )}
               </tr>
             ))}
             <tr className="bg-gray-200 font-bold">
               <td className="px-3 py-1.5 text-gray-800">TOTAL</td>
               <td className="px-3 py-1.5 text-center">{totBDC}</td>
-              <td className="px-3 py-1.5 text-center">{totMKT}</td>
-              <td className="px-3 py-1.5 text-center">
-                <DifSpan a={totBDC} b={totMKT} />
-              </td>
+              {showVentas && (
+                <td className="px-3 py-1.5 text-center">{totVentas}</td>
+              )}
             </tr>
           </tbody>
         </table>
@@ -286,7 +304,7 @@ function TablaMedios({ filas }: { filas: MedioComp[] }) {
   return (
     <div className="mb-4">
       <h5 className="text-sm font-bold text-gray-700 mb-2">
-        Comparación por Medio
+        Leads generados / recibidos
       </h5>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -499,7 +517,7 @@ export default function ConciliacionBDCSection() {
     setFMarca(marcasPermitidas.length === 1 ? marcasPermitidas[0] : "");
     setFInicio(w.i);
     setFFin(w.f);
-    setFActivos(ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })));
+    setFActivos(ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0, ventas: 0 })));
     setFCerrados(CERRADOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })));
     setFMedios(
       MEDIOS_DEF.map((m) => ({ medio: m, bdc: 0, mkt: 0, notas: "" })),
@@ -515,8 +533,8 @@ export default function ConciliacionBDCSection() {
     setFFin(c.semana_fin);
     setFActivos(
       c.leads_activos.length > 0
-        ? c.leads_activos.map((x) => ({ ...x }))
-        : ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0 })),
+        ? c.leads_activos.map((x) => ({ ...x, ventas: x.ventas ?? 0 }))
+        : ACTIVOS_DEF.map((e) => ({ estado: e, bdc: 0, mkt: 0, ventas: 0 })),
     );
     setFCerrados(
       c.leads_cerrados.length > 0
@@ -577,7 +595,7 @@ export default function ConciliacionBDCSection() {
   };
 
   /* ── Form: update helpers ── */
-  const updActivo = (i: number, k: "bdc" | "mkt", v: number) =>
+  const updActivo = (i: number, k: "bdc" | "mkt" | "ventas", v: number) =>
     setFActivos((p) => p.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   const updCerrado = (
     i: number,
@@ -746,15 +764,17 @@ export default function ConciliacionBDCSection() {
                   bdc={resComp1.actBDC}
                   mkt={resComp1.actMKT}
                   color="border-green-200 bg-green-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
                   label="Leads Cerrados"
                   bdc={resComp1.cerBDC}
                   mkt={resComp1.cerMKT}
                   color="border-orange-200 bg-orange-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
-                  label="Por Medio"
+                  label="Leads generados / recibidos"
                   bdc={resComp1.medBDC}
                   mkt={resComp1.medMKT}
                   color="border-blue-200 bg-blue-50"
@@ -777,15 +797,17 @@ export default function ConciliacionBDCSection() {
                   bdc={resComp2.actBDC}
                   mkt={resComp2.actMKT}
                   color="border-green-200 bg-green-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
                   label="Leads Cerrados"
                   bdc={resComp2.cerBDC}
                   mkt={resComp2.cerMKT}
                   color="border-orange-200 bg-orange-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
-                  label="Por Medio"
+                  label="Leads generados / recibidos"
                   bdc={resComp2.medBDC}
                   mkt={resComp2.medMKT}
                   color="border-blue-200 bg-blue-50"
@@ -824,27 +846,17 @@ export default function ConciliacionBDCSection() {
                       b: resComp2.actBDC,
                     },
                     {
-                      l: "Activos MKT",
-                      a: resComp1.actMKT,
-                      b: resComp2.actMKT,
-                    },
-                    {
                       l: "Cerrados BDC",
                       a: resComp1.cerBDC,
                       b: resComp2.cerBDC,
                     },
                     {
-                      l: "Cerrados MKT",
-                      a: resComp1.cerMKT,
-                      b: resComp2.cerMKT,
-                    },
-                    {
-                      l: "Medios BDC",
+                      l: "Gen/Rec BDC",
                       a: resComp1.medBDC,
                       b: resComp2.medBDC,
                     },
                     {
-                      l: "Medios MKT",
+                      l: "Gen/Rec MKT",
                       a: resComp1.medMKT,
                       b: resComp2.medMKT,
                     },
@@ -900,15 +912,17 @@ export default function ConciliacionBDCSection() {
                   bdc={resumen.actBDC}
                   mkt={resumen.actMKT}
                   color="border-green-200 bg-green-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
                   label="Leads Cerrados"
                   bdc={resumen.cerBDC}
                   mkt={resumen.cerMKT}
                   color="border-orange-200 bg-orange-50"
+                  showMkt={false}
                 />
                 <TarjetaResumen
-                  label="Por Medio"
+                  label="Leads generados / recibidos"
                   bdc={resumen.medBDC}
                   mkt={resumen.medMKT}
                   color="border-blue-200 bg-blue-50"
@@ -942,8 +956,7 @@ export default function ConciliacionBDCSection() {
                           <tr className="text-gray-500">
                             <th className="text-left py-1">Estado</th>
                             <th className="text-center py-1 w-14">BDC</th>
-                            <th className="text-center py-1 w-14">MKT</th>
-                            <th className="text-center py-1 w-14">Dif.</th>
+                            <th className="text-center py-1 w-14">Ventas</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -953,10 +966,7 @@ export default function ConciliacionBDCSection() {
                                 {f.estado}
                               </td>
                               <td className="py-0.5 text-center">{f.bdc}</td>
-                              <td className="py-0.5 text-center">{f.mkt}</td>
-                              <td className="py-0.5 text-center">
-                                <DifSpan a={f.bdc} b={f.mkt} />
-                              </td>
+                              <td className="py-0.5 text-center">{f.ventas ?? 0}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -972,8 +982,6 @@ export default function ConciliacionBDCSection() {
                           <tr className="text-gray-500">
                             <th className="text-left py-1">Estado</th>
                             <th className="text-center py-1 w-14">BDC</th>
-                            <th className="text-center py-1 w-14">MKT</th>
-                            <th className="text-center py-1 w-14">Dif.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -983,10 +991,6 @@ export default function ConciliacionBDCSection() {
                                 {f.estado}
                               </td>
                               <td className="py-0.5 text-center">{f.bdc}</td>
-                              <td className="py-0.5 text-center">{f.mkt}</td>
-                              <td className="py-0.5 text-center">
-                                <DifSpan a={f.bdc} b={f.mkt} />
-                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -995,7 +999,7 @@ export default function ConciliacionBDCSection() {
                     {/* Medios acumulado */}
                     <div>
                       <h5 className="text-sm font-bold text-blue-700 mb-2">
-                        Por Medio (acumulado)
+                        Leads gen/rec (acumulado)
                       </h5>
                       <table className="w-full text-xs">
                         <thead>
@@ -1033,12 +1037,8 @@ export default function ConciliacionBDCSection() {
                 </h3>
                 <div className="space-y-3">
                   {registrosMes.map((r) => {
-                    const totBDC =
-                      sumL(r.leads_activos, "bdc") +
-                      sumL(r.leads_cerrados, "bdc");
-                    const totMKT =
-                      sumL(r.leads_activos, "mkt") +
-                      sumL(r.leads_cerrados, "mkt");
+                    const totBDC = sumM(r.comparacion_medios, "bdc");
+                    const totMKT = sumM(r.comparacion_medios, "mkt");
                     const open = expandedWeeks.has(r.id);
                     return (
                       <div
@@ -1085,16 +1085,19 @@ export default function ConciliacionBDCSection() {
                         {open && (
                           <div className="p-4 border-t bg-white">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                              <TablaLeads
-                                titulo="Leads Activos"
-                                filas={r.leads_activos}
-                              />
-                              <TablaLeads
-                                titulo="Leads Cerrados"
-                                filas={r.leads_cerrados}
-                              />
+                              <div className="space-y-4">
+                                <TablaLeads
+                                  titulo="Leads Activos"
+                                  filas={r.leads_activos}
+                                  showVentas
+                                />
+                                <TablaLeads
+                                  titulo="Leads Cerrados"
+                                  filas={r.leads_cerrados}
+                                />
+                              </div>
+                              <TablaMedios filas={r.comparacion_medios} />
                             </div>
-                            <TablaMedios filas={r.comparacion_medios} />
                             {r.notas_generales && (
                               <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                                 <p className="text-xs font-semibold text-yellow-700 mb-1">
@@ -1200,7 +1203,7 @@ export default function ConciliacionBDCSection() {
                   [
                     ["activos", "Leads Activos"],
                     ["cerrados", "Leads Cerrados"],
-                    ["medios", "Por Medio"],
+                    ["medios", "Leads gen/rec"],
                   ] as const
                 ).map(([key, label]) => (
                   <button
@@ -1225,8 +1228,7 @@ export default function ConciliacionBDCSection() {
                       <tr className="bg-green-50 text-green-800">
                         <th className="text-left px-3 py-2">Estado</th>
                         <th className="px-3 py-2 text-center w-24">BDC</th>
-                        <th className="px-3 py-2 text-center w-24">MKT</th>
-                        <th className="px-3 py-2 text-center w-20">Dif.</th>
+                        <th className="px-3 py-2 text-center w-24">Ventas</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1257,19 +1259,16 @@ export default function ConciliacionBDCSection() {
                             <input
                               type="number"
                               min={0}
-                              value={f.mkt || ""}
+                              value={f.ventas ?? ""}
                               onChange={(e) =>
                                 updActivo(
                                   i,
-                                  "mkt",
+                                  "ventas",
                                   parseInt(e.target.value) || 0,
                                 )
                               }
                               className="w-full border rounded px-2 py-1 text-center text-gray-900"
                             />
-                          </td>
-                          <td className="px-3 py-1.5 text-center">
-                            <DifSpan a={f.bdc} b={f.mkt} />
                           </td>
                         </tr>
                       ))}
@@ -1279,13 +1278,7 @@ export default function ConciliacionBDCSection() {
                           {sumL(fActivos, "bdc")}
                         </td>
                         <td className="px-3 py-1.5 text-center">
-                          {sumL(fActivos, "mkt")}
-                        </td>
-                        <td className="px-3 py-1.5 text-center">
-                          <DifSpan
-                            a={sumL(fActivos, "bdc")}
-                            b={sumL(fActivos, "mkt")}
-                          />
+                          {fActivos.reduce((s, r) => s + (r.ventas || 0), 0)}
                         </td>
                       </tr>
                     </tbody>
@@ -1302,8 +1295,6 @@ export default function ConciliacionBDCSection() {
                         <tr className="bg-orange-50 text-orange-800">
                           <th className="text-left px-3 py-2">Razón</th>
                           <th className="px-3 py-2 text-center w-24">BDC</th>
-                          <th className="px-3 py-2 text-center w-24">MKT</th>
-                          <th className="px-3 py-2 text-center w-20">Dif.</th>
                           <th className="w-10" />
                         </tr>
                       </thead>
@@ -1349,24 +1340,6 @@ export default function ConciliacionBDCSection() {
                                   className="w-full border rounded px-2 py-1 text-center text-gray-900"
                                 />
                               </td>
-                              <td className="px-3 py-1.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={f.mkt || ""}
-                                  onChange={(e) =>
-                                    updCerrado(
-                                      i,
-                                      "mkt",
-                                      parseInt(e.target.value) || 0,
-                                    )
-                                  }
-                                  className="w-full border rounded px-2 py-1 text-center text-gray-900"
-                                />
-                              </td>
-                              <td className="px-3 py-1.5 text-center">
-                                <DifSpan a={f.bdc} b={f.mkt} />
-                              </td>
                               <td className="px-1">
                                 {isCustom && (
                                   <button
@@ -1388,15 +1361,6 @@ export default function ConciliacionBDCSection() {
                           <td className="px-3 py-1.5">TOTAL</td>
                           <td className="px-3 py-1.5 text-center">
                             {sumL(fCerrados, "bdc")}
-                          </td>
-                          <td className="px-3 py-1.5 text-center">
-                            {sumL(fCerrados, "mkt")}
-                          </td>
-                          <td className="px-3 py-1.5 text-center">
-                            <DifSpan
-                              a={sumL(fCerrados, "bdc")}
-                              b={sumL(fCerrados, "mkt")}
-                            />
                           </td>
                           <td />
                         </tr>
