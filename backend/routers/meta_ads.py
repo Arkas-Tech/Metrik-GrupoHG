@@ -407,6 +407,7 @@ async def list_meta_campaign_ads(
             "nombre": ad.get("name", ""),
             "estado": ad.get("effective_status", ""),
             "full_image_url": full_url,
+            "image_url": creative.get("image_url", ""),
             "thumbnail_url": creative.get("thumbnail_url", ""),
             "titulo": creative.get("title", ""),
             "cuerpo": creative.get("body", ""),

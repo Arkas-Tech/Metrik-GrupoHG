@@ -1817,24 +1817,27 @@ const CampanasPage = () => {
       {/* Modal de Preview de Imagen */}
       {imagenPreview && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-60 p-4"
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-60"
           onClick={() => setImagenPreview(null)}
         >
-          <div className="relative flex items-center justify-center" style={{maxWidth: "92vw", maxHeight: "92vh"}}>
-            <button
-              onClick={() => setImagenPreview(null)}
-              className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
-            >
-              <XMarkIcon className="h-6 w-6 text-gray-700" />
-            </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imagenPreview}
-              alt="Preview"
-              style={{maxWidth: "92vw", maxHeight: "92vh", objectFit: "contain", display: "block"}}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <button
+            onClick={() => setImagenPreview(null)}
+            className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
+          >
+            <XMarkIcon className="h-6 w-6 text-gray-700" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imagenPreview}
+            alt="Preview"
+            style={{
+              width: "92vw",
+              height: "92vh",
+              objectFit: "contain",
+              display: "block",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
