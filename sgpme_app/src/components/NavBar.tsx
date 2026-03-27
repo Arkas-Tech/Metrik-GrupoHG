@@ -11,7 +11,8 @@ interface NavBarProps {
     | "facturas"
     | "eventos"
     | "digital"
-    | "configuracion";
+    | "configuracion"
+    | "campanas";
 }
 
 export default function NavBar({ usuario, paginaActiva }: NavBarProps) {

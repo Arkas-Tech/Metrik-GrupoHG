@@ -258,6 +258,10 @@ export default function DashboardGeneral({
     nombre: "",
   });
 
+  // API metrics for dashboard digital section
+  const [apiMetricsGoogle, setApiMetricsGoogle] = useState<Record<string, { alcance: number; interacciones: number; leads: number; gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number }>>({});
+  const [apiMetricsMeta, setApiMetricsMeta] = useState<Record<string, { alcance: number; interacciones: number; leads: number; gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number }>>({});
+
   // Datos organizados por mes: { [mes: number]: Array<datos> }
   const [desplazamientoPorMes, setDesplazamientoPorMes] = useState<{
     [mes: number]: {
@@ -478,6 +482,30 @@ export default function DashboardGeneral({
       console.error("[DEBUG-CARGAR] ❌ Error cargando desplazamiento:", error);
     }
   }, [agenciaSeleccionada, marcas, filtroMesGlobal, añoSeleccionado]);
+
+  // Fetch API metrics for digital campaigns section
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const [gRes, mRes] = await Promise.all([
+          fetchConToken(`${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`),
+          fetchConToken(`${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`),
+        ]);
+        if (!cancelled) {
+          setApiMetricsGoogle(gRes.ok ? await gRes.json() : {});
+          setApiMetricsMeta(mRes.ok ? await mRes.json() : {});
+        }
+      } catch {
+        if (!cancelled) {
+          setApiMetricsGoogle({});
+          setApiMetricsMeta({});
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [filtroMesGlobal, añoSeleccionado]);
 
   // Función para manejar la carga de PDF
   const handlePdfUpload = (
@@ -1012,41 +1040,56 @@ export default function DashboardGeneral({
     return `$${valor}`;
   };
 
-  // Calcular métricas por plataforma
+  // Calcular métricas por plataforma — usa API metrics para Meta/Google
   const calcularMetricasPlataforma = (plataforma: string) => {
+    // For Meta Ads and Google Ads, use real API metrics keyed by campaign external ID
+    if (plataforma === "Meta Ads" || plataforma === "Google Ads") {
+      const apiData = plataforma === "Google Ads" ? apiMetricsGoogle : apiMetricsMeta;
+      const idField = plataforma === "Google Ads" ? "google_ads_id" : "meta_ads_id";
+
+      // Filter DB campaigns for this platform + marca
+      const campanasPlataforma = campanasDb.filter((c) => {
+        if (c.plataforma !== plataforma) return false;
+        if (!filtraPorMarca(c.marca)) return false;
+        return true;
+      });
+
+      let leadsTotal = 0;
+      let inversionTotal = 0;
+      let cxcSum = 0;
+      let cxcCount = 0;
+
+      for (const c of campanasPlataforma) {
+        const externalId = (c as unknown as Record<string, unknown>)[idField] as string | undefined;
+        if (!externalId) continue;
+        const m = apiData[externalId];
+        if (!m) continue;
+        leadsTotal += m.leads || 0;
+        inversionTotal += m.gasto_actual || 0;
+        if (m.cxc_porcentaje) { cxcSum += m.cxc_porcentaje; cxcCount++; }
+      }
+
+      return {
+        leads: leadsTotal,
+        inversion: inversionTotal,
+        cxc: cxcCount > 0 ? cxcSum / cxcCount : 0,
+      };
+    }
+
+    // Fallback for other platforms (TikTok etc.)
     const campanasActivas = campanasDb.filter((c) => {
       if (c.plataforma !== plataforma) return false;
       if (c.estado !== "Activa") return false;
       if (!filtraPorMarca(c.marca)) return false;
-      if (c.fecha_inicio) {
-        const fecha = new Date(c.fecha_inicio);
-        if (
-          fecha.getMonth() + 1 !== filtroMesGlobal ||
-          fecha.getFullYear() !== añoSeleccionado
-        )
-          return false;
-      }
       return true;
     });
 
-    const leadsTotal = campanasActivas.reduce(
-      (sum, c) => sum + (c.leads || 0),
-      0,
-    );
-    const inversionTotal = campanasActivas.reduce(
-      (sum, c) => sum + (c.gasto_actual || 0),
-      0,
-    );
-    const cxcPromedio =
-      campanasActivas.length > 0
-        ? campanasActivas.reduce((sum, c) => sum + (c.cxc_porcentaje || 0), 0) /
-          campanasActivas.length
-        : 0;
-
     return {
-      leads: leadsTotal,
-      inversion: inversionTotal,
-      cxc: cxcPromedio,
+      leads: campanasActivas.reduce((sum, c) => sum + (c.leads || 0), 0),
+      inversion: campanasActivas.reduce((sum, c) => sum + (c.gasto_actual || 0), 0),
+      cxc: campanasActivas.length > 0
+        ? campanasActivas.reduce((sum, c) => sum + (c.cxc_porcentaje || 0), 0) / campanasActivas.length
+        : 0,
     };
   };
 
@@ -1728,7 +1771,9 @@ export default function DashboardGeneral({
             {/* Asistentes */}
             <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Asistentes</span>
+                <span className="text-sm font-medium text-gray-600">
+                  Asistentes
+                </span>
                 <svg
                   className="w-5 h-5 text-purple-600"
                   fill="none"

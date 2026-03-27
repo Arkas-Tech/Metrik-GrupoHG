@@ -355,7 +355,7 @@ async def list_meta_campaign_ads(
     account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
 
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec}",
+        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url}",
         "limit": "100",
     })
 
@@ -404,11 +404,25 @@ async def list_meta_campaign_ads(
             )
 
         # Destination URL (where the ad sends users)
-        dest_url = (
-            link_data.get("link")
-            or (creative.get("object_url"))
-            or ""
-        )
+        dest_url = link_data.get("link") or ""
+
+        # If the link is just facebook.com (homepage), try better sources
+        if not dest_url or dest_url.rstrip("/") in ("https://www.facebook.com", "https://facebook.com", "http://www.facebook.com"):
+            # Try effective_object_story_id → Facebook post URL
+            story_id = ad.get("effective_object_story_id", "")
+            if story_id and "_" in story_id:
+                page_id, post_id = story_id.split("_", 1)
+                dest_url = f"https://www.facebook.com/{page_id}/posts/{post_id}"
+            elif creative.get("object_url", "").startswith("http"):
+                dest_url = creative["object_url"]
+            else:
+                # Fallback: Facebook Ads Library preview
+                ad_id = ad.get("id", "")
+                if ad_id:
+                    dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}"
+                else:
+                    dest_url = ""
+
         if dest_url and not dest_url.startswith("http"):
             dest_url = ""
 
@@ -434,8 +448,10 @@ async def get_period_metrics(
     db: db_dependency,
     year: int = Query(...),
     month: int = Query(...),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ):
-    """Métricas de Meta Ads filtradas por mes/año para todas las marcas."""
+    """Métricas de Meta Ads filtradas por mes/año o rango de fechas para todas las marcas."""
     if user is None:
         raise HTTPException(status_code=401)
 
@@ -451,9 +467,14 @@ async def get_period_metrics(
 
     token = cfg["access_token"]
 
-    _, last_day = calendar.monthrange(year, month)
-    start = f"{year}-{month:02d}-01"
-    end = f"{year}-{month:02d}-{last_day:02d}"
+    # Use explicit date range if provided, otherwise compute from year/month
+    if start_date and end_date:
+        start = start_date
+        end = end_date
+    else:
+        _, last_day = calendar.monthrange(year, month)
+        start = f"{year}-{month:02d}-01"
+        end = f"{year}-{month:02d}-{last_day:02d}"
 
     result: dict = {}
 

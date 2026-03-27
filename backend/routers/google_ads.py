@@ -532,8 +532,10 @@ async def get_period_metrics(
     db: db_dependency,
     year: int = Query(...),
     month: int = Query(...),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
 ):
-    """Devuelve métricas de Google Ads filtradas por mes/año para todas las marcas."""
+    """Devuelve métricas de Google Ads filtradas por mes/año o rango de fechas para todas las marcas."""
     if user is None:
         raise HTTPException(status_code=401)
 
@@ -553,9 +555,14 @@ async def get_period_metrics(
     except Exception:
         return {}
 
-    _, last_day = calendar.monthrange(year, month)
-    start = f"{year}-{month:02d}-01"
-    end = f"{year}-{month:02d}-{last_day:02d}"
+    # Use explicit date range if provided, otherwise compute from year/month
+    if start_date and end_date:
+        start = start_date
+        end = end_date
+    else:
+        _, last_day = calendar.monthrange(year, month)
+        start = f"{year}-{month:02d}-01"
+        end = f"{year}-{month:02d}-{last_day:02d}"
 
     # {google_ads_id: {alcance, gasto_actual, leads, interacciones, ctr, conversion, cxc_porcentaje}}
     result: dict = {}

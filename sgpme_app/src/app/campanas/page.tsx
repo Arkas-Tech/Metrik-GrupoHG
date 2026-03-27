@@ -151,6 +151,10 @@ const CampanasPage = () => {
   );
   const [busquedaCampana, setBusquedaCampana] = useState("");
 
+  // Filtro por rango de fechas personalizado
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+
   // Métricas filtradas por período (google_ads_id → métricas)
   const [metricasPeriodo, setMetricasPeriodo] = useState<
     Record<
@@ -352,9 +356,10 @@ const CampanasPage = () => {
     if (isAdmin && usuario) cargarGadsStatus();
   }, [isAdmin, usuario, cargarGadsStatus]);
 
-  // Cargar métricas filtradas cuando cambia la selección de meses/año
+  // Cargar métricas filtradas cuando cambia la selección de meses/año o rango de fechas
   useEffect(() => {
-    if (mesesSeleccionados.length === 0 || añoSeleccionado === 0) {
+    const useDateRange = fechaInicio && fechaFin;
+    if (!useDateRange && (mesesSeleccionados.length === 0 || añoSeleccionado === 0)) {
       setMetricasPeriodo({});
       setMetricasPeriodoMeta({});
       return;
@@ -393,29 +398,52 @@ const CampanasPage = () => {
             },
             {} as Record<string, MetricasEntry>,
           );
-        const resultados = await Promise.all(
-          mesesSeleccionados.map(async (mes) => {
-            const [gRes, mRes] = await Promise.all([
-              fetchConToken(
-                `${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${mes}`,
-              ),
-              fetchConToken(
-                `${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${mes}`,
-              ),
-            ]);
-            return {
-              gData: gRes.ok
-                ? ((await gRes.json()) as Record<string, MetricasEntry>)
-                : {},
-              mData: mRes.ok
-                ? ((await mRes.json()) as Record<string, MetricasEntry>)
-                : {},
-            };
-          }),
-        );
-        if (!cancelled) {
-          setMetricasPeriodo(mergeAll(resultados.map((r) => r.gData)));
-          setMetricasPeriodoMeta(mergeAll(resultados.map((r) => r.mData)));
+
+        if (useDateRange) {
+          // Fetch with explicit date range
+          const dateParams = `&start_date=${fechaInicio}&end_date=${fechaFin}`;
+          const [gRes, mRes] = await Promise.all([
+            fetchConToken(
+              `${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=1${dateParams}`,
+            ),
+            fetchConToken(
+              `${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=1${dateParams}`,
+            ),
+          ]);
+          if (!cancelled) {
+            setMetricasPeriodo(
+              gRes.ok ? ((await gRes.json()) as Record<string, MetricasEntry>) : {},
+            );
+            setMetricasPeriodoMeta(
+              mRes.ok ? ((await mRes.json()) as Record<string, MetricasEntry>) : {},
+            );
+          }
+        } else {
+          // Fetch per-month and merge
+          const resultados = await Promise.all(
+            mesesSeleccionados.map(async (mes) => {
+              const [gRes, mRes] = await Promise.all([
+                fetchConToken(
+                  `${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${mes}`,
+                ),
+                fetchConToken(
+                  `${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${mes}`,
+                ),
+              ]);
+              return {
+                gData: gRes.ok
+                  ? ((await gRes.json()) as Record<string, MetricasEntry>)
+                  : {},
+                mData: mRes.ok
+                  ? ((await mRes.json()) as Record<string, MetricasEntry>)
+                  : {},
+              };
+            }),
+          );
+          if (!cancelled) {
+            setMetricasPeriodo(mergeAll(resultados.map((r) => r.gData)));
+            setMetricasPeriodoMeta(mergeAll(resultados.map((r) => r.mData)));
+          }
         }
       } catch {
         // silently ignore
@@ -424,7 +452,7 @@ const CampanasPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [mesesSeleccionados, añoSeleccionado, API_URL]);
+  }, [mesesSeleccionados, añoSeleccionado, fechaInicio, fechaFin, API_URL]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -627,11 +655,12 @@ const CampanasPage = () => {
   };
 
   const formatNumber = (num: number) => {
-    return new Intl.NumberFormat("es-ES").format(num);
+    return new Intl.NumberFormat("en-US").format(num);
   };
 
-  // Filtrar campañas por mes, año, plataforma y búsqueda
-  const hayFiltroFecha = mesesSeleccionados.length > 0 && añoSeleccionado !== 0;
+  // Filtrar campañas por mes, año, plataforma, búsqueda y rango de fechas
+  const hayRangoFechas = !!(fechaInicio && fechaFin);
+  const hayFiltroFecha = hayRangoFechas || (mesesSeleccionados.length > 0 && añoSeleccionado !== 0);
   const terminoBusqueda = busquedaCampana.trim().toLowerCase();
 
   const campanasFiltradas = campanasDb
@@ -659,9 +688,14 @@ const CampanasPage = () => {
 
       // Campañas manuales: filtrar por fecha de inicio
       if (!campana.fecha_inicio) return false;
-      const fechaInicio = new Date(campana.fecha_inicio);
-      const mesCampana = fechaInicio.getMonth() + 1;
-      const añoCampana = fechaInicio.getFullYear();
+      const fInicio = new Date(campana.fecha_inicio);
+      if (hayRangoFechas) {
+        const fi = new Date(fechaInicio);
+        const ff = new Date(fechaFin);
+        return fInicio >= fi && fInicio <= ff && cumplePlataforma;
+      }
+      const mesCampana = fInicio.getMonth() + 1;
+      const añoCampana = fInicio.getFullYear();
       return (
         mesesSeleccionados.includes(mesCampana) &&
         añoCampana === añoSeleccionado &&
@@ -717,11 +751,15 @@ const CampanasPage = () => {
   ];
 
   const toggleMes = (mes: number) => {
+    setFechaInicio("");
+    setFechaFin("");
     setMesesSeleccionados((prev) =>
       prev.includes(mes) ? prev.filter((m) => m !== mes) : [...prev, mes],
     );
   };
   const toggleTrimestre = (mesesQ: number[]) => {
+    setFechaInicio("");
+    setFechaFin("");
     const todosActivos = mesesQ.every((m) => mesesSeleccionados.includes(m));
     setMesesSeleccionados((prev) =>
       todosActivos
@@ -730,6 +768,8 @@ const CampanasPage = () => {
     );
   };
   const seleccionarYTD = () => {
+    setFechaInicio("");
+    setFechaFin("");
     const mesActual = fechaActual.getMonth() + 1;
     const ytd = Array.from({ length: mesActual }, (_, i) => i + 1);
     const estaActivo =
@@ -742,6 +782,8 @@ const CampanasPage = () => {
     setAñoSeleccionado(fechaActual.getFullYear());
     setPlataformaSeleccionada("Todas");
     setBusquedaCampana("");
+    setFechaInicio("");
+    setFechaFin("");
   };
 
   const años = Array.from(
@@ -809,7 +851,7 @@ const CampanasPage = () => {
           </div>
         </div>
       </header>
-      <NavBar usuario={usuario} paginaActiva="dashboard" />
+      <NavBar usuario={usuario} paginaActiva="campanas" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           <div className="flex items-center justify-between mb-8">
@@ -934,6 +976,42 @@ const CampanasPage = () => {
                   value={busquedaCampana}
                   onChange={(e) => setBusquedaCampana(e.target.value)}
                   placeholder="Buscar por nombre..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
+                />
+              </div>
+            </div>
+
+            {/* Rango de fechas personalizado */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha inicio
+                </label>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => {
+                    setFechaInicio(e.target.value);
+                    if (e.target.value && fechaFin) {
+                      setMesesSeleccionados([]);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha fin
+                </label>
+                <input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => {
+                    setFechaFin(e.target.value);
+                    if (fechaInicio && e.target.value) {
+                      setMesesSeleccionados([]);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
                 />
               </div>
@@ -1607,8 +1685,8 @@ const CampanasPage = () => {
                     {gadsCampanas.map((gc) => (
                       <option key={gc.id} value={gc.id}>
                         {gc.nombre} ({gc.estado}) — $
-                        {gc.gasto?.toLocaleString()} |{" "}
-                        {gc.impresiones?.toLocaleString()} imp.
+                        {gc.gasto?.toLocaleString("en-US")} |{" "}
+                        {gc.impresiones?.toLocaleString("en-US")} imp.
                       </option>
                     ))}
                   </select>
