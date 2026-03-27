@@ -592,15 +592,11 @@ export default function FormularioProyeccion({
                         (p) => !p.esReembolso,
                       );
 
-                      // Agrupar por categoría
-                      const porCategoria = categorias.reduce(
-                        (acc, cat) => {
-                          const partidasCategoria = partidasNormales.filter(
-                            (p) => p.categoria === cat.nombre,
-                          );
-                          if (partidasCategoria.length > 0) {
-                            acc[cat.nombre] = partidasCategoria;
-                          }
+                      // Agrupar por categoría (desde las partidas, no desde el API)
+                      const porCategoria = partidasNormales.reduce(
+                        (acc, p) => {
+                          if (!acc[p.categoria]) acc[p.categoria] = [];
+                          acc[p.categoria].push(p);
                           return acc;
                         },
                         {} as Record<string, Partida[]>,
@@ -615,19 +611,14 @@ export default function FormularioProyeccion({
                           const estaExpandida =
                             categoriasExpandidas.has(categoria);
 
-                          // Agrupar partidas de esta categoría por subcategoría
+                          // Agrupar partidas de esta categoría por subcategoría (desde las partidas)
                           const porSubcategoria: Record<string, Partida[]> = {};
-                          const subcategoriasOrdenadas =
-                            categorias.find((c) => c.nombre === categoria)
-                              ?.subcategorias || [];
 
-                          subcategoriasOrdenadas.forEach((subcategoria) => {
-                            const partidasSubcat = partidasDeCategoria.filter(
-                              (p) => p.subcategoria === subcategoria,
-                            );
-                            if (partidasSubcat.length > 0) {
-                              porSubcategoria[subcategoria] = partidasSubcat;
+                          partidasDeCategoria.forEach((partida) => {
+                            if (!porSubcategoria[partida.subcategoria]) {
+                              porSubcategoria[partida.subcategoria] = [];
                             }
+                            porSubcategoria[partida.subcategoria].push(partida);
                           });
 
                           return (
@@ -795,15 +786,11 @@ export default function FormularioProyeccion({
                         (p) => p.esReembolso,
                       );
 
-                      // Agrupar por categoría
-                      const porCategoria = categorias.reduce(
-                        (acc, cat) => {
-                          const partidasCategoria = partidasReembolso.filter(
-                            (p) => p.categoria === cat.nombre,
-                          );
-                          if (partidasCategoria.length > 0) {
-                            acc[cat.nombre] = partidasCategoria;
-                          }
+                      // Agrupar por categoría (desde las partidas, no desde el API)
+                      const porCategoria = partidasReembolso.reduce(
+                        (acc, p) => {
+                          if (!acc[p.categoria]) acc[p.categoria] = [];
+                          acc[p.categoria].push(p);
                           return acc;
                         },
                         {} as Record<string, Partida[]>,
@@ -819,19 +806,14 @@ export default function FormularioProyeccion({
                           const estaExpandida =
                             categoriasExpandidas.has(keyCategoria);
 
-                          // Agrupar partidas de esta categoría por subcategoría
+                          // Agrupar partidas de esta categoría por subcategoría (desde las partidas)
                           const porSubcategoria: Record<string, Partida[]> = {};
-                          const subcategoriasOrdenadas =
-                            categorias.find((c) => c.nombre === categoria)
-                              ?.subcategorias || [];
 
-                          subcategoriasOrdenadas.forEach((subcategoria) => {
-                            const partidasSubcat = partidasDeCategoria.filter(
-                              (p) => p.subcategoria === subcategoria,
-                            );
-                            if (partidasSubcat.length > 0) {
-                              porSubcategoria[subcategoria] = partidasSubcat;
+                          partidasDeCategoria.forEach((partida) => {
+                            if (!porSubcategoria[partida.subcategoria]) {
+                              porSubcategoria[partida.subcategoria] = [];
                             }
+                            porSubcategoria[partida.subcategoria].push(partida);
                           });
 
                           return (

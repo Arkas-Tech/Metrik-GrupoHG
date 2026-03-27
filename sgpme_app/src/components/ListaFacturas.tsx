@@ -38,6 +38,11 @@ interface ListaFacturasProps {
     ingresar: boolean;
   };
   esAdministrador?: boolean;
+  onCambioEstadoMasivo?: (
+    ids: string[],
+    nuevoEstado: Factura["estado"],
+    fechaIngreso?: string,
+  ) => void;
 }
 
 export default function ListaFacturas({
@@ -57,6 +62,7 @@ export default function ListaFacturas({
     ingresar: true,
   },
   esAdministrador = false,
+  onCambioEstadoMasivo,
 }: ListaFacturasProps) {
   const [facturaExpandida, setFacturaExpandida] = useState<string | null>(null);
   const [facturasSeleccionadas, setFacturasSeleccionadas] = useState<string[]>(
@@ -66,6 +72,10 @@ export default function ListaFacturas({
   const [facturaAIngresar, setFacturaAIngresar] = useState<string | null>(null);
   const [fechaIngreso, setFechaIngreso] = useState("");
   const [nuevoEstadoDeseado, setNuevoEstadoDeseado] = useState<
+    Factura["estado"] | null
+  >(null);
+  const [modoIngresoEsBulk, setModoIngresoEsBulk] = useState(false);
+  const [bulkEstadoDeseado, setBulkEstadoDeseado] = useState<
     Factura["estado"] | null
   >(null);
   const [ordenFechaIngreso, setOrdenFechaIngreso] = useState<"asc" | "desc">(
@@ -233,6 +243,18 @@ export default function ListaFacturas({
   };
 
   const confirmarIngreso = () => {
+    if (modoIngresoEsBulk && bulkEstadoDeseado && onCambioEstadoMasivo) {
+      onCambioEstadoMasivo(
+        facturasSeleccionadas,
+        bulkEstadoDeseado,
+        fechaIngreso,
+      );
+      setModoIngresoEsBulk(false);
+      setBulkEstadoDeseado(null);
+      setFacturasSeleccionadas([]);
+      cerrarPopupIngreso();
+      return;
+    }
     if (facturaAIngresar && fechaIngreso && onIngresarFactura) {
       onIngresarFactura(facturaAIngresar, fechaIngreso);
       // Si había un estado deseado (Pagada), cambiarlo después de ingresar
@@ -244,6 +266,41 @@ export default function ListaFacturas({
       cerrarPopupIngreso();
     }
   };
+
+  const manejarBulkCambioEstado = (nuevoEstado: Factura["estado"]) => {
+    if (!onCambioEstadoMasivo) return;
+    const necesitanIngreso = facturasSeleccionadas.some((id) => {
+      const f = facturas.find((f) => f.id === id);
+      return (
+        f &&
+        !f.fechaIngresada &&
+        (f.estado === "Pendiente" || f.estado === "Autorizada")
+      );
+    });
+    if (
+      (nuevoEstado === "Ingresada" || nuevoEstado === "Pagada") &&
+      necesitanIngreso
+    ) {
+      const hoy = new Date().toISOString().split("T")[0];
+      setFechaIngreso(hoy);
+      setBulkEstadoDeseado(nuevoEstado);
+      setModoIngresoEsBulk(true);
+      setMostrarPopupIngreso(true);
+    } else {
+      onCambioEstadoMasivo(facturasSeleccionadas, nuevoEstado);
+      setFacturasSeleccionadas([]);
+    }
+  };
+
+  // Computed: estado común de facturas seleccionadas (null si son distintos)
+  const estadosDeSeleccionadas = facturasSeleccionadas
+    .map((id) => facturas.find((f) => f.id === id)?.estado)
+    .filter((e): e is Factura["estado"] => !!e);
+  const estadoComun =
+    estadosDeSeleccionadas.length > 0 &&
+    new Set(estadosDeSeleccionadas).size === 1
+      ? estadosDeSeleccionadas[0]
+      : null;
 
   const manejarCambioEstado = (
     factura: Factura,
@@ -296,6 +353,77 @@ export default function ListaFacturas({
           {facturas.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      {/* Barra de acciones masivas */}
+      {facturasSeleccionadas.length > 0 && (
+        <div className="px-6 py-3 bg-blue-50 border-b border-blue-200">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium text-blue-800">
+              {facturasSeleccionadas.length} factura
+              {facturasSeleccionadas.length !== 1 ? "s" : ""} seleccionada
+              {facturasSeleccionadas.length !== 1 ? "s" : ""}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {estadoComun ? (
+                <>
+                  {estadoComun === "Pendiente" && permisos.autorizar && (
+                    <button
+                      onClick={() => manejarBulkCambioEstado("Autorizada")}
+                      className="px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700"
+                    >
+                      Autorizar
+                    </button>
+                  )}
+                  {(estadoComun === "Pendiente" ||
+                    estadoComun === "Autorizada") &&
+                    permisos.ingresar && (
+                      <button
+                        onClick={() => manejarBulkCambioEstado("Ingresada")}
+                        className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700"
+                      >
+                        Ingresar
+                      </button>
+                    )}
+                  {(estadoComun === "Pendiente" ||
+                    estadoComun === "Autorizada" ||
+                    estadoComun === "Ingresada") &&
+                    permisos.marcarPagada && (
+                      <button
+                        onClick={() => manejarBulkCambioEstado("Pagada")}
+                        className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
+                      >
+                        Marcar Pagadas
+                      </button>
+                    )}
+                  {(estadoComun === "Ingresada" ||
+                    estadoComun === "Pagada" ||
+                    estadoComun === "Rechazada") &&
+                    esAdministrador && (
+                      <button
+                        onClick={() => manejarBulkCambioEstado("Pendiente")}
+                        className="px-3 py-1.5 bg-yellow-600 text-white text-xs font-medium rounded hover:bg-yellow-700"
+                      >
+                        Revertir a Pendiente
+                      </button>
+                    )}
+                </>
+              ) : (
+                <span className="text-xs text-blue-600">
+                  Selecciona facturas con el mismo estado para cambiarlas
+                  masivamente
+                </span>
+              )}
+              <button
+                onClick={() => setFacturasSeleccionadas([])}
+                className="ml-2 text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Cancelar selección
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

@@ -170,8 +170,8 @@ const generarPDFProyeccion = async (
     });
   });
 
-  // Iterar por todas las categorías predefinidas
-  nombresCategorias.forEach((categoria) => {
+  // Iterar solo por las categorías que tienen partidas
+  Object.keys(partidasPorCategoria).forEach((categoria) => {
     const presupuesto = obtenerPresupuesto(categoria);
     const subcategorias = partidasPorCategoria[categoria] || [];
     const montoTotalCategoria = subcategorias.reduce(
@@ -1008,411 +1008,122 @@ export default function ListaProyecciones({
                                   );
                                 });
 
-                                return nombresCategorias.map((categoria) => {
-                                  const partidasDeCategoria =
-                                    partidasPorCategoria[categoria] || [];
-                                  const montoTotal = partidasDeCategoria.reduce(
-                                    (sum, p) => sum + p.monto,
-                                    0,
-                                  );
-                                  const presupuesto =
-                                    obtenerPresupuestoCategoria(
-                                      proyeccion.marca,
-                                      proyeccion.mes,
-                                      proyeccion.año,
-                                      categoria,
-                                    );
-                                  const porcentaje =
-                                    presupuesto > 0
-                                      ? (montoTotal / presupuesto) * 100
-                                      : 0;
-
-                                  const categoriaExpandida =
-                                    categoriasExpandidasDetalle[
-                                      proyeccion.id
-                                    ] === categoria;
-
-                                  // Agrupar partidas por subcategoría
-                                  const porSubcategoria: Record<
-                                    string,
-                                    typeof partidasDeCategoria
-                                  > = {};
-                                  const subcategoriasOrdenadas =
-                                    SUBCATEGORIAS_POR_CATEGORIA[
-                                      categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA
-                                    ] || [];
-
-                                  subcategoriasOrdenadas.forEach(
-                                    (subcategoria) => {
-                                      const partidasSubcat =
-                                        partidasDeCategoria.filter(
-                                          (p) =>
-                                            p.subcategoria === subcategoria,
-                                        );
-                                      if (partidasSubcat.length > 0) {
-                                        porSubcategoria[subcategoria] =
-                                          partidasSubcat;
-                                      }
-                                    },
-                                  );
-
-                                  // Incluir subcategorías dinámicas no presentes en la lista fija
-                                  partidasDeCategoria.forEach((partida) => {
-                                    if (
-                                      partida.subcategoria &&
-                                      !(partida.subcategoria in porSubcategoria)
-                                    ) {
-                                      porSubcategoria[partida.subcategoria] =
-                                        partidasDeCategoria.filter(
-                                          (p) =>
-                                            p.subcategoria ===
-                                            partida.subcategoria,
-                                        );
-                                    }
-                                  });
-
-                                  return (
-                                    <div
-                                      key={categoria}
-                                      className="border border-gray-300 rounded-lg overflow-hidden"
-                                    >
-                                      {/* Nivel 1: Categoría */}
-                                      <div
-                                        className="bg-gray-100 p-3 flex justify-between items-center cursor-pointer hover:bg-gray-200"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleCategoriaDetalle(
-                                            proyeccion.id,
-                                            categoria,
-                                          );
-                                        }}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-lg">
-                                            {categoriaExpandida ? "▼" : "▶"}
-                                          </span>
-                                          <h6 className="font-semibold text-gray-900">
-                                            {categoria}
-                                          </h6>
-                                          <span className="text-sm text-gray-600">
-                                            ({partidasDeCategoria.length}{" "}
-                                            partida
-                                            {partidasDeCategoria.length !== 1
-                                              ? "s"
-                                              : ""}
-                                            )
-                                          </span>
-                                        </div>
-                                        <span className="font-bold text-gray-900">
-                                          {formatearMonto(montoTotal)}
-                                        </span>
-                                      </div>
-
-                                      {/* Nivel 2: Subcategorías */}
-                                      {categoriaExpandida && (
-                                        <div className="bg-white">
-                                          {partidasDeCategoria.length === 0 ? (
-                                            <div className="p-4 text-center text-gray-500 text-sm">
-                                              No hay partidas en esta categoría
-                                            </div>
-                                          ) : (
-                                            Object.entries(porSubcategoria).map(
-                                              ([
-                                                subcategoria,
-                                                partidasSubcat,
-                                              ]) => {
-                                                const totalSubcategoria =
-                                                  partidasSubcat.reduce(
-                                                    (sum, p) => sum + p.monto,
-                                                    0,
-                                                  );
-                                                const keySubcat = `${categoria}-${subcategoria}`;
-                                                const subcategoriaExpandida =
-                                                  subcategoriasExpandidasDetalle[
-                                                    proyeccion.id
-                                                  ] === keySubcat;
-
-                                                return (
-                                                  <div
-                                                    key={keySubcat}
-                                                    className="border-t border-gray-200"
-                                                  >
-                                                    {/* Header de Subcategoría */}
-                                                    <div
-                                                      className="bg-gray-50 p-3 pl-8 flex justify-between items-center cursor-pointer hover:bg-gray-100"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleSubcategoriaDetalle(
-                                                          proyeccion.id,
-                                                          keySubcat,
-                                                        );
-                                                      }}
-                                                    >
-                                                      <div className="flex items-center gap-2">
-                                                        <span className="text-sm">
-                                                          {subcategoriaExpandida
-                                                            ? "▼"
-                                                            : "▶"}
-                                                        </span>
-                                                        <span className="font-medium text-gray-800">
-                                                          {subcategoria}
-                                                        </span>
-                                                        <span className="text-xs text-gray-500">
-                                                          (
-                                                          {
-                                                            partidasSubcat.length
-                                                          }{" "}
-                                                          partida
-                                                          {partidasSubcat.length !==
-                                                          1
-                                                            ? "s"
-                                                            : ""}
-                                                          )
-                                                        </span>
-                                                      </div>
-                                                      <span className="font-semibold text-gray-800">
-                                                        {formatearMonto(
-                                                          totalSubcategoria,
-                                                        )}
-                                                      </span>
-                                                    </div>
-
-                                                    {/* Nivel 3: Partidas individuales */}
-                                                    {subcategoriaExpandida && (
-                                                      <div className="bg-white">
-                                                        {partidasSubcat.map(
-                                                          (partida) => (
-                                                            <div
-                                                              key={partida.id}
-                                                              className="p-4 pl-12 border-t border-gray-100 hover:bg-gray-50"
-                                                            >
-                                                              <div className="flex justify-between items-start">
-                                                                <div className="flex-1 space-y-2">
-                                                                  <div className="flex items-center gap-4">
-                                                                    <span className="font-semibold text-gray-900">
-                                                                      {formatearMonto(
-                                                                        partida.monto,
-                                                                      )}
-                                                                    </span>
-                                                                  </div>
-                                                                  {partida.notas && (
-                                                                    <div className="text-sm text-gray-600">
-                                                                      <span className="font-medium">
-                                                                        Notas:
-                                                                      </span>{" "}
-                                                                      {
-                                                                        partida.notas
-                                                                      }
-                                                                    </div>
-                                                                  )}
-                                                                </div>
-                                                              </div>
-                                                            </div>
-                                                          ),
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                );
-                                              },
-                                            )
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Barra de presupuesto */}
-                                      <div className="bg-white p-3 border-t border-gray-200">
-                                        <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                          <span>Proyección vs Presupuesto</span>
-                                          <span
-                                            className={
-                                              porcentaje > 100
-                                                ? "text-red-600 font-semibold"
-                                                : "text-gray-900"
-                                            }
-                                          >
-                                            {porcentaje.toFixed(1)}%
-                                          </span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                          <div
-                                            className={`h-2.5 rounded-full transition-all ${
-                                              porcentaje > 100
-                                                ? "bg-red-500"
-                                                : porcentaje > 80
-                                                  ? "bg-yellow-500"
-                                                  : "bg-green-500"
-                                            }`}
-                                            style={{
-                                              width: `${Math.min(porcentaje, 100)}%`,
-                                            }}
-                                          ></div>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                          <span>
-                                            Proyectado:{" "}
-                                            {formatearMonto(montoTotal)}
-                                          </span>
-                                          <span>
-                                            Presupuesto:{" "}
-                                            {formatearMonto(presupuesto)}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-
-                            {/* Sección de Reembolsos */}
-                            {(() => {
-                              const partidasReembolso = (
-                                proyeccion.partidas || []
-                              ).filter((p) => p.esReembolso);
-
-                              if (partidasReembolso.length === 0) return null;
-
-                              // Agrupar reembolsos por categoría (manteniendo partidas individuales)
-                              const reembolsosPorCategoria: {
-                                [key: string]: Array<{
-                                  id: string;
-                                  categoria: string;
-                                  subcategoria: string;
-                                  monto: number;
-                                  notas?: string;
-                                }>;
-                              } = {};
-
-                              partidasReembolso.forEach((partida) => {
-                                if (
-                                  !reembolsosPorCategoria[partida.categoria]
-                                ) {
-                                  reembolsosPorCategoria[partida.categoria] =
-                                    [];
-                                }
-                                reembolsosPorCategoria[partida.categoria].push(
-                                  partida,
-                                );
-                              });
-
-                              return (
-                                <div className="mt-6">
-                                  <h6 className="font-medium text-gray-900 mb-3 flex items-center">
-                                    <span className="mr-2">💰</span>
-                                    Reembolsos
-                                  </h6>
-                                  <div className="space-y-3">
-                                    {nombresCategorias.map((categoria) => {
-                                      const partidas =
-                                        reembolsosPorCategoria[categoria] || [];
-                                      if (partidas.length === 0) return null;
-
-                                      const montoTotal = partidas.reduce(
+                                return Object.keys(partidasPorCategoria).map(
+                                  (categoria) => {
+                                    const partidasDeCategoria =
+                                      partidasPorCategoria[categoria] || [];
+                                    const montoTotal =
+                                      partidasDeCategoria.reduce(
                                         (sum, p) => sum + p.monto,
                                         0,
                                       );
-                                      const presupuesto =
-                                        obtenerPresupuestoCategoria(
-                                          proyeccion.marca,
-                                          proyeccion.mes,
-                                          proyeccion.año,
-                                          categoria,
-                                        );
-                                      const porcentaje =
-                                        presupuesto > 0
-                                          ? (montoTotal / presupuesto) * 100
-                                          : 0;
-
-                                      const keyCategoria = `reembolso-${categoria}`;
-                                      const categoriaExpandida =
-                                        categoriasExpandidasDetalle[
-                                          proyeccion.id
-                                        ] === keyCategoria;
-
-                                      // Agrupar partidas por subcategoría
-                                      const porSubcategoria: Record<
-                                        string,
-                                        typeof partidas
-                                      > = {};
-                                      const subcategoriasOrdenadas =
-                                        SUBCATEGORIAS_POR_CATEGORIA[
-                                          categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA
-                                        ] || [];
-
-                                      subcategoriasOrdenadas.forEach(
-                                        (subcategoria) => {
-                                          const partidasSubcat =
-                                            partidas.filter(
-                                              (p) =>
-                                                p.subcategoria === subcategoria,
-                                            );
-                                          if (partidasSubcat.length > 0) {
-                                            porSubcategoria[subcategoria] =
-                                              partidasSubcat;
-                                          }
-                                        },
+                                    const presupuesto =
+                                      obtenerPresupuestoCategoria(
+                                        proyeccion.marca,
+                                        proyeccion.mes,
+                                        proyeccion.año,
+                                        categoria,
                                       );
+                                    const porcentaje =
+                                      presupuesto > 0
+                                        ? (montoTotal / presupuesto) * 100
+                                        : 0;
 
-                                      // Incluir subcategorías dinámicas no presentes en la lista fija
-                                      partidas.forEach((partida) => {
-                                        if (
-                                          partida.subcategoria &&
-                                          !(
-                                            partida.subcategoria in
-                                            porSubcategoria
-                                          )
-                                        ) {
-                                          porSubcategoria[
-                                            partida.subcategoria
-                                          ] = partidas.filter(
+                                    const categoriaExpandida =
+                                      categoriasExpandidasDetalle[
+                                        proyeccion.id
+                                      ] === categoria;
+
+                                    // Agrupar partidas por subcategoría
+                                    const porSubcategoria: Record<
+                                      string,
+                                      typeof partidasDeCategoria
+                                    > = {};
+                                    const subcategoriasOrdenadas =
+                                      SUBCATEGORIAS_POR_CATEGORIA[
+                                        categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA
+                                      ] || [];
+
+                                    subcategoriasOrdenadas.forEach(
+                                      (subcategoria) => {
+                                        const partidasSubcat =
+                                          partidasDeCategoria.filter(
+                                            (p) =>
+                                              p.subcategoria === subcategoria,
+                                          );
+                                        if (partidasSubcat.length > 0) {
+                                          porSubcategoria[subcategoria] =
+                                            partidasSubcat;
+                                        }
+                                      },
+                                    );
+
+                                    // Incluir subcategorías dinámicas no presentes en la lista fija
+                                    partidasDeCategoria.forEach((partida) => {
+                                      if (
+                                        partida.subcategoria &&
+                                        !(
+                                          partida.subcategoria in
+                                          porSubcategoria
+                                        )
+                                      ) {
+                                        porSubcategoria[partida.subcategoria] =
+                                          partidasDeCategoria.filter(
                                             (p) =>
                                               p.subcategoria ===
                                               partida.subcategoria,
                                           );
-                                        }
-                                      });
+                                      }
+                                    });
 
-                                      return (
+                                    return (
+                                      <div
+                                        key={categoria}
+                                        className="border border-gray-300 rounded-lg overflow-hidden"
+                                      >
+                                        {/* Nivel 1: Categoría */}
                                         <div
-                                          key={keyCategoria}
-                                          className="border border-amber-300 rounded-lg overflow-hidden bg-amber-50"
+                                          className="bg-gray-100 p-3 flex justify-between items-center cursor-pointer hover:bg-gray-200"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleCategoriaDetalle(
+                                              proyeccion.id,
+                                              categoria,
+                                            );
+                                          }}
                                         >
-                                          {/* Nivel 1: Categoría */}
-                                          <div
-                                            className="bg-amber-100 p-3 flex justify-between items-center cursor-pointer hover:bg-amber-200"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleCategoriaDetalle(
-                                                proyeccion.id,
-                                                keyCategoria,
-                                              );
-                                            }}
-                                          >
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-lg">
-                                                {categoriaExpandida ? "▼" : "▶"}
-                                              </span>
-                                              <h6 className="font-semibold text-gray-900">
-                                                {categoria}
-                                              </h6>
-                                              <span className="text-sm text-gray-600">
-                                                ({partidas.length} partida
-                                                {partidas.length !== 1
-                                                  ? "s"
-                                                  : ""}
-                                                )
-                                              </span>
-                                            </div>
-                                            <span className="font-bold text-gray-900">
-                                              {formatearMonto(montoTotal)}
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-lg">
+                                              {categoriaExpandida ? "▼" : "▶"}
+                                            </span>
+                                            <h6 className="font-semibold text-gray-900">
+                                              {categoria}
+                                            </h6>
+                                            <span className="text-sm text-gray-600">
+                                              ({partidasDeCategoria.length}{" "}
+                                              partida
+                                              {partidasDeCategoria.length !== 1
+                                                ? "s"
+                                                : ""}
+                                              )
                                             </span>
                                           </div>
+                                          <span className="font-bold text-gray-900">
+                                            {formatearMonto(montoTotal)}
+                                          </span>
+                                        </div>
 
-                                          {/* Nivel 2: Subcategorías */}
-                                          {categoriaExpandida && (
-                                            <div className="bg-amber-50">
-                                              {Object.entries(
+                                        {/* Nivel 2: Subcategorías */}
+                                        {categoriaExpandida && (
+                                          <div className="bg-white">
+                                            {partidasDeCategoria.length ===
+                                            0 ? (
+                                              <div className="p-4 text-center text-gray-500 text-sm">
+                                                No hay partidas en esta
+                                                categoría
+                                              </div>
+                                            ) : (
+                                              Object.entries(
                                                 porSubcategoria,
                                               ).map(
                                                 ([
@@ -1424,7 +1135,7 @@ export default function ListaProyecciones({
                                                       (sum, p) => sum + p.monto,
                                                       0,
                                                     );
-                                                  const keySubcat = `reembolso-${categoria}-${subcategoria}`;
+                                                  const keySubcat = `${categoria}-${subcategoria}`;
                                                   const subcategoriaExpandida =
                                                     subcategoriasExpandidasDetalle[
                                                       proyeccion.id
@@ -1433,11 +1144,11 @@ export default function ListaProyecciones({
                                                   return (
                                                     <div
                                                       key={keySubcat}
-                                                      className="border-t border-amber-200"
+                                                      className="border-t border-gray-200"
                                                     >
                                                       {/* Header de Subcategoría */}
                                                       <div
-                                                        className="bg-amber-50 p-3 pl-8 flex justify-between items-center cursor-pointer hover:bg-amber-100"
+                                                        className="bg-gray-50 p-3 pl-8 flex justify-between items-center cursor-pointer hover:bg-gray-100"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
                                                           toggleSubcategoriaDetalle(
@@ -1482,7 +1193,7 @@ export default function ListaProyecciones({
                                                             (partida) => (
                                                               <div
                                                                 key={partida.id}
-                                                                className="p-4 pl-12 border-t border-amber-100 hover:bg-amber-50"
+                                                                className="p-4 pl-12 border-t border-gray-100 hover:bg-gray-50"
                                                               >
                                                                 <div className="flex justify-between items-start">
                                                                   <div className="flex-1 space-y-2">
@@ -1513,12 +1224,322 @@ export default function ListaProyecciones({
                                                     </div>
                                                   );
                                                 },
-                                              )}
-                                            </div>
-                                          )}
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Barra de presupuesto */}
+                                        <div className="bg-white p-3 border-t border-gray-200">
+                                          <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                            <span>
+                                              Proyección vs Presupuesto
+                                            </span>
+                                            <span
+                                              className={
+                                                porcentaje > 100
+                                                  ? "text-red-600 font-semibold"
+                                                  : "text-gray-900"
+                                              }
+                                            >
+                                              {porcentaje.toFixed(1)}%
+                                            </span>
+                                          </div>
+                                          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                            <div
+                                              className={`h-2.5 rounded-full transition-all ${
+                                                porcentaje > 100
+                                                  ? "bg-red-500"
+                                                  : porcentaje > 80
+                                                    ? "bg-yellow-500"
+                                                    : "bg-green-500"
+                                              }`}
+                                              style={{
+                                                width: `${Math.min(porcentaje, 100)}%`,
+                                              }}
+                                            ></div>
+                                          </div>
+                                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                            <span>
+                                              Proyectado:{" "}
+                                              {formatearMonto(montoTotal)}
+                                            </span>
+                                            <span>
+                                              Presupuesto:{" "}
+                                              {formatearMonto(presupuesto)}
+                                            </span>
+                                          </div>
                                         </div>
-                                      );
-                                    })}
+                                      </div>
+                                    );
+                                  },
+                                );
+                              })()}
+                            </div>
+
+                            {/* Sección de Reembolsos */}
+                            {(() => {
+                              const partidasReembolso = (
+                                proyeccion.partidas || []
+                              ).filter((p) => p.esReembolso);
+
+                              if (partidasReembolso.length === 0) return null;
+
+                              // Agrupar reembolsos por categoría (manteniendo partidas individuales)
+                              const reembolsosPorCategoria: {
+                                [key: string]: Array<{
+                                  id: string;
+                                  categoria: string;
+                                  subcategoria: string;
+                                  monto: number;
+                                  notas?: string;
+                                }>;
+                              } = {};
+
+                              partidasReembolso.forEach((partida) => {
+                                if (
+                                  !reembolsosPorCategoria[partida.categoria]
+                                ) {
+                                  reembolsosPorCategoria[partida.categoria] =
+                                    [];
+                                }
+                                reembolsosPorCategoria[partida.categoria].push(
+                                  partida,
+                                );
+                              });
+
+                              return (
+                                <div className="mt-6">
+                                  <h6 className="font-medium text-gray-900 mb-3 flex items-center">
+                                    <span className="mr-2">💰</span>
+                                    Reembolsos
+                                  </h6>
+                                  <div className="space-y-3">
+                                    {Object.keys(reembolsosPorCategoria).map(
+                                      (categoria) => {
+                                        const partidas =
+                                          reembolsosPorCategoria[categoria] ||
+                                          [];
+                                        if (partidas.length === 0) return null;
+
+                                        const montoTotal = partidas.reduce(
+                                          (sum, p) => sum + p.monto,
+                                          0,
+                                        );
+                                        const presupuesto =
+                                          obtenerPresupuestoCategoria(
+                                            proyeccion.marca,
+                                            proyeccion.mes,
+                                            proyeccion.año,
+                                            categoria,
+                                          );
+                                        const porcentaje =
+                                          presupuesto > 0
+                                            ? (montoTotal / presupuesto) * 100
+                                            : 0;
+
+                                        const keyCategoria = `reembolso-${categoria}`;
+                                        const categoriaExpandida =
+                                          categoriasExpandidasDetalle[
+                                            proyeccion.id
+                                          ] === keyCategoria;
+
+                                        // Agrupar partidas por subcategoría
+                                        const porSubcategoria: Record<
+                                          string,
+                                          typeof partidas
+                                        > = {};
+                                        const subcategoriasOrdenadas =
+                                          SUBCATEGORIAS_POR_CATEGORIA[
+                                            categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA
+                                          ] || [];
+
+                                        subcategoriasOrdenadas.forEach(
+                                          (subcategoria) => {
+                                            const partidasSubcat =
+                                              partidas.filter(
+                                                (p) =>
+                                                  p.subcategoria ===
+                                                  subcategoria,
+                                              );
+                                            if (partidasSubcat.length > 0) {
+                                              porSubcategoria[subcategoria] =
+                                                partidasSubcat;
+                                            }
+                                          },
+                                        );
+
+                                        // Incluir subcategorías dinámicas no presentes en la lista fija
+                                        partidas.forEach((partida) => {
+                                          if (
+                                            partida.subcategoria &&
+                                            !(
+                                              partida.subcategoria in
+                                              porSubcategoria
+                                            )
+                                          ) {
+                                            porSubcategoria[
+                                              partida.subcategoria
+                                            ] = partidas.filter(
+                                              (p) =>
+                                                p.subcategoria ===
+                                                partida.subcategoria,
+                                            );
+                                          }
+                                        });
+
+                                        return (
+                                          <div
+                                            key={keyCategoria}
+                                            className="border border-amber-300 rounded-lg overflow-hidden bg-amber-50"
+                                          >
+                                            {/* Nivel 1: Categoría */}
+                                            <div
+                                              className="bg-amber-100 p-3 flex justify-between items-center cursor-pointer hover:bg-amber-200"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleCategoriaDetalle(
+                                                  proyeccion.id,
+                                                  keyCategoria,
+                                                );
+                                              }}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-lg">
+                                                  {categoriaExpandida
+                                                    ? "▼"
+                                                    : "▶"}
+                                                </span>
+                                                <h6 className="font-semibold text-gray-900">
+                                                  {categoria}
+                                                </h6>
+                                                <span className="text-sm text-gray-600">
+                                                  ({partidas.length} partida
+                                                  {partidas.length !== 1
+                                                    ? "s"
+                                                    : ""}
+                                                  )
+                                                </span>
+                                              </div>
+                                              <span className="font-bold text-gray-900">
+                                                {formatearMonto(montoTotal)}
+                                              </span>
+                                            </div>
+
+                                            {/* Nivel 2: Subcategorías */}
+                                            {categoriaExpandida && (
+                                              <div className="bg-amber-50">
+                                                {Object.entries(
+                                                  porSubcategoria,
+                                                ).map(
+                                                  ([
+                                                    subcategoria,
+                                                    partidasSubcat,
+                                                  ]) => {
+                                                    const totalSubcategoria =
+                                                      partidasSubcat.reduce(
+                                                        (sum, p) =>
+                                                          sum + p.monto,
+                                                        0,
+                                                      );
+                                                    const keySubcat = `reembolso-${categoria}-${subcategoria}`;
+                                                    const subcategoriaExpandida =
+                                                      subcategoriasExpandidasDetalle[
+                                                        proyeccion.id
+                                                      ] === keySubcat;
+
+                                                    return (
+                                                      <div
+                                                        key={keySubcat}
+                                                        className="border-t border-amber-200"
+                                                      >
+                                                        {/* Header de Subcategoría */}
+                                                        <div
+                                                          className="bg-amber-50 p-3 pl-8 flex justify-between items-center cursor-pointer hover:bg-amber-100"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleSubcategoriaDetalle(
+                                                              proyeccion.id,
+                                                              keySubcat,
+                                                            );
+                                                          }}
+                                                        >
+                                                          <div className="flex items-center gap-2">
+                                                            <span className="text-sm">
+                                                              {subcategoriaExpandida
+                                                                ? "▼"
+                                                                : "▶"}
+                                                            </span>
+                                                            <span className="font-medium text-gray-800">
+                                                              {subcategoria}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                              (
+                                                              {
+                                                                partidasSubcat.length
+                                                              }{" "}
+                                                              partida
+                                                              {partidasSubcat.length !==
+                                                              1
+                                                                ? "s"
+                                                                : ""}
+                                                              )
+                                                            </span>
+                                                          </div>
+                                                          <span className="font-semibold text-gray-800">
+                                                            {formatearMonto(
+                                                              totalSubcategoria,
+                                                            )}
+                                                          </span>
+                                                        </div>
+
+                                                        {/* Nivel 3: Partidas individuales */}
+                                                        {subcategoriaExpandida && (
+                                                          <div className="bg-white">
+                                                            {partidasSubcat.map(
+                                                              (partida) => (
+                                                                <div
+                                                                  key={
+                                                                    partida.id
+                                                                  }
+                                                                  className="p-4 pl-12 border-t border-amber-100 hover:bg-amber-50"
+                                                                >
+                                                                  <div className="flex justify-between items-start">
+                                                                    <div className="flex-1 space-y-2">
+                                                                      <div className="flex items-center gap-4">
+                                                                        <span className="font-semibold text-gray-900">
+                                                                          {formatearMonto(
+                                                                            partida.monto,
+                                                                          )}
+                                                                        </span>
+                                                                      </div>
+                                                                      {partida.notas && (
+                                                                        <div className="text-sm text-gray-600">
+                                                                          <span className="font-medium">
+                                                                            Notas:
+                                                                          </span>{" "}
+                                                                          {
+                                                                            partida.notas
+                                                                          }
+                                                                        </div>
+                                                                      )}
+                                                                    </div>
+                                                                  </div>
+                                                                </div>
+                                                              ),
+                                                            )}
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  },
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      },
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -1836,24 +1857,7 @@ export default function ListaProyecciones({
                                         }>,
                                       );
 
-                                    // Crear array con TODAS las categorías
-                                    const todasLasCategorias =
-                                      nombresCategorias.map((categoria) => {
-                                        const partidaExistente =
-                                          partidasAgrupadas.find(
-                                            (p) => p.categoria === categoria,
-                                          );
-                                        return (
-                                          partidaExistente || {
-                                            id: `${categoria}-empty`,
-                                            categoria,
-                                            subcategorias: [],
-                                            monto: 0,
-                                          }
-                                        );
-                                      });
-
-                                    return todasLasCategorias.map((partida) => {
+                                    return partidasAgrupadas.map((partida) => {
                                       const presupuesto =
                                         obtenerPresupuestoCategoria(
                                           proyeccion.marca,

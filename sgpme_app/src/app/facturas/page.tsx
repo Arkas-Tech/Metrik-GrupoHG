@@ -113,6 +113,9 @@ function FacturasPageContent() {
   const [facturaIdParaPagar, setFacturaIdParaPagar] = useState<string | null>(
     null,
   );
+  const [facturasIdsParaPagarMasivo, setFacturasIdsParaPagarMasivo] = useState<
+    string[]
+  >([]);
   const [archivoComprobante, setArchivoComprobante] = useState<File | null>(
     null,
   );
@@ -499,9 +502,6 @@ function FacturasPageContent() {
   };
 
   const confirmarPagoConComprobante = async () => {
-    if (!facturaIdParaPagar) return;
-
-    // Validar que haya un archivo seleccionado
     if (!archivoComprobante) {
       showToast(
         "Debes subir un comprobante de pago para marcar la factura como pagada",
@@ -512,12 +512,20 @@ function FacturasPageContent() {
 
     console.log("📝 Marcando como pagada con comprobante...");
     try {
-      await marcarComoPagada(facturaIdParaPagar, archivoComprobante);
+      if (facturasIdsParaPagarMasivo.length > 0) {
+        // Bulk Pagada: apply comprobante to all selected invoices
+        for (const id of facturasIdsParaPagarMasivo) {
+          await marcarComoPagada(id, archivoComprobante);
+        }
+        setFacturasIdsParaPagarMasivo([]);
+      } else if (facturaIdParaPagar) {
+        await marcarComoPagada(facturaIdParaPagar, archivoComprobante);
+      }
       setMostrarPopupComprobante(false);
       setFacturaIdParaPagar(null);
       setArchivoComprobante(null);
       setGraficaKey((prev) => prev + 1);
-      console.log("✅ Factura marcada como pagada exitosamente");
+      console.log("✅ Factura(s) marcada(s) como pagada exitosamente");
     } catch (error) {
       console.error("❌ Error al marcar factura como pagada:", error);
     }
@@ -526,7 +534,64 @@ function FacturasPageContent() {
   const cerrarPopupComprobante = () => {
     setMostrarPopupComprobante(false);
     setFacturaIdParaPagar(null);
+    setFacturasIdsParaPagarMasivo([]);
     setArchivoComprobante(null);
+  };
+
+  const manejarCambioEstadoMasivo = async (
+    ids: string[],
+    nuevoEstado: Factura["estado"],
+    fechaIngreso?: string,
+  ) => {
+    console.log("🔵 Cambio masivo de estado:", ids, "→", nuevoEstado);
+    try {
+      if (nuevoEstado === "Pagada") {
+        // If invoices need ingreso first (fechaIngreso provided by ListaFacturas)
+        if (fechaIngreso) {
+          for (const id of ids) {
+            await ingresarFactura(id, fechaIngreso);
+          }
+        }
+        // Open payment popup for all selected
+        setFacturasIdsParaPagarMasivo(ids);
+        setMostrarPopupComprobante(true);
+      } else if (nuevoEstado === "Ingresada" && fechaIngreso) {
+        for (const id of ids) {
+          await ingresarFactura(id, fechaIngreso);
+        }
+        setGraficaKey((prev) => prev + 1);
+      } else if (nuevoEstado === "Autorizada") {
+        for (const id of ids) {
+          await autorizar(id);
+        }
+        setGraficaKey((prev) => prev + 1);
+      } else {
+        // Pendiente (revert), Rechazada, etc.
+        for (const id of ids) {
+          const factura = facturas.find((f) => f.id === id);
+          if (factura) {
+            const facturaActualizada = {
+              ...factura,
+              estado: nuevoEstado,
+              fechaModificacion: new Date().toISOString(),
+            };
+            const estadosAnteriores: Factura["estado"][] = ["Ingresada", "Pagada"];
+            const estadosNuevos: Factura["estado"][] = ["Pendiente", "Autorizada"];
+            if (
+              estadosNuevos.includes(nuevoEstado) &&
+              estadosAnteriores.includes(factura.estado)
+            ) {
+              facturaActualizada.fechaIngresada = undefined;
+            }
+            await guardarFactura(facturaActualizada);
+          }
+        }
+        setGraficaKey((prev) => prev + 1);
+      }
+      console.log("✅ Cambio masivo completado");
+    } catch (error) {
+      console.error("❌ Error en cambio masivo:", error);
+    }
   };
 
   const confirmarCambioEstadoConEliminacion = async () => {
@@ -877,6 +942,7 @@ function FacturasPageContent() {
                     usuario?.tipo === "administrador" ||
                     usuario?.tipo === "developer"
                   }
+                  onCambioEstadoMasivo={manejarCambioEstadoMasivo}
                 />
               </div>
             </div>
