@@ -124,7 +124,7 @@ const CampanasPage = () => {
 
   // Filtros
   const fechaActual = new Date();
-  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([]);
+  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([fechaActual.getMonth() + 1]);
   const [añoSeleccionado, setAñoSeleccionado] = useState(
     fechaActual.getFullYear(),
   );
@@ -775,11 +775,17 @@ const CampanasPage = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push(searchParams.get("plataforma") ? "/digital" : "/dashboard")}
+                onClick={() =>
+                  router.push(
+                    searchParams.get("plataforma") ? "/digital" : "/dashboard",
+                  )
+                }
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                {searchParams.get("plataforma") ? "Volver a Digital" : "Volver a Dashboard"}
+                {searchParams.get("plataforma")
+                  ? "Volver a Digital"
+                  : "Volver a Dashboard"}
               </button>
             </div>
             <div className="flex items-center gap-3">
@@ -1021,7 +1027,7 @@ const CampanasPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <ArrowTrendingUpIcon className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">Leads</span>
+                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Resultados" : "Leads"}</span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
                         {formatNumber(campana.leads)}
@@ -1031,7 +1037,7 @@ const CampanasPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <UsersIcon className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-600">Alcance</span>
+                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Impresiones" : "Alcance"}</span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
                         {formatNumber(campana.alcance)}
@@ -1042,7 +1048,7 @@ const CampanasPage = () => {
                       <div className="flex items-center space-x-2">
                         <HeartIcon className="w-4 h-4 text-red-600" />
                         <span className="text-sm text-gray-600">
-                          Interacciones
+                          {campana.plataforma === "Meta Ads" ? "Clicks" : "Interacciones"}
                         </span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
@@ -1052,7 +1058,7 @@ const CampanasPage = () => {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">CxC</span>
+                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Costo por Click en el enlace" : "CxC"}</span>
                       </div>
                       <span className="text-lg font-bold text-orange-600">
                         {campana.cxc_porcentaje > 0
@@ -1066,7 +1072,7 @@ const CampanasPage = () => {
                   {(campana.gasto_actual || 0) > 0 && (
                     <div className="mb-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
-                        Inversión
+                        {campana.plataforma === "Meta Ads" ? "Importe gastado" : "Inversión"}
                       </span>
                       <span className="text-sm font-bold text-gray-900">
                         $

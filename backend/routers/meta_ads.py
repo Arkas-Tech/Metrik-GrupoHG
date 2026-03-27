@@ -327,7 +327,7 @@ async def get_period_metrics(
             for cid in campaign_ids:
                 try:
                     insights = _meta_api(token, f"{cid}/insights", {
-                        "fields": "impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_action_type",
+                        "fields": "impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_inline_link_click",
                         "time_range": json.dumps({"since": start, "until": end}),
                     })
                     rows = insights.get("data", [])
@@ -351,15 +351,11 @@ async def get_period_metrics(
                         ):
                             conversions += float(action.get("value", 0) or 0)
 
-                    # Interactions = clicks (link clicks + reactions etc.)
-                    interactions = int(row.get("inline_link_clicks", 0) or clicks)
+                    # Interactions = all clicks
+                    interactions = int(row.get("clicks", 0) or 0)
 
-                    # CxC (cost per conversion)
-                    cxc = 0.0
-                    for cpa in row.get("cost_per_action_type", []):
-                        if cpa.get("action_type") in ("lead", "complete_registration", "purchase"):
-                            cxc = float(cpa.get("value", 0) or 0)
-                            break
+                    # CxC (cost per inline link click)
+                    cxc = float(row.get("cost_per_inline_link_click", 0) or 0)
 
                     result[cid] = {
                         "alcance": impressions,
@@ -402,7 +398,7 @@ async def sync_campaign_metrics(
 
     try:
         insights = _meta_api(token, f"{campana.meta_ads_id}/insights", {
-            "fields": "impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_action_type",
+            "fields": "impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_inline_link_click",
             "date_preset": "maximum",
         })
     except Exception as e:
@@ -428,13 +424,9 @@ async def sync_campaign_metrics(
         ):
             conversions += float(action.get("value", 0) or 0)
 
-    interactions = int(row.get("inline_link_clicks", 0) or clicks)
+    interactions = int(row.get("clicks", 0) or 0)
 
-    cxc = 0.0
-    for cpa in row.get("cost_per_action_type", []):
-        if cpa.get("action_type") in ("lead", "complete_registration", "purchase"):
-            cxc = float(cpa.get("value", 0) or 0)
-            break
+    cxc = float(row.get("cost_per_inline_link_click", 0) or 0)
 
     campana.alcance = impressions
     campana.interacciones = interactions
@@ -519,7 +511,7 @@ def _importar_todas_las_marcas(db: Session) -> dict:
         metricas_por_id: dict = {}
         try:
             insights_data = _meta_api(token, f"{account_id}/insights", {
-                "fields": "campaign_id,impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_action_type",
+                "fields": "campaign_id,impressions,clicks,spend,actions,ctr,inline_link_clicks,cost_per_inline_link_click",
                 "level": "campaign",
                 "date_preset": "maximum",
                 "limit": "500",
@@ -543,13 +535,9 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                     ):
                         conversions += float(action.get("value", 0) or 0)
 
-                interactions = int(row.get("inline_link_clicks", 0) or clicks)
+                interactions = int(row.get("clicks", 0) or 0)
 
-                cxc = 0.0
-                for cpa in row.get("cost_per_action_type", []):
-                    if cpa.get("action_type") in ("lead", "complete_registration", "purchase"):
-                        cxc = float(cpa.get("value", 0) or 0)
-                        break
+                cxc = float(row.get("cost_per_inline_link_click", 0) or 0)
 
                 metricas_por_id[cid] = {
                     "impressions": impressions,
