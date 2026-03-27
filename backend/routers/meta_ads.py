@@ -362,6 +362,7 @@ async def list_meta_campaign_ads(
     ads = data.get("data", [])
 
     # Batch-fetch full-res image URLs via adimages (one call for all hashes)
+    # Use 'url' (direct CDN link) — NOT permalink_url which is a webpage and breaks CORS as img src
     hash_to_full_url: dict = {}
     if account_id:
         hashes = [
@@ -373,16 +374,14 @@ async def list_meta_campaign_ads(
             try:
                 imgs = _meta_api(token, f"{account_id}/adimages", {
                     "hashes": json.dumps(hashes),
-                    "fields": "hash,permalink_url,url",
+                    "fields": "hash,url",
                     "limit": "500",
                 })
                 for img in imgs.get("data", []):
                     h = img.get("hash")
-                    if h:
-                        # permalink_url is the original full-resolution upload
-                        best = img.get("permalink_url") or img.get("url", "")
-                        if best:
-                            hash_to_full_url[h] = best
+                    u = img.get("url", "")
+                    if h and u:
+                        hash_to_full_url[h] = u
             except Exception:
                 pass
 
@@ -392,15 +391,26 @@ async def list_meta_campaign_ads(
         image_hash = creative.get("image_hash", "")
         full_url = hash_to_full_url.get(image_hash, "") if image_hash else ""
 
-        # Fallback: picture from object_story_spec (link/photo ads)
+        oss = creative.get("object_story_spec") or {}
+        link_data = oss.get("link_data") or {}
+
+        # Fallback image from object_story_spec if no hash match
         if not full_url:
-            oss = creative.get("object_story_spec") or {}
             full_url = (
-                (oss.get("link_data") or {}).get("picture")
+                link_data.get("picture")
                 or (oss.get("photo_data") or {}).get("url")
                 or creative.get("image_url")
                 or ""
             )
+
+        # Destination URL (where the ad sends users)
+        dest_url = (
+            link_data.get("link")
+            or (creative.get("object_url"))
+            or ""
+        )
+        if dest_url and not dest_url.startswith("http"):
+            dest_url = ""
 
         results.append({
             "id": str(ad.get("id", "")),
@@ -409,8 +419,9 @@ async def list_meta_campaign_ads(
             "full_image_url": full_url,
             "image_url": creative.get("image_url", ""),
             "thumbnail_url": creative.get("thumbnail_url", ""),
-            "titulo": creative.get("title", ""),
-            "cuerpo": creative.get("body", ""),
+            "titulo": creative.get("title", "") or link_data.get("name", ""),
+            "cuerpo": creative.get("body", "") or link_data.get("message", ""),
+            "dest_url": dest_url,
         })
     return results
 

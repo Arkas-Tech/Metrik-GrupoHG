@@ -74,6 +74,7 @@ interface AnuncioApiItem {
   image_url?: string;
   titulo?: string;
   cuerpo?: string;
+  dest_url?: string;
   imagenes?: { tipo: string; asset_id: string; url?: string }[];
   titulos?: string[];
   descripciones?: string[];
@@ -1381,17 +1382,6 @@ const CampanasPage = () => {
                     : "—"}
                 </p>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  💰 Presupuesto Total
-                </h3>
-                <p className="text-gray-700 text-2xl font-bold">
-                  $
-                  {new Intl.NumberFormat("es-MX").format(
-                    campanaAnuncios.presupuesto,
-                  )}
-                </p>
-              </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   🖼️ Anuncios
@@ -1469,9 +1459,9 @@ const CampanasPage = () => {
                                 {ad.estado}
                               </span>
                             </div>
-                            {ad.urls_finales?.[0] && (
+                            {(ad.dest_url || ad.urls_finales?.[0]) && (
                               <a
-                                href={ad.urls_finales[0]}
+                                href={ad.dest_url || ad.urls_finales![0]}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-blue-600 hover:underline mt-1 block truncate"
