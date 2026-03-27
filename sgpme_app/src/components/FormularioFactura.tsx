@@ -8,6 +8,7 @@ import { useFacturasAPI } from "@/hooks/useFacturasAPI";
 import { useCategoriasAPI } from "@/hooks/useCategoriasAPI";
 import { fetchConToken } from "@/lib/auth-utils";
 import DateInput from "./DateInput";
+import { showToast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -388,7 +389,7 @@ export default function FormularioFactura({
     });
 
     if (archivosValidos.length !== files.length) {
-      alert("Solo se permiten archivos PDF y XML");
+      showToast("Solo se permiten archivos PDF y XML", "error");
     }
 
     setArchivos((prev) => [...prev, ...archivosValidos]);
@@ -412,7 +413,7 @@ export default function FormularioFactura({
       const xmlDoc = parser.parseFromString(contenidoXML, "text/xml");
 
       if (xmlDoc.documentElement.nodeName === "parsererror") {
-        alert("Error al leer el archivo XML. Verifica que sea un XML válido.");
+        showToast("Error al leer el archivo XML. Verifica que sea un XML válido.", "error");
         return;
       }
 
@@ -429,9 +430,7 @@ export default function FormularioFactura({
         )[0];
 
       if (!comprobante) {
-        alert(
-          "No se pudo encontrar la información del comprobante en el XML. Verifica que sea un CFDI válido.",
-        );
+        showToast("No se pudo encontrar la información del comprobante en el XML. Verifica que sea un CFDI válido.", "error");
         return;
       }
 
@@ -527,14 +526,10 @@ export default function FormularioFactura({
         }
       }
 
-      alert(
-        "Información del XML cargada correctamente. Revisa y ajusta los datos si es necesario.",
-      );
+      showToast("Información del XML cargada correctamente. Revisa y ajusta los datos si es necesario.", "success");
     } catch (error) {
       console.error("Error al procesar XML:", error);
-      alert(
-        "Error al procesar el archivo XML. Verifica que sea un CFDI válido.",
-      );
+      showToast("Error al procesar el archivo XML. Verifica que sea un CFDI válido.", "error");
     } finally {
       setProcesandoXML(false);
     }
@@ -548,7 +543,7 @@ export default function FormularioFactura({
     });
 
     if (archivosValidos.length !== files.length) {
-      alert("Archivos de máximo 10MB");
+      showToast("Archivos de máximo 10MB", "error");
       return;
     }
 
@@ -557,7 +552,7 @@ export default function FormularioFactura({
       archivosCotizaciones.length +
       archivosValidos.length;
     if (totalCotizaciones > 3) {
-      alert("Máximo 3 cotizaciones por factura (incluyendo las existentes)");
+      showToast("Máximo 3 cotizaciones por factura (incluyendo las existentes)", "error");
       return;
     }
 

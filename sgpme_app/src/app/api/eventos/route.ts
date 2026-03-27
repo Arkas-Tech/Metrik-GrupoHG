@@ -119,7 +119,7 @@ const EVENTOS_INICIALES: Evento[] = [
     ubicacion: "Online/Digital",
     marca: "Honda",
     responsable: "Carlos Ruiz",
-    estado: "Por Suceder",
+    estado: "Confirmado",
     objetivo: "Maximizar alcance y engagement durante temporada navideña",
     audiencia: "Usuarios digitales interesados en vehículos Honda",
     presupuestoEstimado: 200000,

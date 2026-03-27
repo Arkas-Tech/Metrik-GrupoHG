@@ -22,6 +22,7 @@ import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
+import { showToast } from "@/lib/toast";
 
 export default function ProyeccionesPage() {
   console.log("🚀 [INICIO] ProyeccionesPage se está renderizando");
@@ -185,8 +186,9 @@ export default function ProyeccionesPage() {
       );
 
       if (proyeccionExistente) {
-        alert(
+        showToast(
           `Ya existe una proyección para ${datos.marca} en ${datos.mes} ${datos.año}. Solo se permite una proyección por mes y marca.`,
+          "error",
         );
         return;
       }
@@ -227,8 +229,9 @@ export default function ProyeccionesPage() {
         );
 
         if (proyeccionDuplicada) {
-          alert(
+          showToast(
             `Ya existe una proyección para ${proyeccionActualizada.marca} en ${proyeccionActualizada.mes} ${proyeccionActualizada.año}. Solo se permite una proyección por mes y marca.`,
+            "error",
           );
           return;
         }
@@ -256,13 +259,13 @@ export default function ProyeccionesPage() {
     try {
       const exito = await aprobarProyeccion(id);
       if (exito) {
-        alert("Proyección aprobada exitosamente");
+        showToast("Proyección aprobada exitosamente", "success");
       } else {
-        alert("Error al aprobar la proyección");
+        showToast("Error al aprobar la proyección", "error");
       }
     } catch (error) {
       console.error("Error al aprobar proyección:", error);
-      alert("Error al aprobar la proyección");
+      showToast("Error al aprobar la proyección", "error");
     }
   };
 

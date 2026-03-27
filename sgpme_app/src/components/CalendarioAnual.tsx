@@ -36,7 +36,6 @@ const MESES_CORTOS = [
 const COLORES_ESTADO = {
   Realizado: "bg-green-500",
   Confirmado: "bg-blue-500",
-  "Por Suceder": "bg-yellow-500",
   Prospectado: "bg-purple-500",
   Cancelado: "bg-red-500",
 };
@@ -156,9 +155,6 @@ export default function CalendarioAnual({
         confirmados: eventosDelTrimestre.filter(
           (e) => e.estado === "Confirmado",
         ).length,
-        porSuceder: eventosDelTrimestre.filter(
-          (e) => e.estado === "Por Suceder",
-        ).length,
       };
     });
   }, [eventosDelAño]);
@@ -230,19 +226,6 @@ export default function CalendarioAnual({
             <div className="text-sm text-gray-500">Confirmados</div>
           </button>
           <button
-            onClick={() => setFiltroEstado("Por Suceder")}
-            className={`text-center p-3 rounded-lg transition-all ${
-              filtroEstado === "Por Suceder"
-                ? "bg-yellow-100 ring-2 ring-yellow-400 shadow-md"
-                : "hover:bg-yellow-50"
-            }`}
-          >
-            <div className="text-2xl font-bold text-yellow-600">
-              {eventosDelAño.filter((e) => e.estado === "Por Suceder").length}
-            </div>
-            <div className="text-sm text-gray-500">Por Suceder</div>
-          </button>
-          <button
             onClick={() => setFiltroEstado("Prospectado")}
             className={`text-center p-3 rounded-lg transition-all ${
               filtroEstado === "Prospectado"
@@ -271,7 +254,6 @@ export default function CalendarioAnual({
               <div className="flex space-x-2 text-xs">
                 <span className="text-green-600">{trimestre.realizados}R</span>
                 <span className="text-blue-600">{trimestre.confirmados}C</span>
-                <span className="text-yellow-600">{trimestre.porSuceder}P</span>
               </div>
             </div>
           ))}
@@ -452,10 +434,6 @@ export default function CalendarioAnual({
           <div className="flex items-center space-x-1">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
             <span>Confirmado</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <span>Por Suceder</span>
           </div>
           <div className="flex items-center space-x-1">
             <div className="w-3 h-3 bg-purple-500 rounded-full"></div>

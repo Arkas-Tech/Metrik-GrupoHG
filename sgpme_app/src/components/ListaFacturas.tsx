@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Factura, Archivo, Cotizacion } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 
 interface ListaFacturasProps {
   facturas: Factura[];
@@ -175,7 +176,7 @@ export default function ListaFacturas({
     if (onDescargarArchivo) {
       onDescargarArchivo(facturaId, archivoId, nombreArchivo);
     } else {
-      alert("Función de descarga no disponible");
+      showToast("Función de descarga no disponible", "error");
     }
   };
 
@@ -205,7 +206,7 @@ export default function ListaFacturas({
       setPdfViewer({ isOpen: true, url, nombre: nombreArchivo });
     } catch (error) {
       console.error("Error cargando PDF:", error);
-      alert("Error al cargar el PDF para visualización");
+      showToast("Error al cargar el PDF para visualización", "error");
     }
   };
 

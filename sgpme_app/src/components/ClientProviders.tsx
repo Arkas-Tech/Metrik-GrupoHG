@@ -8,6 +8,7 @@ import { MarcaProvider } from "@/contexts/MarcaContext";
 import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import MaintenanceGuard from "@/components/MaintenanceGuard";
+import ToastNotification from "@/components/ToastNotification";
 
 interface ClientProvidersProps {
   children: ReactNode;
@@ -27,7 +28,10 @@ export default function ClientProviders({
         <AuthProvider>
           <AuthBackendProvider>
             <MarcaProvider>
-              <DevToolsProvider>{children}</DevToolsProvider>
+              <DevToolsProvider>
+                {children}
+                <ToastNotification />
+              </DevToolsProvider>
             </MarcaProvider>
           </AuthBackendProvider>
         </AuthProvider>

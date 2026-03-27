@@ -288,7 +288,6 @@ async def get_estadisticas_eventos(user: user_dependency, db: db_dependency):
         "realizados": sum(1 for e in eventos if e.estado == "Realizado"),
         "prospectados": sum(1 for e in eventos if e.estado == "Prospectado"),
         "confirmados": sum(1 for e in eventos if e.estado == "Confirmado"),
-        "porSuceder": sum(1 for e in eventos if e.estado == "Por Suceder"),
         "cancelados": sum(1 for e in eventos if e.estado == "Cancelado"),
         "total": len(eventos),
         "presupuestoTotal": sum(e.presupuesto_estimado or 0 for e in eventos),

@@ -14,6 +14,7 @@ import FormularioCampana from "@/components/FormularioCampana";
 import { useCampanas } from "@/hooks/useCampanas";
 import type { CampanaFormData } from "@/hooks/useCampanas";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 import {
   ArrowLeftIcon,
   EyeIcon,
@@ -226,12 +227,12 @@ const CampanasPage = () => {
         const data = await res.json();
         if (res.ok) {
           await cargarCampanas(marcaSeleccionada || undefined);
-          alert("Actualizado correctamente");
+          showToast("Actualizado correctamente", "success");
         } else {
-          alert(data.detail || "Error al importar campañas");
+          showToast(data.detail || "Error al importar campañas", "error");
         }
       } catch {
-        alert("Error al conectar con el servidor");
+        showToast("Error al conectar con el servidor", "error");
       } finally {
         setImportando(false);
       }
@@ -258,10 +259,10 @@ const CampanasPage = () => {
         setModalVincular(null);
       } else {
         const err = await res.json();
-        alert(err.detail || "Error al vincular");
+        showToast(err.detail || "Error al vincular", "error");
       }
     } catch {
-      alert("Error al vincular campaña");
+      showToast("Error al vincular campaña", "error");
     } finally {
       setVinculando(false);
     }
@@ -479,7 +480,10 @@ const CampanasPage = () => {
       setCampanaEditando(null);
     } catch (error) {
       console.error("Error al guardar campaña:", error);
-      alert("Error al guardar la campaña. Por favor intenta de nuevo.");
+      showToast(
+        "Error al guardar la campaña. Por favor intenta de nuevo.",
+        "error",
+      );
     }
   };
 
@@ -493,7 +497,7 @@ const CampanasPage = () => {
       try {
         await eliminarCampana(id);
       } catch {
-        alert("Error al eliminar la campaña");
+        showToast("Error al eliminar la campaña", "error");
       }
     }
   };
@@ -547,7 +551,7 @@ const CampanasPage = () => {
       setGastoTemporal(0);
     } catch (error) {
       console.error("Error al actualizar gasto:", error);
-      alert("Error al actualizar el gasto");
+      showToast("Error al actualizar el gasto", "error");
     }
   };
 

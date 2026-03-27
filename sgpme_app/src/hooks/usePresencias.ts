@@ -62,65 +62,62 @@ export const usePresencias = () => {
     [marcaSeleccionada, marcasPermitidas],
   );
 
-  const cargarPresencias = useCallback(
-    async () => {
-      const cacheKey = `presencias:${marcaSeleccionada || "all"}`;
+  const cargarPresencias = useCallback(async () => {
+    const cacheKey = `presencias:${marcaSeleccionada || "all"}`;
 
-      // Return stale data immediately if available
-      const stale = getStale<Presencia[]>(cacheKey);
-      if (stale) {
-        setPresencias(filterByMarcas(stale));
-        setCargando(false);
-      }
+    // Return stale data immediately if available
+    const stale = getStale<Presencia[]>(cacheKey);
+    if (stale) {
+      setPresencias(filterByMarcas(stale));
+      setCargando(false);
+    }
 
-      // Skip network if cache is fresh
-      const fresh = getCached<Presencia[]>(cacheKey);
-      if (fresh) return;
+    // Skip network if cache is fresh
+    const fresh = getCached<Presencia[]>(cacheKey);
+    if (fresh) return;
 
-      // Abort previous in-flight request
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+    // Abort previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      try {
-        if (!stale) setCargando(true);
-        setError(null);
+    try {
+      if (!stale) setCargando(true);
+      setError(null);
 
-        const url = marcaSeleccionada
-          ? `${API_URL}/presencia-tradicional/?agencia=${encodeURIComponent(
-              marcaSeleccionada,
-            )}`
-          : `${API_URL}/presencia-tradicional/`;
+      const url = marcaSeleccionada
+        ? `${API_URL}/presencia-tradicional/?agencia=${encodeURIComponent(
+            marcaSeleccionada,
+          )}`
+        : `${API_URL}/presencia-tradicional/`;
 
-        const data = await deduplicateRequest<Presencia[]>(
-          cacheKey,
-          async () => {
-            // Retry loop interno: hasta 3 intentos sin abortar el controller actual
-            let lastStatus = 0;
-            for (let attempt = 0; attempt <= 2; attempt++) {
-              if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
-              if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
-              const response = await fetchConToken(url, { signal: controller.signal });
-              if (response.ok) return response.json();
-              lastStatus = response.status;
-            }
-            throw new Error(`Error al cargar presencias (${lastStatus})`);
-          },
-        );
-
-        if (!controller.signal.aborted && Array.isArray(data)) {
-          setCache(cacheKey, data, url);
-          setPresencias(filterByMarcas(data));
+      const data = await deduplicateRequest<Presencia[]>(cacheKey, async () => {
+        // Retry loop interno: hasta 3 intentos sin abortar el controller actual
+        let lastStatus = 0;
+        for (let attempt = 0; attempt <= 2; attempt++) {
+          if (controller.signal.aborted)
+            throw new DOMException("Aborted", "AbortError");
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+          const response = await fetchConToken(url, {
+            signal: controller.signal,
+          });
+          if (response.ok) return response.json();
+          lastStatus = response.status;
         }
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Error desconocido");
-      } finally {
-        if (!controller.signal.aborted) setCargando(false);
+        throw new Error(`Error al cargar presencias (${lastStatus})`);
+      });
+
+      if (!controller.signal.aborted && Array.isArray(data)) {
+        setCache(cacheKey, data, url);
+        setPresencias(filterByMarcas(data));
       }
-    },
-    [marcaSeleccionada, marcasPermitidas, filterByMarcas],
-  );
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      if (!controller.signal.aborted) setCargando(false);
+    }
+  }, [marcaSeleccionada, marcasPermitidas, filterByMarcas]);
 
   const crearPresencia = async (presenciaData: Record<string, unknown>) => {
     try {

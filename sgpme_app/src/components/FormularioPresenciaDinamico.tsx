@@ -22,6 +22,7 @@ import FormularioProveedor from "./FormularioProveedor";
 import { compressImage } from "@/lib/imageCompression";
 import type { Proveedor } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { showToast } from "@/lib/toast";
 
 // ─── Local imports from ConfiguracionFormularios ───────────────────────────
 
@@ -343,7 +344,7 @@ export default function FormularioPresenciaDinamico({
       setMostrarModalProveedor(false);
     } catch (err) {
       console.error(err);
-      alert("Error al crear el proveedor");
+      showToast("Error al crear el proveedor", "error");
     } finally {
       setCargandoProveedor(false);
     }

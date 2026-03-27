@@ -32,6 +32,7 @@ import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
+import { showToast } from "@/lib/toast";
 
 function FacturasPageContent() {
   const router = useRouter();
@@ -502,8 +503,9 @@ function FacturasPageContent() {
 
     // Validar que haya un archivo seleccionado
     if (!archivoComprobante) {
-      alert(
+      showToast(
         "Debes subir un comprobante de pago para marcar la factura como pagada",
+        "error",
       );
       return;
     }

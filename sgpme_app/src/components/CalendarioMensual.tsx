@@ -131,8 +131,6 @@ export default function CalendarioMensual({
         return "bg-green-500";
       case "Confirmado":
         return "bg-blue-500";
-      case "Por Suceder":
-        return "bg-yellow-500";
       case "Prospectado":
         return "bg-purple-500";
       case "Cancelado":
@@ -222,19 +220,6 @@ export default function CalendarioMensual({
               {eventosDelMes.filter((e) => e.estado === "Confirmado").length}
             </div>
             <div className="text-sm text-gray-500">Confirmados</div>
-          </button>
-          <button
-            onClick={() => setFiltroEstado("Por Suceder")}
-            className={`text-center p-3 rounded-lg transition-all ${
-              filtroEstado === "Por Suceder"
-                ? "bg-yellow-100 ring-2 ring-yellow-400 shadow-md"
-                : "hover:bg-yellow-50"
-            }`}
-          >
-            <div className="text-2xl font-bold text-yellow-600">
-              {eventosDelMes.filter((e) => e.estado === "Por Suceder").length}
-            </div>
-            <div className="text-sm text-gray-500">Por Suceder</div>
           </button>
           <button
             onClick={() => setFiltroEstado("Prospectado")}
@@ -353,10 +338,6 @@ export default function CalendarioMensual({
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-blue-500 rounded"></div>
             <span className="text-sm text-gray-600">Confirmado</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-            <span className="text-sm text-gray-600">Por Suceder</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-purple-500 rounded"></div>

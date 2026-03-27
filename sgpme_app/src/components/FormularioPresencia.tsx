@@ -8,6 +8,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Proveedor } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DateInput from "./DateInput";
+import { showToast } from "@/lib/toast";
 
 const libraries: ("places" | "geometry")[] = ["places"];
 
@@ -237,22 +238,25 @@ export default function FormularioPresencia({
     e.preventDefault();
 
     if (!formData.marca || formData.marca.trim() === "") {
-      alert("Por favor selecciona una marca antes de crear la presencia");
+      showToast(
+        "Por favor selecciona una marca antes de crear la presencia",
+        "error",
+      );
       return;
     }
 
     if (!formData.tipo || formData.tipo.trim() === "") {
-      alert("Por favor selecciona un tipo de presencia");
+      showToast("Por favor selecciona un tipo de presencia", "error");
       return;
     }
 
     if (!formData.nombre || formData.nombre.trim() === "") {
-      alert("Por favor ingresa un nombre para la presencia");
+      showToast("Por favor ingresa un nombre para la presencia", "error");
       return;
     }
 
     if (!formData.fecha_instalacion) {
-      alert("Por favor ingresa la fecha de instalación");
+      showToast("Por favor ingresa la fecha de instalación", "error");
       return;
     }
 

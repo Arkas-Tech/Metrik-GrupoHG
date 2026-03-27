@@ -29,6 +29,7 @@ import ConfigSidebar from "@/components/ConfigSidebar";
 import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
+import { showToast } from "@/lib/toast";
 
 export default function EventosPage() {
   const router = useRouter();
@@ -252,8 +253,6 @@ export default function EventosPage() {
         return "bg-green-100 text-green-800";
       case "Confirmado":
         return "bg-blue-100 text-blue-800";
-      case "Por Suceder":
-        return "bg-yellow-100 text-yellow-800";
       case "Prospectado":
         return "bg-purple-100 text-purple-800";
       default:
@@ -313,7 +312,10 @@ export default function EventosPage() {
       if (resultado) {
         setVistaActual("dashboard");
       } else {
-        alert("Error al guardar el brief. Por favor intenta de nuevo.");
+        showToast(
+          "Error al guardar el brief. Por favor intenta de nuevo.",
+          "error",
+        );
       }
     }
   };
@@ -352,14 +354,14 @@ export default function EventosPage() {
     try {
       const exito = await eliminarBrief(evento.id);
       if (exito) {
-        alert("Brief eliminado correctamente");
+        showToast("Brief eliminado correctamente", "success");
         await cargarEventos();
       } else {
-        alert("Error al eliminar el brief");
+        showToast("Error al eliminar el brief", "error");
       }
     } catch (error) {
       console.error("Error al eliminar brief:", error);
-      alert("Error al eliminar el brief");
+      showToast("Error al eliminar el brief", "error");
     }
   };
 
@@ -922,7 +924,6 @@ export default function EventosPage() {
                     <option value="Todos">Todos</option>
                     <option value="Realizado">Realizados</option>
                     <option value="Confirmado">Confirmados</option>
-                    <option value="Por Suceder">Por Suceder</option>
                     <option value="Prospectado">Prospectados</option>
                   </select>
                 </div>
@@ -1136,8 +1137,9 @@ export default function EventosPage() {
                                       "Error actualizando estado:",
                                       error,
                                     );
-                                    alert(
+                                    showToast(
                                       "Error al actualizar el estado del evento",
+                                      "error",
                                     );
                                   }
                                 }}
@@ -1148,7 +1150,6 @@ export default function EventosPage() {
                               >
                                 <option value="Prospectado">Prospectado</option>
                                 <option value="Confirmado">Confirmado</option>
-                                <option value="Por Suceder">Por Suceder</option>
                                 <option value="Realizado">Realizado</option>
                               </select>
                             </td>

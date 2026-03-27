@@ -28,6 +28,7 @@ import { useCampanas } from "@/hooks/useCampanas";
 import FormularioPresencia from "@/components/FormularioPresencia";
 import { usePresencias, Presencia } from "@/hooks/usePresencias";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
+import { showToast } from "@/lib/toast";
 import { useMetricas, Metrica, MetricaFormData } from "@/hooks/useMetricas";
 import FormularioMetricaSimple from "@/components/FormularioMetricaSimple";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
@@ -460,16 +461,16 @@ const MetricasPage = () => {
                     presencia,
                   );
                   if (success) {
-                    alert("Presencia actualizada exitosamente");
+                    showToast("Presencia actualizada exitosamente", "success");
                   } else {
-                    alert("Error al actualizar la presencia");
+                    showToast("Error al actualizar la presencia", "error");
                   }
                 } else {
                   const success = await crearPresencia(presencia);
                   if (success) {
-                    alert("Presencia creada exitosamente");
+                    showToast("Presencia creada exitosamente", "success");
                   } else {
-                    alert("Error al crear la presencia");
+                    showToast("Error al crear la presencia", "error");
                   }
                 }
                 setVistaActual("dashboard");
@@ -1232,9 +1233,15 @@ const MetricasPage = () => {
                             );
                             if (success) {
                               setModalPresencia(null);
-                              alert("Presencia eliminada exitosamente");
+                              showToast(
+                                "Presencia eliminada exitosamente",
+                                "success",
+                              );
                             } else {
-                              alert("Error al eliminar la presencia");
+                              showToast(
+                                "Error al eliminar la presencia",
+                                "error",
+                              );
                             }
                           }
                         }}

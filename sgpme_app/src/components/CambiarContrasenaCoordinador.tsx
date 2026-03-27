@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { EyeIcon, EyeSlashIcon, KeyIcon } from "@heroicons/react/24/outline";
+import { showToast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -93,7 +94,7 @@ export default function CambiarContrasenaCoordinador({
 
       if (response.ok) {
         const data = await response.json();
-        alert("✅ " + data.message);
+        showToast("✅ " + data.message, "success");
         onClose();
 
         // Limpiar formulario
@@ -110,12 +111,12 @@ export default function CambiarContrasenaCoordinador({
             currentPassword: error.detail,
           });
         } else {
-          alert(`Error: ${error.detail || "Error desconocido"}`);
+          showToast(`Error: ${error.detail || "Error desconocido"}`, "error");
         }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error de conexión. Por favor, intenta nuevamente.");
+      showToast("Error de conexión. Por favor, intenta nuevamente.", "error");
     } finally {
       setSaving(false);
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuthUnified";
+import { showToast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -72,16 +73,16 @@ export default function GestionPerfilCoordinador({
         };
         localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
 
-        alert("Perfil actualizado exitosamente");
+        showToast("Perfil actualizado exitosamente", "success");
         onClose();
         window.location.reload(); // Recargar para reflejar cambios
       } else {
         const error = await response.json();
-        alert(`Error: ${error.detail || "Error desconocido"}`);
+        showToast(`Error: ${error.detail || "Error desconocido"}`, "error");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error de conexión");
+      showToast("Error de conexión", "error");
     } finally {
       setSaving(false);
     }

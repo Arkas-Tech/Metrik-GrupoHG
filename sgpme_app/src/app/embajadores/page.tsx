@@ -11,6 +11,7 @@ import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
 import NavBar from "@/components/NavBar";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -177,7 +178,10 @@ export default function EmbajadoresPage() {
     });
 
   const handleGuardar = async () => {
-    if (!form.nombre.trim()) return alert("El nombre es obligatorio");
+    if (!form.nombre.trim()) {
+      showToast("El nombre es obligatorio", "error");
+      return;
+    }
     setGuardando(true);
     const body = {
       nombre: form.nombre.trim(),
@@ -203,10 +207,10 @@ export default function EmbajadoresPage() {
         await cargarEmbajadores();
       } else {
         const err = await res.json();
-        alert(err.detail || "Error al guardar");
+        showToast(err.detail || "Error al guardar", "error");
       }
     } catch {
-      alert("Error al conectar con el servidor");
+      showToast("Error al conectar con el servidor", "error");
     } finally {
       setGuardando(false);
     }
@@ -219,9 +223,9 @@ export default function EmbajadoresPage() {
         method: "DELETE",
       });
       if (res.ok || res.status === 204) await cargarEmbajadores();
-      else alert("Error al eliminar");
+      else showToast("Error al eliminar", "error");
     } catch {
-      alert("Error al conectar con el servidor");
+      showToast("Error al conectar con el servidor", "error");
     }
   };
 

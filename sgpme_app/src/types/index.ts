@@ -346,7 +346,6 @@ export interface Evento {
     | "Realizado"
     | "Prospectado"
     | "Confirmado"
-    | "Por Suceder"
     | "Cancelado";
   objetivo: string;
   audiencia: string;
@@ -431,7 +430,6 @@ export interface EstadisticasEvento {
   realizados: number;
   prospectados: number;
   confirmados: number;
-  porSuceder: number;
   cancelados: number;
   presupuestoTotal: number;
   gastosReales: number;
@@ -457,7 +455,6 @@ export const ESTADOS_EVENTO = [
   "Realizado",
   "Prospectado",
   "Confirmado",
-  "Por Suceder",
   "Cancelado",
 ] as const;
 

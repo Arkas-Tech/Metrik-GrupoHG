@@ -5,6 +5,7 @@ import { fetchConToken } from "@/lib/auth-utils";
 import FormularioPresupuestoMensual from "./FormularioPresupuestoMensual";
 import { useCategorias } from "@/hooks/useCategorias";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { showToast } from "@/lib/toast";
 
 interface PresupuestoMensual {
   id: number;
@@ -480,7 +481,10 @@ export default function ListaPresupuestosMensuales({
       setMontoMensualBase(0);
     } catch (error) {
       console.error("Error guardando cambios:", error);
-      alert("Error al guardar los cambios. Por favor, intente de nuevo.");
+      showToast(
+        "Error al guardar los cambios. Por favor, intente de nuevo.",
+        "error",
+      );
     } finally {
       setGuardandoCambios(false);
     }

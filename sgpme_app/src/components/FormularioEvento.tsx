@@ -344,7 +344,6 @@ export default function FormularioEvento({
             >
               <option value="Prospectado">Prospectado</option>
               <option value="Confirmado">Confirmado</option>
-              <option value="Por Suceder">Por Suceder</option>
               <option value="Realizado">Realizado</option>
             </select>
           </div>

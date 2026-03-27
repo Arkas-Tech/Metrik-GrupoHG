@@ -39,7 +39,6 @@ const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const COLORES_ESTADO = {
   Realizado: "bg-green-100 text-green-800 border-green-300",
   Confirmado: "bg-blue-100 text-blue-800 border-blue-300",
-  "Por Suceder": "bg-yellow-100 text-yellow-800 border-yellow-300",
   Prospectado: "bg-purple-100 text-purple-800 border-purple-300",
   Cancelado: "bg-red-100 text-red-800 border-red-300",
 };
@@ -220,22 +219,6 @@ export default function CalendarioTrimestral({
             <div className="text-sm text-gray-500">Confirmados</div>
           </button>
           <button
-            onClick={() => setFiltroEstado("Por Suceder")}
-            className={`text-center p-3 rounded-lg transition-all ${
-              filtroEstado === "Por Suceder"
-                ? "bg-yellow-100 ring-2 ring-yellow-400 shadow-md"
-                : "hover:bg-yellow-50"
-            }`}
-          >
-            <div className="text-2xl font-bold text-yellow-600">
-              {
-                eventosDelTrimestre.filter((e) => e.estado === "Por Suceder")
-                  .length
-              }
-            </div>
-            <div className="text-sm text-gray-500">Por Suceder</div>
-          </button>
-          <button
             onClick={() => setFiltroEstado("Prospectado")}
             className={`text-center p-3 rounded-lg transition-all ${
               filtroEstado === "Prospectado"
@@ -370,11 +353,9 @@ export default function CalendarioTrimestral({
                                     ? "bg-green-500"
                                     : evento.estado === "Confirmado"
                                       ? "bg-blue-500"
-                                      : evento.estado === "Por Suceder"
-                                        ? "bg-yellow-500"
-                                        : evento.estado === "Prospectado"
-                                          ? "bg-purple-500"
-                                          : "bg-red-500"
+                                      : evento.estado === "Prospectado"
+                                        ? "bg-purple-500"
+                                        : "bg-red-500"
                                 }`}
                                 title={evento.nombre}
                               />

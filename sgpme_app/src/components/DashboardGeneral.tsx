@@ -18,6 +18,7 @@ import {
 } from "@/lib/evento-utils";
 import { fetchConToken } from "@/lib/auth-utils";
 import { invalidateCacheByPrefix } from "@/lib/dataCache";
+import { showToast } from "@/lib/toast";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 
 const MESES_ORDEN = [
@@ -2706,7 +2707,6 @@ export default function DashboardGeneral({
                     const colors: Record<string, string> = {
                       Realizado: "bg-green-100 text-green-800",
                       Confirmado: "bg-blue-100 text-blue-800",
-                      "Por Suceder": "bg-yellow-100 text-yellow-800",
                       Prospectado: "bg-purple-100 text-purple-800",
                       Cancelado: "bg-red-100 text-red-800",
                     };
@@ -3353,18 +3353,18 @@ export default function DashboardGeneral({
                       payload,
                     );
                     if (success) {
-                      alert("Presencia actualizada exitosamente");
+                      showToast("Presencia actualizada exitosamente", "success");
                       await cargarPresencias();
                     } else {
-                      alert("Error al actualizar la presencia");
+                      showToast("Error al actualizar la presencia", "error");
                     }
                   } else {
                     const success = await crearPresencia(payload);
                     if (success) {
-                      alert("Presencia creada exitosamente");
+                      showToast("Presencia creada exitosamente", "success");
                       await cargarPresencias();
                     } else {
-                      alert("Error al crear la presencia");
+                      showToast("Error al crear la presencia", "error");
                     }
                   }
                   setModalFormularioPresencia(false);
