@@ -141,6 +141,70 @@ async def maintenance_middleware(request: Request, call_next):
 
 # ============ REQUEST LOGGING MIDDLEWARE ============
 
+def _log_request_sync(method, path, status_code, duration_ms, auth_header, error_detail, client_host):
+    """Synchronous DB write — runs in a thread pool so it never blocks the event loop."""
+    try:
+        user_id = None
+        user_role = None
+        if auth_header.startswith('Bearer '):
+            try:
+                token = auth_header[7:]
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                user_id = payload.get('id')
+                user_role = payload.get('role')
+            except (JWTError, Exception):
+                pass
+
+        db = SessionLocal()
+        try:
+            log_entry = models.RequestLog(
+                method=method,
+                path=path,
+                status_code=status_code,
+                response_time_ms=duration_ms,
+                user_id=user_id,
+                user_role=user_role,
+                ip_address=client_host,
+                error_detail=error_detail,
+            )
+            db.add(log_entry)
+
+            # Auto-detect activity from write operations
+            if method in ('POST', 'PUT', 'DELETE') and status_code < 400:
+                activity_paths = {
+                    '/facturas': 'factura',
+                    '/proyecciones': 'proyeccion',
+                    '/campanas': 'campana',
+                    '/presupuesto': 'presupuesto',
+                    '/embajadores': 'embajador',
+                    '/presencia': 'presencia',
+                    '/eventos': 'evento',
+                    '/admin': 'admin',
+                    '/marcas': 'marca',
+                }
+                entity_type = next(
+                    (etype for prefix, etype in activity_paths.items() if path.startswith(prefix)),
+                    None,
+                )
+                if entity_type:
+                    activity = models.ActivityLog(
+                        user_id=user_id,
+                        user_name=user_role,
+                        action=f'{method.lower()}_{entity_type}',
+                        entity_type=entity_type,
+                        details=f'{method} {path} -> {status_code}',
+                    )
+                    db.add(activity)
+
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
     start = time.time()
@@ -157,74 +221,18 @@ async def request_logging_middleware(request: Request, call_next):
         duration_ms = round((time.time() - start) * 1000, 2)
         path = request.url.path
 
-        # Skip logging for docs, static, and dev request-logs to avoid recursion
         skip_paths = ['/docs', '/openapi.json', '/redoc', '/favicon.ico']
         if not any(path.startswith(sp) for sp in skip_paths):
-            try:
-                # Extract user info from JWT if present
-                user_id = None
-                user_role = None
-                auth_header = request.headers.get('authorization', '')
-                if auth_header.startswith('Bearer '):
-                    try:
-                        token = auth_header[7:]
-                        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                        user_id = payload.get('id')
-                        user_role = payload.get('role')
-                    except (JWTError, Exception):
-                        pass
-
-                db = SessionLocal()
-                try:
-                    log_entry = models.RequestLog(
-                        method=request.method,
-                        path=path,
-                        status_code=status_code,
-                        response_time_ms=duration_ms,
-                        user_id=user_id,
-                        user_role=user_role,
-                        ip_address=request.client.host if request.client else None,
-                        error_detail=error_detail,
-                    )
-                    db.add(log_entry)
-
-                    # Auto-detect activity from write operations
-                    if request.method in ('POST', 'PUT', 'DELETE') and status_code < 400:
-                        entity_type = None
-                        action = request.method.lower()
-                        activity_paths = {
-                            '/facturas': 'factura',
-                            '/proyecciones': 'proyeccion',
-                            '/campanas': 'campana',
-                            '/presupuesto': 'presupuesto',
-                            '/embajadores': 'embajador',
-                            '/presencia': 'presencia',
-                            '/eventos': 'evento',
-                            '/admin': 'admin',
-                            '/marcas': 'marca',
-                        }
-                        for prefix, etype in activity_paths.items():
-                            if path.startswith(prefix):
-                                entity_type = etype
-                                break
-
-                        if entity_type:
-                            activity = models.ActivityLog(
-                                user_id=user_id,
-                                user_name=user_role,
-                                action=f'{action}_{entity_type}',
-                                entity_type=entity_type,
-                                details=f'{request.method} {path} -> {status_code}',
-                            )
-                            db.add(activity)
-
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                finally:
-                    db.close()
-            except Exception:
-                pass
+            auth_header = request.headers.get('authorization', '')
+            client_host = request.client.host if request.client else None
+            # Fire-and-forget in thread pool — response is returned immediately
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(
+                None,
+                _log_request_sync,
+                request.method, path, status_code, duration_ms,
+                auth_header, error_detail, client_host,
+            )
 
     return response
 
