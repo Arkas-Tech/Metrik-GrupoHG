@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, Dispatch, SetStateAction } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Dispatch,
+  SetStateAction,
+} from "react";
 import { fetchConToken } from "@/lib/auth-utils";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import {
@@ -351,9 +358,7 @@ function CampanaCombobox({
   const filtered =
     query.trim() === ""
       ? opciones
-      : opciones.filter((o) =>
-          o.toLowerCase().includes(query.toLowerCase()),
-        );
+      : opciones.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
 
   return (
     <div ref={containerRef} className="relative flex-1">
@@ -443,16 +448,18 @@ export default function DiagramasConversionSection() {
   /* ── Fetch campañas al cambiar marca/modelo en modal ── */
   useEffect(() => {
     if (!modalOpen || !fMarca) return;
-    const plataforma = fModelo === "GFCRM" ? "google-ads" : "meta-ads";
+    const plataforma = fModelo === "GFCRM" ? "Google Ads" : "Meta Ads";
     let cancelled = false;
     async function cargarCampanas() {
       setLoadingCampanas(true);
       try {
         const res = await fetchConToken(
-          `${API}/${plataforma}/campanas?marca=${encodeURIComponent(fMarca)}`,
+          `${API}/campanas/?marca=${encodeURIComponent(fMarca)}&plataforma=${encodeURIComponent(plataforma)}`,
         );
         if (cancelled) return;
-        const data: { nombre: string }[] | null = res.ok ? await res.json() : null;
+        const data: { nombre: string }[] | null = res.ok
+          ? await res.json()
+          : null;
         if (cancelled) return;
         setCampanasDisponibles(
           data && Array.isArray(data)
