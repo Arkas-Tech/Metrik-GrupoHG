@@ -359,7 +359,10 @@ const CampanasPage = () => {
   // Cargar métricas filtradas cuando cambia la selección de meses/año o rango de fechas
   useEffect(() => {
     const useDateRange = fechaInicio && fechaFin;
-    if (!useDateRange && (mesesSeleccionados.length === 0 || añoSeleccionado === 0)) {
+    if (
+      !useDateRange &&
+      (mesesSeleccionados.length === 0 || añoSeleccionado === 0)
+    ) {
       setMetricasPeriodo({});
       setMetricasPeriodoMeta({});
       return;
@@ -412,10 +415,14 @@ const CampanasPage = () => {
           ]);
           if (!cancelled) {
             setMetricasPeriodo(
-              gRes.ok ? ((await gRes.json()) as Record<string, MetricasEntry>) : {},
+              gRes.ok
+                ? ((await gRes.json()) as Record<string, MetricasEntry>)
+                : {},
             );
             setMetricasPeriodoMeta(
-              mRes.ok ? ((await mRes.json()) as Record<string, MetricasEntry>) : {},
+              mRes.ok
+                ? ((await mRes.json()) as Record<string, MetricasEntry>)
+                : {},
             );
           }
         } else {
@@ -660,7 +667,8 @@ const CampanasPage = () => {
 
   // Filtrar campañas por mes, año, plataforma, búsqueda y rango de fechas
   const hayRangoFechas = !!(fechaInicio && fechaFin);
-  const hayFiltroFecha = hayRangoFechas || (mesesSeleccionados.length > 0 && añoSeleccionado !== 0);
+  const hayFiltroFecha =
+    hayRangoFechas || (mesesSeleccionados.length > 0 && añoSeleccionado !== 0);
   const terminoBusqueda = busquedaCampana.trim().toLowerCase();
 
   const campanasFiltradas = campanasDb
@@ -859,15 +867,21 @@ const CampanasPage = () => {
               <button
                 onClick={() =>
                   router.push(
-                    searchParams.get("plataforma") ? "/digital" : "/dashboard",
+                    searchParams.get("from") === "dashboard"
+                      ? "/dashboard"
+                      : searchParams.get("plataforma")
+                        ? "/digital"
+                        : "/dashboard",
                   )
                 }
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                {searchParams.get("plataforma")
-                  ? "Volver a Digital"
-                  : "Volver a Dashboard"}
+                {searchParams.get("from") === "dashboard"
+                  ? "Volver a Dashboard"
+                  : searchParams.get("plataforma")
+                    ? "Volver a Digital"
+                    : "Volver a Dashboard"}
               </button>
             </div>
             <div className="flex items-center gap-3">

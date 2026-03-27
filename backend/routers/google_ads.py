@@ -181,7 +181,7 @@ async def get_oauth_url(user: user_dependency):
 
 
 @router.post("/oauth/exchange")
-async def exchange_oauth_code(payload: dict, user: user_dependency, db: db_dependency):
+def exchange_oauth_code(payload: dict, user: user_dependency, db: db_dependency):
     """Canjea el código de autorización por un refresh_token y lo guarda en DB."""
     _require_admin(user)
     code = payload.get("code", "").strip()
@@ -280,7 +280,7 @@ async def set_customer_map(payload: dict, user: user_dependency, db: db_dependen
 # ─── Campañas de Google Ads ────────────────────────────────────────────────────
 
 @router.get("/campanas")
-async def list_gads_campaigns(
+def list_gads_campaigns(
     user: user_dependency,
     db: db_dependency,
     marca: Optional[str] = Query(None, description="Marca / cuenta a consultar"),
@@ -356,7 +356,7 @@ async def list_gads_campaigns(
 
 
 @router.get("/campanas/{gads_campaign_id}/anuncios")
-async def list_campaign_ads(
+def list_campaign_ads(
     gads_campaign_id: str,
     user: user_dependency,
     db: db_dependency,
@@ -476,7 +476,7 @@ async def list_campaign_ads(
 
 
 @router.get("/assets/{asset_id}/imagen")
-async def proxy_asset_image(
+def proxy_asset_image(
     asset_id: str,
     user: user_dependency,
     db: db_dependency,
@@ -527,7 +527,7 @@ async def proxy_asset_image(
 
 
 @router.get("/metrics")
-async def get_period_metrics(
+def get_period_metrics(
     user: user_dependency,
     db: db_dependency,
     year: int = Query(...),
@@ -627,7 +627,7 @@ async def get_period_metrics(
 
 
 @router.post("/sync/{db_campana_id}")
-async def sync_campaign_metrics(
+def sync_campaign_metrics(
     db_campana_id: int, user: user_dependency, db: db_dependency
 ):
     """Sincroniza métricas de Google Ads al registro local de la campaña."""
@@ -908,7 +908,7 @@ def _importar_todas_las_marcas(db: Session) -> dict:
 
 
 @router.post("/importar")
-async def importar_campanas(payload: dict, user: user_dependency, db: db_dependency):
+def importar_campanas(payload: dict, user: user_dependency, db: db_dependency):
     """Importa o actualiza campañas de Google Ads en la BD de Metrik."""
     _require_admin(user)
     cfg = _get_google_config(db)

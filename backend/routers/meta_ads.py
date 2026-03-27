@@ -182,7 +182,7 @@ async def get_status(user: user_dependency, db: db_dependency):
 # ─── Token exchange ─────────────────────────────────────────────────────────────
 
 @router.post("/token/exchange")
-async def exchange_short_token(payload: dict, user: user_dependency, db: db_dependency):
+def exchange_short_token(payload: dict, user: user_dependency, db: db_dependency):
     """Canjea un token de corta duración por uno de larga duración y lo guarda."""
     _require_admin(user)
     short_token = payload.get("access_token", "").strip()
@@ -292,7 +292,7 @@ async def set_account_map(payload: dict, user: user_dependency, db: db_dependenc
 # ─── Campañas de Meta Ads ──────────────────────────────────────────────────────
 
 @router.get("/campanas")
-async def list_meta_campaigns(
+def list_meta_campaigns(
     user: user_dependency,
     db: db_dependency,
     marca: Optional[str] = Query(None),
@@ -338,7 +338,7 @@ async def list_meta_campaigns(
 # ─── Anuncios de una campaña Meta Ads ────────────────────────────────────────
 
 @router.get("/campanas/{campaign_id}/anuncios")
-async def list_meta_campaign_ads(
+def list_meta_campaign_ads(
     campaign_id: str,
     user: user_dependency,
     db: db_dependency,
@@ -443,7 +443,7 @@ async def list_meta_campaign_ads(
 # ─── Métricas por período ──────────────────────────────────────────────────────
 
 @router.get("/metrics")
-async def get_period_metrics(
+def get_period_metrics(
     user: user_dependency,
     db: db_dependency,
     year: int = Query(...),
@@ -532,7 +532,7 @@ async def get_period_metrics(
 # ─── Sync individual ────────────────────────────────────────────────────────────
 
 @router.post("/sync/{db_campana_id}")
-async def sync_campaign_metrics(
+def sync_campaign_metrics(
     db_campana_id: int, user: user_dependency, db: db_dependency
 ):
     """Sincroniza métricas de Meta Ads al registro local."""
@@ -795,7 +795,7 @@ def _importar_todas_las_marcas(db: Session) -> dict:
 
 
 @router.post("/importar")
-async def importar_campanas(payload: dict, user: user_dependency, db: db_dependency):
+def importar_campanas(payload: dict, user: user_dependency, db: db_dependency):
     """Importa o actualiza campañas de Meta Ads en la BD de Metrik."""
     _require_admin(user)
     cfg = _get_meta_config(db)

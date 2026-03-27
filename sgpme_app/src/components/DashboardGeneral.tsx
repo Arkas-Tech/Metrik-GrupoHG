@@ -259,8 +259,34 @@ export default function DashboardGeneral({
   });
 
   // API metrics for dashboard digital section
-  const [apiMetricsGoogle, setApiMetricsGoogle] = useState<Record<string, { alcance: number; interacciones: number; leads: number; gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number }>>({});
-  const [apiMetricsMeta, setApiMetricsMeta] = useState<Record<string, { alcance: number; interacciones: number; leads: number; gasto_actual: number; ctr: number; conversion: number; cxc_porcentaje: number }>>({});
+  const [apiMetricsGoogle, setApiMetricsGoogle] = useState<
+    Record<
+      string,
+      {
+        alcance: number;
+        interacciones: number;
+        leads: number;
+        gasto_actual: number;
+        ctr: number;
+        conversion: number;
+        cxc_porcentaje: number;
+      }
+    >
+  >({});
+  const [apiMetricsMeta, setApiMetricsMeta] = useState<
+    Record<
+      string,
+      {
+        alcance: number;
+        interacciones: number;
+        leads: number;
+        gasto_actual: number;
+        ctr: number;
+        conversion: number;
+        cxc_porcentaje: number;
+      }
+    >
+  >({});
 
   // Datos organizados por mes: { [mes: number]: Array<datos> }
   const [desplazamientoPorMes, setDesplazamientoPorMes] = useState<{
@@ -488,10 +514,15 @@ export default function DashboardGeneral({
     let cancelled = false;
     (async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const [gRes, mRes] = await Promise.all([
-          fetchConToken(`${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`),
-          fetchConToken(`${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`),
+          fetchConToken(
+            `${API_URL}/google-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`,
+          ),
+          fetchConToken(
+            `${API_URL}/meta-ads/metrics?year=${añoSeleccionado}&month=${filtroMesGlobal}`,
+          ),
         ]);
         if (!cancelled) {
           setApiMetricsGoogle(gRes.ok ? await gRes.json() : {});
@@ -504,7 +535,9 @@ export default function DashboardGeneral({
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [filtroMesGlobal, añoSeleccionado]);
 
   // Función para manejar la carga de PDF
@@ -1044,8 +1077,10 @@ export default function DashboardGeneral({
   const calcularMetricasPlataforma = (plataforma: string) => {
     // For Meta Ads and Google Ads, use real API metrics keyed by campaign external ID
     if (plataforma === "Meta Ads" || plataforma === "Google Ads") {
-      const apiData = plataforma === "Google Ads" ? apiMetricsGoogle : apiMetricsMeta;
-      const idField = plataforma === "Google Ads" ? "google_ads_id" : "meta_ads_id";
+      const apiData =
+        plataforma === "Google Ads" ? apiMetricsGoogle : apiMetricsMeta;
+      const idField =
+        plataforma === "Google Ads" ? "google_ads_id" : "meta_ads_id";
 
       // Filter DB campaigns for this platform + marca
       const campanasPlataforma = campanasDb.filter((c) => {
@@ -1060,13 +1095,18 @@ export default function DashboardGeneral({
       let cxcCount = 0;
 
       for (const c of campanasPlataforma) {
-        const externalId = (c as unknown as Record<string, unknown>)[idField] as string | undefined;
+        const externalId = (c as unknown as Record<string, unknown>)[
+          idField
+        ] as string | undefined;
         if (!externalId) continue;
         const m = apiData[externalId];
         if (!m) continue;
         leadsTotal += m.leads || 0;
         inversionTotal += m.gasto_actual || 0;
-        if (m.cxc_porcentaje) { cxcSum += m.cxc_porcentaje; cxcCount++; }
+        if (m.cxc_porcentaje) {
+          cxcSum += m.cxc_porcentaje;
+          cxcCount++;
+        }
       }
 
       return {
@@ -1086,10 +1126,17 @@ export default function DashboardGeneral({
 
     return {
       leads: campanasActivas.reduce((sum, c) => sum + (c.leads || 0), 0),
-      inversion: campanasActivas.reduce((sum, c) => sum + (c.gasto_actual || 0), 0),
-      cxc: campanasActivas.length > 0
-        ? campanasActivas.reduce((sum, c) => sum + (c.cxc_porcentaje || 0), 0) / campanasActivas.length
-        : 0,
+      inversion: campanasActivas.reduce(
+        (sum, c) => sum + (c.gasto_actual || 0),
+        0,
+      ),
+      cxc:
+        campanasActivas.length > 0
+          ? campanasActivas.reduce(
+              (sum, c) => sum + (c.cxc_porcentaje || 0),
+              0,
+            ) / campanasActivas.length
+          : 0,
     };
   };
 
@@ -2856,7 +2903,7 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=meta")}
+              onClick={() => router.push("/campanas?plataforma=meta&from=dashboard")}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
@@ -2908,7 +2955,7 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=google")}
+              onClick={() => router.push("/campanas?plataforma=google&from=dashboard")}
               className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
@@ -2957,7 +3004,7 @@ export default function DashboardGeneral({
               </div>
             </div>
             <button
-              onClick={() => router.push("/campanas?plataforma=tiktok")}
+              onClick={() => router.push("/campanas?plataforma=tiktok&from=dashboard")}
               className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Ver campañas
