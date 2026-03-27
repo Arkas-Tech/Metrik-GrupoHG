@@ -49,6 +49,7 @@ export default function EventosPage() {
     guardarBrief,
     eliminarBrief,
     exportarBriefPDF,
+    cargarBriefCompleto,
   } = useEventos();
   const { facturas } = useFacturas();
   const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
@@ -317,13 +318,15 @@ export default function EventosPage() {
     }
   };
 
-  const manejarVerTemplate = (evento: Evento) => {
-    setEventoEditando(evento);
+  const manejarVerTemplate = async (evento: Evento) => {
+    const eventoConBrief = await cargarBriefCompleto(evento.id);
+    setEventoEditando(eventoConBrief || evento);
     navegarA("template");
   };
 
-  const manejarVerPreview = (evento: Evento) => {
-    setEventoEditando(evento);
+  const manejarVerPreview = async (evento: Evento) => {
+    const eventoConBrief = await cargarBriefCompleto(evento.id);
+    setEventoEditando(eventoConBrief || evento);
     navegarA("preview");
   };
 
@@ -562,10 +565,10 @@ export default function EventosPage() {
                           navegarA("brief");
                         }
                       }}
-                      onVerBrief={(eventoId) => {
-                        const evento = eventos.find((e) => e.id === eventoId);
-                        if (evento && evento.brief) {
-                          setEventoEditando(evento);
+                      onVerBrief={async (eventoId) => {
+                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        if (eventoConBrief && eventoConBrief.brief) {
+                          setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
                       }}
@@ -589,10 +592,10 @@ export default function EventosPage() {
                           navegarA("brief");
                         }
                       }}
-                      onVerBrief={(eventoId) => {
-                        const evento = eventos.find((e) => e.id === eventoId);
-                        if (evento && evento.brief) {
-                          setEventoEditando(evento);
+                      onVerBrief={async (eventoId) => {
+                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        if (eventoConBrief && eventoConBrief.brief) {
+                          setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
                       }}
@@ -616,10 +619,10 @@ export default function EventosPage() {
                           navegarA("brief");
                         }
                       }}
-                      onVerBrief={(eventoId) => {
-                        const evento = eventos.find((e) => e.id === eventoId);
-                        if (evento && evento.brief) {
-                          setEventoEditando(evento);
+                      onVerBrief={async (eventoId) => {
+                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        if (eventoConBrief && eventoConBrief.brief) {
+                          setEventoEditando(eventoConBrief);
                           navegarA("template");
                         }
                       }}
@@ -1577,10 +1580,10 @@ export default function EventosPage() {
                   setVistaActual("brief");
                 }
               }}
-              onVerBrief={(eventoId) => {
-                const evento = eventos.find((e) => e.id === eventoId);
-                if (evento && evento.brief) {
-                  setEventoEditando(evento);
+              onVerBrief={async (eventoId) => {
+                const eventoConBrief = await cargarBriefCompleto(eventoId);
+                if (eventoConBrief && eventoConBrief.brief) {
+                  setEventoEditando(eventoConBrief);
                   setVistaActual("template");
                 }
               }}
@@ -1611,10 +1614,10 @@ export default function EventosPage() {
                   setVistaActual("brief");
                 }
               }}
-              onVerBrief={(eventoId) => {
-                const evento = eventos.find((e) => e.id === eventoId);
-                if (evento && evento.brief) {
-                  setEventoEditando(evento);
+              onVerBrief={async (eventoId) => {
+                const eventoConBrief = await cargarBriefCompleto(eventoId);
+                if (eventoConBrief && eventoConBrief.brief) {
+                  setEventoEditando(eventoConBrief);
                   setVistaActual("template");
                 }
               }}

@@ -165,19 +165,17 @@ export function useEventos() {
 
   const cargarEventos = useCallback(async () => {
     const cacheKey = "eventos:all";
-    const cacheKeyFull = "eventos:all:full";
 
     // Return stale data immediately if available
-    const staleFull = getStale<Evento[]>(cacheKeyFull);
-    const stale = staleFull || getStale<Evento[]>(cacheKey);
+    const stale = getStale<Evento[]>(cacheKey);
     if (stale) {
       setEventos(stale);
       setLoading(false);
     }
 
-    // Skip network if full cache (with images) is fresh
-    const freshFull = getCached<Evento[]>(cacheKeyFull);
-    if (freshFull) return;
+    // Skip network if cache is fresh
+    const fresh = getCached<Evento[]>(cacheKey);
+    if (fresh) return;
 
     // Abort previous in-flight request
     abortRef.current?.abort();
@@ -209,48 +207,25 @@ export function useEventos() {
         }
       }
 
-      // Phase 1: Load all events without images (fast ~1.4MB)
-      const fresh = getCached<Evento[]>(cacheKey);
-      if (!fresh) {
-        const eventosMapeados = await deduplicateRequest<Evento[]>(
-          cacheKey,
-          async () => {
-            const response = await fetchConToken(
-              `${API_URL}/eventos/with-briefs`,
-              { signal: controller.signal },
-            );
-            if (!response.ok)
-              throw new Error(`Error al cargar eventos: ${response.status}`);
-            const data: EventoWithBrief[] = await response.json();
-            return mapEventos(data);
-          },
-        );
-
-        if (!controller.signal.aborted) {
-          setCache(cacheKey, eventosMapeados);
-          setEventos(eventosMapeados);
-          setError(null);
-          setLoading(false);
-        }
-      }
-
-      // Phase 2: Lazy-load full briefs with images in background
-      if (!controller.signal.aborted) {
-        try {
-          const fullResponse = await fetchConToken(
-            `${API_URL}/eventos/with-briefs?include_images=true`,
+      // Load all events without images (fast ~1.4MB)
+      const eventosMapeados = await deduplicateRequest<Evento[]>(
+        cacheKey,
+        async () => {
+          const response = await fetchConToken(
+            `${API_URL}/eventos/with-briefs`,
             { signal: controller.signal },
           );
-          if (fullResponse.ok && !controller.signal.aborted) {
-            const fullData: EventoWithBrief[] = await fullResponse.json();
-            const fullEventos = mapEventos(fullData);
-            setCache(cacheKeyFull, fullEventos);
-            setEventos(fullEventos);
-          }
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "AbortError") return;
-          // Images failed to load — non-critical, events still visible
-        }
+          if (!response.ok)
+            throw new Error(`Error al cargar eventos: ${response.status}`);
+          const data: EventoWithBrief[] = await response.json();
+          return mapEventos(data);
+        },
+      );
+
+      if (!controller.signal.aborted) {
+        setCache(cacheKey, eventosMapeados);
+        setEventos(eventosMapeados);
+        setError(null);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -1012,6 +987,85 @@ export function useEventos() {
     [eventos],
   );
 
+  // On-demand: fetch full brief with images for a specific event
+  const cargarBriefCompleto = useCallback(
+    async (eventoId: string): Promise<Evento | null> => {
+      const evento = eventos.find((e) => e.id === eventoId);
+      if (!evento) return null;
+
+      // If brief already has images loaded, return as-is
+      if (evento.brief?.observacionesEspeciales) {
+        try {
+          const obs = JSON.parse(evento.brief.observacionesEspeciales);
+          if (obs.imagenes && obs.imagenes.length > 0 && obs.imagenes[0].url) {
+            return evento;
+          }
+        } catch {
+          // continue to fetch
+        }
+      }
+
+      if (!evento.brief) return evento;
+
+      try {
+        const response = await fetchConToken(
+          `${API_URL}/eventos/${eventoId}/brief`,
+        );
+        if (!response.ok) return evento;
+
+        const briefData = await response.json();
+        const briefMapeado: BriefEvento = {
+          id: briefData.id.toString(),
+          eventoId: briefData.evento_id.toString(),
+          objetivoEspecifico: briefData.objetivo_especifico,
+          audienciaDetallada: briefData.audiencia_detallada,
+          mensajeClave: briefData.mensaje_clave,
+          actividades: (briefData.actividades || []).map(
+            (act: ActividadBriefBackend) => ({
+              id: act.id.toString(),
+              nombre: act.nombre,
+              descripcion: act.descripcion,
+              duracion: act.duracion,
+              responsable: act.responsable,
+              recursos: act.recursos,
+            }),
+          ),
+          cronograma: (briefData.cronograma || []).map(
+            (cron: CronogramaBriefBackend) => ({
+              id: cron.id.toString(),
+              actividad: cron.actividad,
+              fechaInicio: cron.fecha_inicio,
+              fechaFin: cron.fecha_fin,
+              responsable: cron.responsable,
+              estado: cron.estado,
+            }),
+          ),
+          requerimientos: briefData.requerimientos || "",
+          proveedores: briefData.proveedores || "",
+          logistica: briefData.logistica || "",
+          presupuestoDetallado: briefData.presupuesto_detallado || "",
+          observacionesEspeciales: briefData.observaciones_especiales || "",
+          fechaCreacion: briefData.fecha_creacion
+            ? briefData.fecha_creacion.split("T")[0]
+            : "",
+          fechaModificacion: briefData.fecha_modificacion,
+          creadoPor: briefData.creado_por,
+          aprobadoPor: briefData.aprobado_por,
+          fechaAprobacion: briefData.fecha_aprobacion,
+        };
+
+        const eventoConBrief = { ...evento, brief: briefMapeado };
+        setEventos((prev) =>
+          prev.map((e) => (e.id === eventoId ? eventoConBrief : e)),
+        );
+        return eventoConBrief;
+      } catch {
+        return evento;
+      }
+    },
+    [eventos],
+  );
+
   return {
     eventos,
     loading,
@@ -1027,5 +1081,6 @@ export function useEventos() {
     guardarBrief,
     eliminarBrief,
     exportarBriefPDF,
+    cargarBriefCompleto,
   };
 }
