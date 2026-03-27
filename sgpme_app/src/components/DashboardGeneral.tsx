@@ -1092,7 +1092,23 @@ export default function DashboardGeneral({
       }
     }
 
-    // Fallback: comparación exacta de año+mes contra fecha_instalacion
+    // Fallback 1: usar inicio_contrato / termino_contrato si existen
+    if (presencia.inicio_contrato) {
+      const inicioVal = (() => {
+        const d = new Date(presencia.inicio_contrato + "T00:00:00");
+        return d.getFullYear() * 12 + d.getMonth() + 1;
+      })();
+      if (presencia.termino_contrato) {
+        const terminoVal = (() => {
+          const d = new Date(presencia.termino_contrato + "T00:00:00");
+          return d.getFullYear() * 12 + d.getMonth() + 1;
+        })();
+        return inicioVal <= selectedVal && selectedVal <= terminoVal;
+      }
+      return selectedVal >= inicioVal;
+    }
+
+    // Fallback 2: comparación exacta de año+mes contra fecha_instalacion
     const fi = new Date(presencia.fecha_instalacion + "T00:00:00");
     return fi.getFullYear() * 12 + fi.getMonth() + 1 === selectedVal;
   });

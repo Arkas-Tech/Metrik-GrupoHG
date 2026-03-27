@@ -566,7 +566,8 @@ export default function EventosPage() {
                         }
                       }}
                       onVerBrief={async (eventoId) => {
-                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        const eventoConBrief =
+                          await cargarBriefCompleto(eventoId);
                         if (eventoConBrief && eventoConBrief.brief) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
@@ -593,7 +594,8 @@ export default function EventosPage() {
                         }
                       }}
                       onVerBrief={async (eventoId) => {
-                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        const eventoConBrief =
+                          await cargarBriefCompleto(eventoId);
                         if (eventoConBrief && eventoConBrief.brief) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
@@ -620,7 +622,8 @@ export default function EventosPage() {
                         }
                       }}
                       onVerBrief={async (eventoId) => {
-                        const eventoConBrief = await cargarBriefCompleto(eventoId);
+                        const eventoConBrief =
+                          await cargarBriefCompleto(eventoId);
                         if (eventoConBrief && eventoConBrief.brief) {
                           setEventoEditando(eventoConBrief);
                           navegarA("template");
