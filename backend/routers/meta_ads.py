@@ -355,13 +355,13 @@ async def list_meta_campaign_ads(
     account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
 
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type}",
+        "fields": "id,name,effective_status,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec}",
         "limit": "100",
     })
 
     ads = data.get("data", [])
 
-    # Batch-fetch full-size image URLs via adimages (one call for all hashes)
+    # Batch-fetch full-res image URLs via adimages (one call for all hashes)
     hash_to_full_url: dict = {}
     if account_id:
         hashes = [
@@ -373,12 +373,16 @@ async def list_meta_campaign_ads(
             try:
                 imgs = _meta_api(token, f"{account_id}/adimages", {
                     "hashes": json.dumps(hashes),
-                    "fields": "hash,url",
+                    "fields": "hash,permalink_url,url",
                     "limit": "500",
                 })
                 for img in imgs.get("data", []):
-                    if img.get("hash") and img.get("url"):
-                        hash_to_full_url[img["hash"]] = img["url"]
+                    h = img.get("hash")
+                    if h:
+                        # permalink_url is the original full-resolution upload
+                        best = img.get("permalink_url") or img.get("url", "")
+                        if best:
+                            hash_to_full_url[h] = best
             except Exception:
                 pass
 
@@ -387,12 +391,22 @@ async def list_meta_campaign_ads(
         creative = ad.get("creative") or {}
         image_hash = creative.get("image_hash", "")
         full_url = hash_to_full_url.get(image_hash, "") if image_hash else ""
+
+        # Fallback: picture from object_story_spec (link/photo ads)
+        if not full_url:
+            oss = creative.get("object_story_spec") or {}
+            full_url = (
+                (oss.get("link_data") or {}).get("picture")
+                or (oss.get("photo_data") or {}).get("url")
+                or creative.get("image_url")
+                or ""
+            )
+
         results.append({
             "id": str(ad.get("id", "")),
             "nombre": ad.get("name", ""),
             "estado": ad.get("effective_status", ""),
             "full_image_url": full_url,
-            "image_url": creative.get("image_url", ""),
             "thumbnail_url": creative.get("thumbnail_url", ""),
             "titulo": creative.get("title", ""),
             "cuerpo": creative.get("body", ""),
