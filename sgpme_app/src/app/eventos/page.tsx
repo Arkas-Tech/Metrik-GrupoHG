@@ -1331,13 +1331,13 @@ export default function EventosPage() {
               </div>
             </div>
 
-            {/* Sección de Briefs - Siempre visible */}
+            {/* Sección de Reportes - Siempre visible */}
             <div className="bg-white rounded-lg shadow-md mb-6 overflow-hidden">
               <div className="px-6 py-4 bg-linear-to-r from-blue-50 to-purple-50 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                      ⭐ Briefs
+                      ⭐ Reportes
                     </h3>
                     <div className="flex gap-2">
                       <button
@@ -1368,9 +1368,9 @@ export default function EventosPage() {
                 <p className="text-sm text-gray-600 mt-2">
                   {filtroBriefs === "disponibles"
                     ? usuario?.tipo === "auditor"
-                      ? "Haz clic en cualquier brief para ver la documentación completa"
-                      : "Explora los briefs completados o crea vista previa antes de finalizar"
-                    : "Eventos que aún no tienen brief creado"}
+                      ? "Haz clic en cualquier reporte para ver la documentación completa"
+                      : "Explora los reportes completados o crea vista previa antes de finalizar"
+                    : "Eventos que aún no tienen reporte creado"}
                 </p>
               </div>
 
@@ -1379,7 +1379,7 @@ export default function EventosPage() {
                   eventosFiltrados.filter((e) => e.brief).length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <div className="text-4xl mb-2">📋</div>
-                      <p>No hay briefs cerrados</p>
+                      <p>No hay reportes cerrados</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1472,7 +1472,7 @@ export default function EventosPage() {
                                     onClick={() => manejarVerTemplate(evento)}
                                     className="flex-1 px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
                                   >
-                                    📋 Ver Brief Completo
+                                    📋 Ver Reporte Completo
                                   </button>
                                 ) : (
                                   <>
@@ -1496,7 +1496,7 @@ export default function EventosPage() {
                                         manejarEliminarBrief(evento)
                                       }
                                       className="px-3 py-2 bg-red-100 text-red-700 text-xs rounded-md hover:bg-red-200 transition-colors"
-                                      title="Borrar Brief"
+                                      title="Borrar Reporte"
                                     >
                                       🗑️
                                     </button>
@@ -1512,7 +1512,7 @@ export default function EventosPage() {
                 eventosFiltrados.filter((e) => !e.brief).length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-2">✅</div>
-                    <p>Todos los eventos tienen brief</p>
+                    <p>Todos los eventos tienen reporte</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1551,7 +1551,7 @@ export default function EventosPage() {
                             }}
                             className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
                           >
-                            📋 Crear Brief
+                            📋 Crear Reporte
                           </button>
                         </div>
                       ))}

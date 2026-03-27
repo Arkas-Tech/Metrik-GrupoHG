@@ -64,7 +64,7 @@ interface ImageItem {
   nombre: string;
   url: string;
   descripcion?: string;
-  categoria: string;
+  asignacion: string;
   checked: boolean;
 }
 

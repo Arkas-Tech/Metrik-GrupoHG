@@ -10,7 +10,7 @@ interface ImageUploadMultipleProps {
       id: string;
       nombre: string;
       url: string;
-      categoria: string;
+      asignacion: string;
       checked: boolean;
       file?: File;
     }[],
@@ -55,7 +55,7 @@ export default function ImageUploadMultiple({
       id: string;
       nombre: string;
       url: string;
-      categoria: string;
+      asignacion: string;
       checked: boolean;
       file?: File;
     }[] = [];
@@ -107,7 +107,7 @@ export default function ImageUploadMultiple({
           id: `img_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
           nombre: file.name.replace(/\.[^/.]+$/, ""),
           url: base64String,
-          categoria: "",
+          asignacion: "",
           checked: false,
           file: resultFile,
         });

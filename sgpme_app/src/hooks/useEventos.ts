@@ -882,26 +882,26 @@ export function useEventos() {
             addText("IMÁGENES DEL EVENTO", 16, true);
             addSpace(5);
 
-            // Agrupar imágenes por categoría
-            const porCategoria: Record<string, typeof evidencia.imagenes> = {};
-            const sinCategoria: typeof evidencia.imagenes = [];
+            // Agrupar imágenes por asignación
+            const porAsignacion: Record<string, typeof evidencia.imagenes> = {};
+            const sinAsignacion: typeof evidencia.imagenes = [];
             for (const imagen of evidencia.imagenes) {
-              const cat = imagen.categoria || "";
+              const cat = imagen.asignacion || (imagen as typeof imagen & { categoria?: string }).categoria || "";
               if (cat) {
-                if (!porCategoria[cat]) porCategoria[cat] = [];
-                porCategoria[cat].push(imagen);
+                if (!porAsignacion[cat]) porAsignacion[cat] = [];
+                porAsignacion[cat].push(imagen);
               } else {
-                sinCategoria.push(imagen);
+                sinAsignacion.push(imagen);
               }
             }
 
-            const categorias = Object.keys(porCategoria);
+            const asignaciones = Object.keys(porAsignacion);
 
-            for (const categoria of categorias) {
-              addText(categoria.toUpperCase(), 14, true);
+            for (const asignacion of asignaciones) {
+              addText(asignacion.toUpperCase(), 14, true);
               addSpace(3);
 
-              for (const [index, imagen] of porCategoria[categoria].entries()) {
+              for (const [index, imagen] of porAsignacion[asignacion].entries()) {
                 if (yPos > pageHeight - 100) {
                   pdf.addPage();
                   yPos = 20;
@@ -975,11 +975,11 @@ export function useEventos() {
               addSpace(5);
             }
 
-            if (sinCategoria.length > 0) {
-              addText("SIN CATEGORÍA", 14, true);
+            if (sinAsignacion.length > 0) {
+              addText("SIN ASIGNACIÓN", 14, true);
               addSpace(3);
 
-              for (const [index, imagen] of sinCategoria.entries()) {
+              for (const [index, imagen] of sinAsignacion.entries()) {
                 if (yPos > pageHeight - 100) {
                   pdf.addPage();
                   yPos = 20;

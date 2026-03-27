@@ -24,12 +24,12 @@ interface Imagen {
   id: string;
   nombre: string;
   url: string;
-  categoria: string;
+  asignacion: string;
   checked: boolean;
   file?: File;
 }
 
-const CATEGORIAS_IMAGEN = [
+const ASIGNACIONES_IMAGEN = [
   "Fachada de la agencia",
   "Decoración completa del showroom",
   "Decoración del vehiculo",
@@ -153,9 +153,9 @@ export default function FormularioBrief({
       try {
         const evidencia = JSON.parse(briefInicial.observacionesEspeciales);
         return (evidencia.imagenes || []).map(
-          (img: Imagen & { descripcion?: string }) => ({
+          (img: Imagen & { descripcion?: string; categoria?: string }) => ({
             ...img,
-            categoria: img.categoria || "",
+            asignacion: img.asignacion || img.categoria || "",
             checked: img.checked ?? false,
           }),
         );
@@ -232,19 +232,51 @@ export default function FormularioBrief({
     setImagenes((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const actualizarCategoriaImagen = (id: string, nuevaCategoria: string) => {
-    setImagenes((prev) =>
-      prev.map((img) =>
-        img.id === id ? { ...img, categoria: nuevaCategoria } : img,
-      ),
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [asignacionPendiente, setAsignacionPendiente] = useState("");
+  const [seccionesExpandidas, setSeccionesExpandidas] = useState<
+    Record<string, boolean>
+  >({});
+  const imagenesSinAsignar = imagenes.filter((i) => !i.asignacion);
+  const imagenesAsignadas = imagenes.filter((i) => i.asignacion);
+
+  const toggleSeleccionImagen = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
-  const toggleCheckImagen = (id: string) => {
+  const seleccionarTodo = () => {
+    if (
+      selectedIds.length === imagenesSinAsignar.length &&
+      imagenesSinAsignar.length > 0
+    ) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(imagenesSinAsignar.map((i) => i.id));
+    }
+  };
+
+  const confirmarAsignacion = () => {
+    if (!asignacionPendiente) return;
     setImagenes((prev) =>
       prev.map((img) =>
-        img.id === id ? { ...img, checked: !img.checked } : img,
+        selectedIds.includes(img.id)
+          ? { ...img, asignacion: asignacionPendiente }
+          : img,
       ),
+    );
+    setSelectedIds([]);
+    setAsignacionPendiente("");
+    setSeccionesExpandidas((prev) => ({
+      ...prev,
+      [asignacionPendiente]: true,
+    }));
+  };
+
+  const quitarAsignacion = (id: string) => {
+    setImagenes((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, asignacion: "" } : img)),
     );
   };
 
@@ -557,106 +589,200 @@ export default function FormularioBrief({
             </div>
             {imagenes.length > 0 && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  💡 Marca cada imagen y asigna una categoría:
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {imagenes.map((imagen) => (
-                    <div
-                      key={imagen.id}
-                      className={`border rounded-lg p-3 bg-white transition-colors ${imagen.checked ? "border-green-400 bg-green-50" : "border-gray-200"}`}
-                    >
-                      {/* Imagen/Video preview */}
-                      {imagen.url && (
-                        <div
-                          className="relative w-full h-32 rounded mb-2 cursor-pointer group overflow-hidden bg-gray-100"
-                          onClick={() => abrirImagenModal(imagen)}
+                {/* Imágenes sin asignar */}
+                {imagenesSinAsignar.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedIds.length === imagenesSinAsignar.length &&
+                          imagenesSinAsignar.length > 0
+                        }
+                        onChange={seleccionarTodo}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        disabled={loading}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        {imagenesSinAsignar.length} sin asignar
+                      </span>
+                    </div>
+                    {selectedIds.length > 0 && (
+                      <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border-b border-blue-200">
+                        <span className="text-sm text-blue-700 whitespace-nowrap">
+                          Asignar {selectedIds.length} imagen
+                          {selectedIds.length !== 1 ? "es" : ""} a:
+                        </span>
+                        <select
+                          value={asignacionPendiente}
+                          onChange={(e) =>
+                            setAsignacionPendiente(e.target.value)
+                          }
+                          className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          disabled={loading}
                         >
-                          {imagen.url.startsWith("data:video/") ? (
-                            <video
-                              src={imagen.url}
-                              className="w-full h-32 object-cover rounded"
-                              muted
-                            />
-                          ) : (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={imagen.url}
-                              alt={imagen.nombre}
-                              className="w-full h-32 object-cover rounded"
-                              loading="eager"
-                            />
-                          )}
-                          {imagen.file && (
-                            <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded z-10">
-                              📁 Local
-                            </div>
-                          )}
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-transparent group-hover:bg-black/20 transition-all rounded flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1.5">
-                              <svg
-                                className="w-4 h-4 text-gray-800"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removerImagen(imagen.id);
-                            }}
-                            className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
-                            disabled={loading}
+                          <option value="">Seleccionar asignación...</option>
+                          {ASIGNACIONES_IMAGEN.map((a) => (
+                            <option key={a} value={a}>
+                              {a}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={confirmarAsignacion}
+                          disabled={!asignacionPendiente || loading}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-300 transition-colors whitespace-nowrap"
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
+                      {imagenesSinAsignar.map((imagen) => (
+                        <div
+                          key={imagen.id}
+                          className={`border rounded-lg p-2 bg-white transition-colors ${
+                            selectedIds.includes(imagen.id)
+                              ? "border-blue-400 bg-blue-50"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div
+                            className="relative w-full h-28 rounded mb-2 cursor-pointer group overflow-hidden bg-gray-100"
+                            onClick={() => abrirImagenModal(imagen)}
                           >
-                            ✕
-                          </button>
+                            {imagen.url.startsWith("data:video/") ? (
+                              <video
+                                src={imagen.url}
+                                className="w-full h-28 object-cover rounded"
+                                muted
+                              />
+                            ) : (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={imagen.url}
+                                alt={imagen.nombre}
+                                className="w-full h-28 object-cover rounded"
+                                loading="eager"
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removerImagen(imagen.id);
+                              }}
+                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
+                              disabled={loading}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(imagen.id)}
+                              onChange={() => toggleSeleccionImagen(imagen.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              disabled={loading}
+                            />
+                            <span className="text-xs text-gray-600 truncate">
+                              {imagen.nombre}
+                            </span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Imágenes asignadas por sección */}
+                {Array.from(
+                  new Set(imagenesAsignadas.map((i) => i.asignacion)),
+                ).map((asig) => {
+                  const imgs = imagenesAsignadas.filter(
+                    (i) => i.asignacion === asig,
+                  );
+                  return (
+                    <div
+                      key={asig}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSeccionesExpandidas((prev) => ({
+                            ...prev,
+                            [asig]: !prev[asig],
+                          }))
+                        }
+                        className="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-green-800 text-sm">
+                            {asig}
+                          </span>
+                          <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {imgs.length}
+                          </span>
+                        </div>
+                        <span className="text-green-600 text-sm">
+                          {seccionesExpandidas[asig] ? "▲" : "▼"}
+                        </span>
+                      </button>
+                      {seccionesExpandidas[asig] && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
+                          {imgs.map((imagen) => (
+                            <div
+                              key={imagen.id}
+                              className="border border-gray-200 rounded-lg p-2 bg-white"
+                            >
+                              <div
+                                className="relative w-full h-28 rounded mb-2 cursor-pointer overflow-hidden bg-gray-100"
+                                onClick={() => abrirImagenModal(imagen)}
+                              >
+                                {imagen.url.startsWith("data:video/") ? (
+                                  <video
+                                    src={imagen.url}
+                                    className="w-full h-28 object-cover rounded"
+                                    muted
+                                  />
+                                ) : (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={imagen.url}
+                                    alt={imagen.nombre}
+                                    className="w-full h-28 object-cover rounded"
+                                    loading="eager"
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removerImagen(imagen.id);
+                                  }}
+                                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
+                                  disabled={loading}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => quitarAsignacion(imagen.id)}
+                                className="w-full text-xs text-gray-500 hover:text-blue-600 transition-colors py-0.5"
+                                disabled={loading}
+                              >
+                                ↩ Quitar asignación
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
-
-                      {/* Checkbox */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <input
-                          type="checkbox"
-                          checked={imagen.checked}
-                          onChange={() => toggleCheckImagen(imagen.id)}
-                          className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                          disabled={loading}
-                        />
-                        <span className="text-xs text-gray-600">
-                          {imagen.checked ? "✓ Verificada" : "Marcar"}
-                        </span>
-                      </div>
-
-                      {/* Selector de categoría */}
-                      <select
-                        value={imagen.categoria}
-                        onChange={(e) =>
-                          actualizarCategoriaImagen(imagen.id, e.target.value)
-                        }
-                        className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        disabled={loading}
-                      >
-                        <option value="">Seleccionar categoría...</option>
-                        {CATEGORIAS_IMAGEN.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             )}
           </div>

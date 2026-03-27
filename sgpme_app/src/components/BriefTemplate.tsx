@@ -469,26 +469,26 @@ export default function BriefTemplate({
               Galería del Evento
             </h3>
             {(() => {
-              // Agrupar imágenes por categoría
-              const porCategoria: Record<string, ImagenEvento[]> = {};
-              const sinCategoria: ImagenEvento[] = [];
+              // Agrupar imágenes por asignación
+              const porAsignacion: Record<string, ImagenEvento[]> = {};
+              const sinAsignacion: ImagenEvento[] = [];
               imagenes.forEach((imagen: ImagenEvento) => {
-                const cat = imagen.categoria || "";
+                const cat = imagen.asignacion || (imagen as ImagenEvento & { categoria?: string }).categoria || "";
                 if (cat) {
-                  if (!porCategoria[cat]) porCategoria[cat] = [];
-                  porCategoria[cat].push(imagen);
+                  if (!porAsignacion[cat]) porAsignacion[cat] = [];
+                  porAsignacion[cat].push(imagen);
                 } else {
-                  sinCategoria.push(imagen);
+                  sinAsignacion.push(imagen);
                 }
               });
 
-              const categorias = Object.keys(porCategoria);
+              const asignaciones = Object.keys(porAsignacion);
 
               return (
                 <div className="space-y-4">
-                  {categorias.map((categoria) => (
+                  {asignaciones.map((asignacion) => (
                     <div
-                      key={categoria}
+                      key={asignacion}
                       className="border border-gray-200 rounded-lg overflow-hidden"
                     >
                       <button
@@ -496,7 +496,7 @@ export default function BriefTemplate({
                         onClick={() =>
                           setCategoriasExpandidas((prev) => ({
                             ...prev,
-                            [categoria]: !prev[categoria],
+                            [asignacion]: !prev[asignacion],
                           }))
                         }
                         className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -504,21 +504,21 @@ export default function BriefTemplate({
                         <div className="flex items-center gap-3">
                           <PhotoIcon className="h-5 w-5 text-blue-600" />
                           <span className="font-semibold text-gray-800">
-                            {categoria}
+                            {asignacion}
                           </span>
                           <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                            {porCategoria[categoria].length}
+                            {porAsignacion[asignacion].length}
                           </span>
                         </div>
-                        {categoriasExpandidas[categoria] ? (
+                        {categoriasExpandidas[asignacion] ? (
                           <ChevronUpIcon className="h-5 w-5 text-gray-500" />
                         ) : (
                           <ChevronDownIcon className="h-5 w-5 text-gray-500" />
                         )}
                       </button>
-                      {categoriasExpandidas[categoria] && (
+                      {categoriasExpandidas[asignacion] && (
                         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {porCategoria[categoria].map(
+                          {porAsignacion[asignacion].map(
                             (imagen: ImagenEvento) => (
                               <div
                                 key={imagen.id}
@@ -556,14 +556,14 @@ export default function BriefTemplate({
                       )}
                     </div>
                   ))}
-                  {sinCategoria.length > 0 && (
+                  {sinAsignacion.length > 0 && (
                     <div className="border border-gray-200 rounded-lg overflow-hidden">
                       <button
                         type="button"
                         onClick={() =>
                           setCategoriasExpandidas((prev) => ({
                             ...prev,
-                            __sin_categoria__: !prev["__sin_categoria__"],
+                            __sin_asignacion__: !prev["__sin_asignacion__"],
                           }))
                         }
                         className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -571,21 +571,21 @@ export default function BriefTemplate({
                         <div className="flex items-center gap-3">
                           <PhotoIcon className="h-5 w-5 text-gray-400" />
                           <span className="font-semibold text-gray-600">
-                            Sin categoría
+                            Sin asignación
                           </span>
                           <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
-                            {sinCategoria.length}
+                            {sinAsignacion.length}
                           </span>
                         </div>
-                        {categoriasExpandidas["__sin_categoria__"] ? (
+                        {categoriasExpandidas["__sin_asignacion__"] ? (
                           <ChevronUpIcon className="h-5 w-5 text-gray-500" />
                         ) : (
                           <ChevronDownIcon className="h-5 w-5 text-gray-500" />
                         )}
                       </button>
-                      {categoriasExpandidas["__sin_categoria__"] && (
+                      {categoriasExpandidas["__sin_asignacion__"] && (
                         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {sinCategoria.map((imagen: ImagenEvento) => (
+                          {sinAsignacion.map((imagen: ImagenEvento) => (
                             <div
                               key={imagen.id}
                               className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
