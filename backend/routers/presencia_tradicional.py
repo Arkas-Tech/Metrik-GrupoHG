@@ -114,12 +114,18 @@ async def read_all_presencia(user: user_dependency, db: db_dependency,
     result = []
     for p in presencias:
         item = {c.name: getattr(p, c.name) for c in PresenciaTradicional.__table__.columns}
-        # Keep only fieldValues from datos_extra_json (needed for date filtering)
-        # Strip fieldImages/fieldFiles which contain base64-encoded images (~97MB total)
+        # Keep only light fieldValues from datos_extra_json (needed for date filtering)
+        # Strip base64 images stored inside fieldValues, fieldImages, fieldFiles (~93MB total)
         if p.datos_extra_json:
             try:
                 extras = json_module.loads(p.datos_extra_json)
-                item["datos_extra_json"] = json_module.dumps({"fieldValues": extras.get("fieldValues", {})})
+                raw_fv = extras.get("fieldValues") or {}
+                # Strip any value that is base64 data or longer than 500 chars
+                light_fv = {
+                    k: v for k, v in raw_fv.items()
+                    if not (isinstance(v, str) and (v.startswith("data:") or len(v) > 500))
+                }
+                item["datos_extra_json"] = json_module.dumps({"fieldValues": light_fv})
             except (json_module.JSONDecodeError, TypeError):
                 item["datos_extra_json"] = None
         # Strip imagenes_json for list view (4.3MB of base64 images)
