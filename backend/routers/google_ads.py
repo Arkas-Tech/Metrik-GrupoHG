@@ -446,6 +446,32 @@ async def list_campaign_ads(
                 "interacciones": int(m.get("interactions", 0) or 0),
             }
         )
+
+    # Enriquecer con URLs de imagen en una sola consulta GAQL
+    all_asset_ids = list({img["asset_id"] for r in results for img in r.get("imagenes", [])})
+    if all_asset_ids:
+        ids_clause = ", ".join(all_asset_ids)
+        try:
+            asset_rows = _gaql(
+                token,
+                cfg["developer_token"],
+                customer_id,
+                f"SELECT asset.id, asset.image_asset.full_size.url FROM asset WHERE asset.id IN ({ids_clause})",
+                manager_id=cfg.get("manager_id", ""),
+            )
+            asset_urls: dict = {}
+            for ar in asset_rows:
+                a = ar.get("asset", {})
+                aid = str(a.get("id", ""))
+                url = a.get("imageAsset", {}).get("fullSize", {}).get("url", "")
+                if url:
+                    asset_urls[aid] = url
+            for r in results:
+                for img in r.get("imagenes", []):
+                    img["url"] = asset_urls.get(img["asset_id"], "")
+        except Exception:
+            pass
+
     return results
 
 

@@ -64,6 +64,21 @@ interface GadsItem {
   ctr: number;
 }
 
+interface AnuncioApiItem {
+  id: string;
+  nombre: string;
+  tipo?: string;
+  estado?: string;
+  thumbnail_url?: string;
+  image_url?: string;
+  titulo?: string;
+  cuerpo?: string;
+  imagenes?: { tipo: string; asset_id: string; url?: string }[];
+  titulos?: string[];
+  descripciones?: string[];
+  urls_finales?: string[];
+}
+
 const CampanasPage = () => {
   const router = useRouter();
   const {
@@ -81,6 +96,8 @@ const CampanasPage = () => {
   const [campanaAnuncios, setCampanaAnuncios] =
     useState<CampanaDetallada | null>(null);
   const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [anunciosApiData, setAnunciosApiData] = useState<AnuncioApiItem[]>([]);
+  const [loadingAnuncios, setLoadingAnuncios] = useState(false);
 
   // Google Ads state
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -124,7 +141,9 @@ const CampanasPage = () => {
 
   // Filtros
   const fechaActual = new Date();
-  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([fechaActual.getMonth() + 1]);
+  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([
+    fechaActual.getMonth() + 1,
+  ]);
   const [añoSeleccionado, setAñoSeleccionado] = useState(
     fechaActual.getFullYear(),
   );
@@ -555,9 +574,28 @@ const CampanasPage = () => {
     }
   };
 
-  const handleVerAnuncios = (campana: CampanaDetallada) => {
+  const handleVerAnuncios = async (campana: CampanaDetallada) => {
     setCampanaAnuncios(campana);
+    setAnunciosApiData([]);
+    setLoadingAnuncios(true);
     setModalAnuncios(true);
+    try {
+      if (campana.plataforma === "Meta Ads" && campana.meta_ads_id) {
+        const resp = await fetchConToken(
+          `${API_URL}/meta-ads/campanas/${campana.meta_ads_id}/anuncios`,
+        );
+        if (resp.ok) setAnunciosApiData(await resp.json());
+      } else if (campana.plataforma === "Google Ads" && campana.google_ads_id) {
+        const resp = await fetchConToken(
+          `${API_URL}/google-ads/campanas/${campana.google_ads_id}/anuncios?marca=${encodeURIComponent(campana.marca || "")}`,
+        );
+        if (resp.ok) setAnunciosApiData(await resp.json());
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingAnuncios(false);
+    }
   };
 
   const getPlatformColor = (plataforma: string) => {
@@ -1012,22 +1050,13 @@ const CampanasPage = () => {
                       >
                         {campana.plataforma}
                       </span>
-                      {campana.presupuesto > 0 && (
-                        <span className="font-medium text-gray-900">
-                          $
-                          {new Intl.NumberFormat("es-MX").format(
-                            campana.presupuesto,
-                          )}
-                          /día
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <ArrowTrendingUpIcon className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Resultados" : "Leads"}</span>
+                        <span className="text-sm text-gray-600">Leads</span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
                         {formatNumber(campana.leads)}
@@ -1037,7 +1066,11 @@ const CampanasPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <UsersIcon className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Impresiones" : "Alcance"}</span>
+                        <span className="text-sm text-gray-600">
+                          {campana.plataforma === "Meta Ads"
+                            ? "Impresiones"
+                            : "Alcance"}
+                        </span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
                         {formatNumber(campana.alcance)}
@@ -1048,7 +1081,9 @@ const CampanasPage = () => {
                       <div className="flex items-center space-x-2">
                         <HeartIcon className="w-4 h-4 text-red-600" />
                         <span className="text-sm text-gray-600">
-                          {campana.plataforma === "Meta Ads" ? "Clicks" : "Interacciones"}
+                          {campana.plataforma === "Meta Ads"
+                            ? "Clicks"
+                            : "Interacciones"}
                         </span>
                       </div>
                       <span className="text-lg font-bold text-gray-900">
@@ -1058,7 +1093,7 @@ const CampanasPage = () => {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">{campana.plataforma === "Meta Ads" ? "Costo por Click en el enlace" : "CxC"}</span>
+                        <span className="text-sm text-gray-600">CxC</span>
                       </div>
                       <span className="text-lg font-bold text-orange-600">
                         {campana.cxc_porcentaje > 0
@@ -1072,7 +1107,7 @@ const CampanasPage = () => {
                   {(campana.gasto_actual || 0) > 0 && (
                     <div className="mb-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
-                        {campana.plataforma === "Meta Ads" ? "Importe gastado" : "Inversión"}
+                        Inversión
                       </span>
                       <span className="text-sm font-bold text-gray-900">
                         $
@@ -1340,7 +1375,9 @@ const CampanasPage = () => {
                   💳 CxC
                 </h3>
                 <p className="text-gray-700 text-2xl font-bold">
-                  {campanaAnuncios.cxc_porcentaje}%
+                  {campanaAnuncios.cxc_porcentaje > 0
+                    ? `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(campanaAnuncios.cxc_porcentaje)}`
+                    : "—"}
                 </p>
               </div>
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
@@ -1356,76 +1393,158 @@ const CampanasPage = () => {
               </div>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  � Anuncios
+                  🖼️ Anuncios
                 </h3>
-                {(() => {
-                  try {
-                    const imagenes = JSON.parse(
-                      campanaAnuncios.imagenes_json || "[]",
-                    );
-                    if (imagenes.length > 0) {
+                {loadingAnuncios ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mr-3" />
+                    <span className="text-gray-500">Cargando anuncios...</span>
+                  </div>
+                ) : anunciosApiData.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {anunciosApiData.map((ad: AnuncioApiItem) => {
+                      const imgSrc =
+                        campanaAnuncios.plataforma === "Meta Ads"
+                          ? ad.thumbnail_url || ad.image_url || ""
+                          : ad.imagenes?.[0]?.url || "";
                       return (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {imagenes.map(
-                            (
-                              imagen: {
-                                url: string;
-                                nombre: string;
-                                descripcion?: string;
-                              },
-                              index: number,
-                            ) => (
-                              <div key={index} className="relative group">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={imagen.url}
-                                  alt={imagen.nombre}
-                                  onClick={() => setImagenPreview(imagen.url)}
-                                  className="w-full h-48 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
-                                />
-                                <div className="mt-2">
-                                  {imagen.nombre && (
-                                    <a
-                                      href={
-                                        imagen.nombre.startsWith("http")
-                                          ? imagen.nombre
-                                          : `https://${imagen.nombre}`
-                                      }
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm font-medium text-blue-600 hover:text-blue-800 underline block truncate"
-                                      title={imagen.nombre}
-                                      onClick={(e) => e.stopPropagation()}
+                        <div
+                          key={ad.id}
+                          className="border border-gray-200 rounded-lg overflow-hidden bg-white"
+                        >
+                          {imgSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgSrc}
+                              alt={ad.nombre}
+                              onClick={() => setImagenPreview(imgSrc)}
+                              className="w-full h-44 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            />
+                          ) : (
+                            <div className="w-full h-44 bg-gray-100 flex flex-col items-center justify-center text-gray-400 text-sm p-3 overflow-hidden">
+                              {ad.titulos && ad.titulos.length > 0 ? (
+                                <div className="text-center w-full">
+                                  {ad.titulos.map((t, i) => (
+                                    <p
+                                      key={i}
+                                      className="text-sm font-semibold text-gray-700 mb-1 line-clamp-2"
                                     >
-                                      🔗 Ver anuncio
-                                    </a>
-                                  )}
-                                  {imagen.descripcion && (
-                                    <p className="text-xs text-gray-600 truncate mt-1">
-                                      {imagen.descripcion}
+                                      {t}
                                     </p>
-                                  )}
+                                  ))}
+                                  {ad.descripciones?.map((d, i) => (
+                                    <p
+                                      key={i}
+                                      className="text-xs text-gray-500 line-clamp-2"
+                                    >
+                                      {d}
+                                    </p>
+                                  ))}
                                 </div>
-                              </div>
-                            ),
+                              ) : (
+                                <span>Sin vista previa</span>
+                              )}
+                            </div>
                           )}
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {ad.nombre}
+                            </p>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-xs text-gray-500">
+                                {ad.tipo || campanaAnuncios.plataforma}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  ad.estado === "ACTIVE" ||
+                                  ad.estado === "ENABLED"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-500"
+                                }`}
+                              >
+                                {ad.estado}
+                              </span>
+                            </div>
+                            {ad.urls_finales?.[0] && (
+                              <a
+                                href={ad.urls_finales[0]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline mt-1 block truncate"
+                              >
+                                🔗 Ver anuncio
+                              </a>
+                            )}
+                          </div>
                         </div>
                       );
-                    } else {
-                      return (
-                        <p className="text-gray-500 text-center py-8">
-                          No hay imágenes disponibles para esta campaña
-                        </p>
+                    })}
+                  </div>
+                ) : (
+                  (() => {
+                    try {
+                      const imagenes = JSON.parse(
+                        campanaAnuncios.imagenes_json || "[]",
                       );
+                      if (imagenes.length > 0) {
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {imagenes.map(
+                              (
+                                imagen: {
+                                  url: string;
+                                  nombre: string;
+                                  descripcion?: string;
+                                },
+                                index: number,
+                              ) => (
+                                <div key={index} className="relative group">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={imagen.url}
+                                    alt={imagen.nombre}
+                                    onClick={() => setImagenPreview(imagen.url)}
+                                    className="w-full h-48 object-cover rounded-lg border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                                  />
+                                  <div className="mt-2">
+                                    {imagen.nombre && (
+                                      <a
+                                        href={
+                                          imagen.nombre.startsWith("http")
+                                            ? imagen.nombre
+                                            : `https://${imagen.nombre}`
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 underline block truncate"
+                                        title={imagen.nombre}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        🔗 Ver anuncio
+                                      </a>
+                                    )}
+                                    {imagen.descripcion && (
+                                      <p className="text-xs text-gray-600 truncate mt-1">
+                                        {imagen.descripcion}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        );
+                      }
+                    } catch {
+                      /* ignore */
                     }
-                  } catch {
                     return (
                       <p className="text-gray-500 text-center py-8">
                         No hay imágenes disponibles para esta campaña
                       </p>
                     );
-                  }
-                })()}
+                  })()
+                )}
               </div>
               <div className="flex justify-end pt-4 border-t">
                 <button

@@ -335,6 +335,42 @@ async def list_meta_campaigns(
     return results
 
 
+# ─── Anuncios de una campaña Meta Ads ────────────────────────────────────────
+
+@router.get("/campanas/{campaign_id}/anuncios")
+async def list_meta_campaign_ads(
+    campaign_id: str,
+    user: user_dependency,
+    db: db_dependency,
+):
+    """Retorna los anuncios de una campaña con thumbnail/image URL."""
+    if user is None:
+        raise HTTPException(status_code=401)
+    cfg = _get_meta_config(db)
+    if not _is_configured(cfg):
+        raise HTTPException(status_code=503, detail="Meta Ads no configurado")
+
+    token = cfg["access_token"]
+    data = _meta_api(token, f"{campaign_id}/ads", {
+        "fields": "id,name,effective_status,creative{thumbnail_url,image_url,body,title,call_to_action_type}",
+        "limit": "100",
+    })
+
+    results = []
+    for ad in data.get("data", []):
+        creative = ad.get("creative") or {}
+        results.append({
+            "id": str(ad.get("id", "")),
+            "nombre": ad.get("name", ""),
+            "estado": ad.get("effective_status", ""),
+            "thumbnail_url": creative.get("thumbnail_url", ""),
+            "image_url": creative.get("image_url", ""),
+            "titulo": creative.get("title", ""),
+            "cuerpo": creative.get("body", ""),
+        })
+    return results
+
+
 # ─── Métricas por período ──────────────────────────────────────────────────────
 
 @router.get("/metrics")
