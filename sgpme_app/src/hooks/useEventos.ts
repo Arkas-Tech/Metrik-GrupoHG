@@ -183,16 +183,38 @@ export function useEventos() {
     abortRef.current = controller;
 
     try {
-      if (!stale) setLoading(true);
+      // Progressive loading: if no cached data, load current month first for instant display
+      if (!stale) {
+        setLoading(true);
+        const now = new Date();
+        const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const lastDayStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
 
+        try {
+          const monthResponse = await fetchConToken(
+            `${API_URL}/eventos/with-briefs?fecha_desde=${firstDay}&fecha_hasta=${lastDayStr}`,
+            { signal: controller.signal },
+          );
+          if (monthResponse.ok && !controller.signal.aborted) {
+            const monthData: EventoWithBrief[] = await monthResponse.json();
+            const monthEventos = mapEventos(monthData);
+            setEventos(monthEventos);
+            setLoading(false);
+          }
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          // Continue to full load even if month load fails
+        }
+      }
+
+      // Load all events (background if month data already shown)
       const eventosMapeados = await deduplicateRequest<Evento[]>(
         cacheKey,
         async () => {
           const response = await fetchConToken(
             `${API_URL}/eventos/with-briefs`,
-            {
-              signal: controller.signal,
-            },
+            { signal: controller.signal },
           );
           if (!response.ok)
             throw new Error(`Error al cargar eventos: ${response.status}`);

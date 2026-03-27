@@ -24,6 +24,18 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
+def _strip_brief_images(obs_especiales: Optional[str]) -> Optional[str]:
+    """Strip imagenes array from observaciones_especiales JSON to reduce payload size."""
+    if not obs_especiales:
+        return obs_especiales
+    try:
+        data = json.loads(obs_especiales)
+        if isinstance(data, dict) and 'imagenes' in data:
+            data['imagenes'] = []
+        return json.dumps(data, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        return obs_especiales
+
 class EventoRequest(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     descripcion: Optional[str] = None
@@ -154,7 +166,9 @@ async def read_all_eventos(user: user_dependency, db: db_dependency,
 @router.get("/with-briefs", status_code=status.HTTP_200_OK)
 async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
                                         marca: Optional[str] = Query(None),
-                                        estado: Optional[str] = Query(None)):
+                                        estado: Optional[str] = Query(None),
+                                        fecha_desde: Optional[date] = Query(None),
+                                        fecha_hasta: Optional[date] = Query(None)):
     """Devuelve todos los eventos con sus briefs incluidos en una sola consulta."""
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
@@ -164,6 +178,10 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
         query = query.filter(Eventos.marca == marca)
     if estado:
         query = query.filter(Eventos.estado == estado)
+    if fecha_desde:
+        query = query.filter(Eventos.fecha_inicio >= fecha_desde)
+    if fecha_hasta:
+        query = query.filter(Eventos.fecha_inicio <= fecha_hasta)
 
     eventos = query.order_by(Eventos.fecha_inicio.desc()).all()
     evento_ids = [e.id for e in eventos]
@@ -226,7 +244,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
                 "proveedores": brief.proveedores,
                 "logistica": brief.logistica,
                 "presupuesto_detallado": brief.presupuesto_detallado,
-                "observaciones_especiales": brief.observaciones_especiales,
+                "observaciones_especiales": _strip_brief_images(brief.observaciones_especiales),
                 "fecha_creacion": brief.fecha_creacion.isoformat() if brief.fecha_creacion else None,
                 "fecha_modificacion": brief.fecha_modificacion.isoformat() if brief.fecha_modificacion else None,
                 "creado_por": creado_por,
