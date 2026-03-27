@@ -165,17 +165,19 @@ export function useEventos() {
 
   const cargarEventos = useCallback(async () => {
     const cacheKey = "eventos:all";
+    const cacheKeyFull = "eventos:all:full";
 
     // Return stale data immediately if available
-    const stale = getStale<Evento[]>(cacheKey);
+    const staleFull = getStale<Evento[]>(cacheKeyFull);
+    const stale = staleFull || getStale<Evento[]>(cacheKey);
     if (stale) {
       setEventos(stale);
       setLoading(false);
     }
 
-    // Skip network if cache is fresh
-    const fresh = getCached<Evento[]>(cacheKey);
-    if (fresh) return;
+    // Skip network if full cache (with images) is fresh
+    const freshFull = getCached<Evento[]>(cacheKeyFull);
+    if (freshFull) return;
 
     // Abort previous in-flight request
     abortRef.current?.abort();
@@ -204,29 +206,51 @@ export function useEventos() {
           }
         } catch (err) {
           if (err instanceof DOMException && err.name === "AbortError") return;
-          // Continue to full load even if month load fails
         }
       }
 
-      // Load all events (background if month data already shown)
-      const eventosMapeados = await deduplicateRequest<Evento[]>(
-        cacheKey,
-        async () => {
-          const response = await fetchConToken(
-            `${API_URL}/eventos/with-briefs`,
+      // Phase 1: Load all events without images (fast ~1.4MB)
+      const fresh = getCached<Evento[]>(cacheKey);
+      if (!fresh) {
+        const eventosMapeados = await deduplicateRequest<Evento[]>(
+          cacheKey,
+          async () => {
+            const response = await fetchConToken(
+              `${API_URL}/eventos/with-briefs`,
+              { signal: controller.signal },
+            );
+            if (!response.ok)
+              throw new Error(`Error al cargar eventos: ${response.status}`);
+            const data: EventoWithBrief[] = await response.json();
+            return mapEventos(data);
+          },
+        );
+
+        if (!controller.signal.aborted) {
+          setCache(cacheKey, eventosMapeados);
+          setEventos(eventosMapeados);
+          setError(null);
+          setLoading(false);
+        }
+      }
+
+      // Phase 2: Lazy-load full briefs with images in background
+      if (!controller.signal.aborted) {
+        try {
+          const fullResponse = await fetchConToken(
+            `${API_URL}/eventos/with-briefs?include_images=true`,
             { signal: controller.signal },
           );
-          if (!response.ok)
-            throw new Error(`Error al cargar eventos: ${response.status}`);
-          const data: EventoWithBrief[] = await response.json();
-          return mapEventos(data);
-        },
-      );
-
-      if (!controller.signal.aborted) {
-        setCache(cacheKey, eventosMapeados);
-        setEventos(eventosMapeados);
-        setError(null);
+          if (fullResponse.ok && !controller.signal.aborted) {
+            const fullData: EventoWithBrief[] = await fullResponse.json();
+            const fullEventos = mapEventos(fullData);
+            setCache(cacheKeyFull, fullEventos);
+            setEventos(fullEventos);
+          }
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          // Images failed to load — non-critical, events still visible
+        }
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;

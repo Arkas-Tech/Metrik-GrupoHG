@@ -168,7 +168,8 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
                                         marca: Optional[str] = Query(None),
                                         estado: Optional[str] = Query(None),
                                         fecha_desde: Optional[date] = Query(None),
-                                        fecha_hasta: Optional[date] = Query(None)):
+                                        fecha_hasta: Optional[date] = Query(None),
+                                        include_images: bool = Query(False)):
     """Devuelve todos los eventos con sus briefs incluidos en una sola consulta."""
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
@@ -244,7 +245,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
                 "proveedores": brief.proveedores,
                 "logistica": brief.logistica,
                 "presupuesto_detallado": brief.presupuesto_detallado,
-                "observaciones_especiales": _strip_brief_images(brief.observaciones_especiales),
+                "observaciones_especiales": brief.observaciones_especiales if include_images else _strip_brief_images(brief.observaciones_especiales),
                 "fecha_creacion": brief.fecha_creacion.isoformat() if brief.fecha_creacion else None,
                 "fecha_modificacion": brief.fecha_modificacion.isoformat() if brief.fecha_modificacion else None,
                 "creado_por": creado_por,
