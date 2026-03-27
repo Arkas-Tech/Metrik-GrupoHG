@@ -17,6 +17,20 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app):
+    # Auto-migración: agregar columnas faltantes en embajadores
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            for col, coltype in [("imagenes_json", "TEXT"), ("cumplimiento_json", "TEXT")]:
+                result = conn.execute(text(
+                    f"SELECT column_name FROM information_schema.columns "
+                    f"WHERE table_name = 'embajadores' AND column_name = '{col}'"
+                ))
+                if not result.fetchone():
+                    conn.execute(text(f"ALTER TABLE embajadores ADD COLUMN {col} {coltype}"))
+                    conn.commit()
+    except Exception:
+        pass
     yield
 
 
