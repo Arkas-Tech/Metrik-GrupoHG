@@ -988,6 +988,7 @@ export default function DashboardGeneral({
       }
 
       // Filtrar por año y mes
+      if (evento.estado !== "Confirmado") return false;
       const fechaEvento = new Date(evento.fechaInicio);
       return (
         fechaEvento.getFullYear() === añoSeleccionado &&
@@ -1017,6 +1018,14 @@ export default function DashboardGeneral({
       if (c.plataforma !== plataforma) return false;
       if (c.estado !== "Activa") return false;
       if (!filtraPorMarca(c.marca)) return false;
+      if (c.fecha_inicio) {
+        const fecha = new Date(c.fecha_inicio);
+        if (
+          fecha.getMonth() + 1 !== filtroMesGlobal ||
+          fecha.getFullYear() !== añoSeleccionado
+        )
+          return false;
+      }
       return true;
     });
 
@@ -1716,10 +1725,10 @@ export default function DashboardGeneral({
             🎉 Eventos
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Pisos */}
+            {/* Asistentes */}
             <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Pisos</span>
+                <span className="text-sm font-medium text-gray-600">Asistentes</span>
                 <svg
                   className="w-5 h-5 text-purple-600"
                   fill="none"

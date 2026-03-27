@@ -775,11 +775,11 @@ const CampanasPage = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push(searchParams.get("plataforma") ? "/digital" : "/dashboard")}
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                Volver a Dashboard
+                {searchParams.get("plataforma") ? "Volver a Digital" : "Volver a Dashboard"}
               </button>
             </div>
             <div className="flex items-center gap-3">
