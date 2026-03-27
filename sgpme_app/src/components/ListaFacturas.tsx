@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Factura, Archivo, Cotizacion } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
 import { showToast } from "@/lib/toast";
+import { QueueListIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface ListaFacturasProps {
   facturas: Factura[];
@@ -365,48 +366,36 @@ export default function ListaFacturas({
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {estadoComun ? (
-                <>
+                <select
+                  value={estadoComun}
+                  onChange={(e) => {
+                    const val = e.target.value as Factura["estado"];
+                    if (val !== estadoComun) manejarBulkCambioEstado(val);
+                  }}
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer ${getEstadoColor(estadoComun)}`}
+                >
+                  <option value={estadoComun}>{estadoComun}</option>
                   {estadoComun === "Pendiente" && permisos.autorizar && (
-                    <button
-                      onClick={() => manejarBulkCambioEstado("Autorizada")}
-                      className="px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700"
-                    >
-                      Autorizar
-                    </button>
+                    <option value="Autorizada">→ Autorizada</option>
                   )}
                   {(estadoComun === "Pendiente" ||
                     estadoComun === "Autorizada") &&
                     permisos.ingresar && (
-                      <button
-                        onClick={() => manejarBulkCambioEstado("Ingresada")}
-                        className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700"
-                      >
-                        Ingresar
-                      </button>
+                      <option value="Ingresada">→ Ingresada</option>
                     )}
                   {(estadoComun === "Pendiente" ||
                     estadoComun === "Autorizada" ||
                     estadoComun === "Ingresada") &&
                     permisos.marcarPagada && (
-                      <button
-                        onClick={() => manejarBulkCambioEstado("Pagada")}
-                        className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
-                      >
-                        Marcar Pagadas
-                      </button>
+                      <option value="Pagada">→ Pagada</option>
                     )}
                   {(estadoComun === "Ingresada" ||
                     estadoComun === "Pagada" ||
                     estadoComun === "Rechazada") &&
                     esAdministrador && (
-                      <button
-                        onClick={() => manejarBulkCambioEstado("Pendiente")}
-                        className="px-3 py-1.5 bg-yellow-600 text-white text-xs font-medium rounded hover:bg-yellow-700"
-                      >
-                        Revertir a Pendiente
-                      </button>
+                      <option value="Pendiente">→ Pendiente</option>
                     )}
-                </>
+                </select>
               ) : (
                 <span className="text-xs text-blue-600">
                   Selecciona facturas con el mismo estado para cambiarlas
@@ -415,9 +404,11 @@ export default function ListaFacturas({
               )}
               <button
                 onClick={() => setFacturasSeleccionadas([])}
-                className="ml-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                title="Cancelar selección"
+                className="ml-1 p-1 rounded hover:bg-blue-100 text-blue-600 hover:text-blue-800 transition-colors relative"
               >
-                Cancelar selección
+                <QueueListIcon className="h-4 w-4" />
+                <XMarkIcon className="h-2.5 w-2.5 absolute top-0 right-0 stroke-[3]" />
               </button>
             </div>
           </div>
