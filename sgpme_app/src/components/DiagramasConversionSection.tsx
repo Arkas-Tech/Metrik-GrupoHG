@@ -234,7 +234,7 @@ function DiagramaFlowCard({
     { label: "Modelo", value: d.modelo },
     { label: "Canal de Proyección", value: d.canal_proyeccion },
     { label: "Departamento", value: d.departamento },
-    { label: "Anuncio", items: d.anuncios },
+    { label: "Campaña", items: d.anuncios },
     { label: "Oferta Comercial", value: d.oferta_comercial },
     { label: "Tipo", value: d.tipo },
     { label: "Canal de Conversión", value: d.canal_conversion },
@@ -347,11 +347,44 @@ export default function DiagramasConversionSection() {
   const [fDestinos, setFDestinos] = useState<string[]>([""]);
   const [fNotas, setFNotas] = useState("");
 
+  /* Campañas disponibles para el campo Campaña */
+  const [campanasDisponibles, setCampanasDisponibles] = useState<string[]>([]);
+  const [loadingCampanas, setLoadingCampanas] = useState(false);
+
   /* Derived auto-fill from model */
   const modelInfo = MODELOS.find((m) => m.id === fModelo) || MODELOS[0];
   const canalProyeccionAuto = modelInfo.canal_proyeccion_fixed
     ? modelInfo.canal_proyeccion_fixed
     : fCanalProyeccionGFCRM;
+
+  /* ── Fetch campañas al cambiar marca/modelo en modal ── */
+  useEffect(() => {
+    if (!modalOpen || !fMarca) return;
+    const plataforma = fModelo === "GFCRM" ? "google-ads" : "meta-ads";
+    let cancelled = false;
+    setLoadingCampanas(true);
+    fetchConToken(
+      `${API}/${plataforma}/campanas?marca=${encodeURIComponent(fMarca)}`,
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { nombre: string }[] | null) => {
+        if (cancelled) return;
+        setCampanasDisponibles(
+          data && Array.isArray(data)
+            ? data.map((c) => c.nombre).filter(Boolean)
+            : [],
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setCampanasDisponibles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCampanas(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [API, fMarca, fModelo, modalOpen]);
 
   /* ── Fetch ── */
   const cargar = () => {
@@ -422,6 +455,7 @@ export default function DiagramasConversionSection() {
     setFPreguntas([""]);
     setFDestinos([""]);
     setFNotas("");
+    setCampanasDisponibles([]);
     setModalOpen(true);
   };
 
@@ -440,6 +474,7 @@ export default function DiagramasConversionSection() {
     setFPreguntas(d.preguntas.length > 0 ? [...d.preguntas] : [""]);
     setFDestinos(d.destinos.length > 0 ? [...d.destinos] : [""]);
     setFNotas(d.notas || "");
+    setCampanasDisponibles([]);
     setModalOpen(true);
   };
 
@@ -768,23 +803,55 @@ export default function DiagramasConversionSection() {
                 </div>
               </div>
 
-              {/* Anuncios (lista dinámica) */}
+              {/* Campaña (lista dinámica) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Anuncio
+                  Campaña
+                  {loadingCampanas && (
+                    <span className="ml-2 text-xs text-gray-400">
+                      Cargando campañas...
+                    </span>
+                  )}
+                  {!loadingCampanas && campanasDisponibles.length > 0 && (
+                    <span className="ml-2 text-xs text-green-600">
+                      {campanasDisponibles.length} campañas disponibles
+                    </span>
+                  )}
                 </label>
                 <div className="space-y-2">
                   {fAnuncios.map((a, i) => (
                     <div key={i} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={a}
-                        onChange={(e) =>
-                          updItem(setFAnuncios, i, e.target.value)
-                        }
-                        placeholder={`Anuncio ${i + 1} (ej. Raize, Tacoma)`}
-                        className="flex-1 border rounded-lg px-3 py-2 text-sm text-gray-900"
-                      />
+                      {campanasDisponibles.length > 0 ? (
+                        <select
+                          value={a}
+                          onChange={(e) =>
+                            updItem(setFAnuncios, i, e.target.value)
+                          }
+                          className="flex-1 border rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
+                        >
+                          <option value="">Seleccionar campaña...</option>
+                          {campanasDisponibles.map((nombre) => (
+                            <option key={nombre} value={nombre}>
+                              {nombre}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={a}
+                          onChange={(e) =>
+                            updItem(setFAnuncios, i, e.target.value)
+                          }
+                          placeholder={
+                            loadingCampanas
+                              ? "Cargando campañas..."
+                              : `Campaña ${i + 1}`
+                          }
+                          disabled={loadingCampanas}
+                          className="flex-1 border rounded-lg px-3 py-2 text-sm text-gray-900 disabled:bg-gray-50"
+                        />
+                      )}
                       {fAnuncios.length > 1 && (
                         <button
                           onClick={() => rmItem(setFAnuncios, i)}
@@ -800,7 +867,7 @@ export default function DiagramasConversionSection() {
                   onClick={() => addItem(setFAnuncios)}
                   className="mt-2 inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium"
                 >
-                  <PlusIcon className="w-4 h-4" /> Agregar anuncio
+                  <PlusIcon className="w-4 h-4" /> Agregar campaña
                 </button>
               </div>
 
@@ -966,4 +1033,3 @@ export default function DiagramasConversionSection() {
     </div>
   );
 }
-
