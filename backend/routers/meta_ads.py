@@ -110,6 +110,60 @@ def _meta_api(access_token: str, endpoint: str, params: dict | None = None) -> d
     return resp.json()
 
 
+# Mapeo de optimization_goal (ad set) → action_type para "Resultados"
+_OPT_GOAL_ACTION = {
+    "POST_ENGAGEMENT": "post_engagement",
+    "CONVERSATIONS": "onsite_conversion.messaging_conversation_started_7d",
+    "LEAD_GENERATION": "lead",
+    "QUALITY_LEAD": "lead",
+    "LINK_CLICKS": "link_click",
+    "LANDING_PAGE_VIEWS": "landing_page_view",
+    "THRUPLAY": "video_view",
+    "TWO_SECOND_CONTINUOUS_VIDEO_VIEWS": "video_view",
+    "OFFSITE_CONVERSIONS": "purchase",
+    "VALUE": "purchase",
+    "REACH": None,  # usar impressions directamente
+    "IMPRESSIONS": None,
+}
+
+
+def _get_optimization_goals(token: str, account_id: str) -> dict:
+    """Devuelve {campaign_id: optimization_goal} para todas las adsets de una cuenta."""
+    goals: dict = {}
+    try:
+        data = _meta_api(token, f"{account_id}/adsets", {
+            "fields": "campaign_id,optimization_goal",
+            "limit": "500",
+        })
+        for a in data.get("data", []):
+            cid = a.get("campaign_id")
+            if cid and cid not in goals:
+                goals[cid] = a.get("optimization_goal", "")
+    except Exception:
+        pass
+    return goals
+
+
+def _extract_resultados(actions: list, opt_goal: str) -> float:
+    """Extrae el valor de 'Resultados' correcto según el optimization_goal de la campaña."""
+    target_action = _OPT_GOAL_ACTION.get(opt_goal)
+    if target_action is None:
+        # REACH/IMPRESSIONS → no hay acción, devolvemos 0 (se usa impressions aparte)
+        return 0.0
+
+    for action in actions:
+        if action.get("action_type") == target_action:
+            return float(action.get("value", 0) or 0)
+
+    # Fallback: buscar lead, purchase, complete_registration
+    fallback_types = ("lead", "onsite_conversion.lead_grouped", "complete_registration", "purchase")
+    for action in actions:
+        if action.get("action_type") in fallback_types:
+            return float(action.get("value", 0) or 0)
+
+    return 0.0
+
+
 # ─── Status ─────────────────────────────────────────────────────────────────────
 
 @router.get("/status")
@@ -324,6 +378,9 @@ async def get_period_metrics(
             })
             campaign_ids = [c["id"] for c in data.get("data", []) if c.get("id")]
 
+            # Obtener optimization_goal por campaña (una sola llamada por cuenta)
+            opt_goals = _get_optimization_goals(token, account_id)
+
             for cid in campaign_ids:
                 try:
                     insights = _meta_api(token, f"{cid}/insights", {
@@ -340,16 +397,10 @@ async def get_period_metrics(
                     spend = float(row.get("spend", 0) or 0)
                     ctr = float(row.get("ctr", 0) or 0)
 
-                    # Conversions: offline_conversion + lead + complete_registration + purchase
-                    conversions = 0.0
-                    for action in row.get("actions", []):
-                        if action.get("action_type") in (
-                            "lead", "complete_registration", "purchase",
-                            "offsite_conversion.fb_pixel_lead",
-                            "offsite_conversion.fb_pixel_complete_registration",
-                            "offsite_conversion.fb_pixel_purchase",
-                        ):
-                            conversions += float(action.get("value", 0) or 0)
+                    # Resultados según el objetivo de optimización de la campaña
+                    actions = row.get("actions", [])
+                    og = opt_goals.get(cid, "")
+                    conversions = _extract_resultados(actions, og)
 
                     # Interactions = all clicks
                     interactions = int(row.get("clicks", 0) or 0)
@@ -414,15 +465,18 @@ async def sync_campaign_metrics(
     spend = float(row.get("spend", 0) or 0)
     ctr = float(row.get("ctr", 0) or 0)
 
-    conversions = 0.0
-    for action in row.get("actions", []):
-        if action.get("action_type") in (
-            "lead", "complete_registration", "purchase",
-            "offsite_conversion.fb_pixel_lead",
-            "offsite_conversion.fb_pixel_complete_registration",
-            "offsite_conversion.fb_pixel_purchase",
-        ):
-            conversions += float(action.get("value", 0) or 0)
+    # Obtener optimization_goal para esta campaña
+    try:
+        adsets = _meta_api(token, f"{campana.meta_ads_id}/adsets", {
+            "fields": "optimization_goal",
+            "limit": "1",
+        })
+        og = adsets.get("data", [{}])[0].get("optimization_goal", "") if adsets.get("data") else ""
+    except Exception:
+        og = ""
+
+    actions = row.get("actions", [])
+    conversions = _extract_resultados(actions, og)
 
     interactions = int(row.get("clicks", 0) or 0)
 
@@ -507,6 +561,9 @@ def _importar_todas_las_marcas(db: Session) -> dict:
 
         campaigns = data.get("data", [])
 
+        # ── Obtener optimization_goal por campaña ──
+        opt_goals = _get_optimization_goals(token, account_id)
+
         # ── Obtener métricas all-time por campaña ──
         metricas_por_id: dict = {}
         try:
@@ -525,15 +582,9 @@ def _importar_todas_las_marcas(db: Session) -> dict:
                 spend = float(row.get("spend", 0) or 0)
                 ctr_val = float(row.get("ctr", 0) or 0)
 
-                conversions = 0.0
-                for action in row.get("actions", []):
-                    if action.get("action_type") in (
-                        "lead", "complete_registration", "purchase",
-                        "offsite_conversion.fb_pixel_lead",
-                        "offsite_conversion.fb_pixel_complete_registration",
-                        "offsite_conversion.fb_pixel_purchase",
-                    ):
-                        conversions += float(action.get("value", 0) or 0)
+                actions = row.get("actions", [])
+                og = opt_goals.get(cid, "")
+                conversions = _extract_resultados(actions, og)
 
                 interactions = int(row.get("clicks", 0) or 0)
 
