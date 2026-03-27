@@ -1,6 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchConToken } from "@/lib/auth-utils";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import {
+  getCached,
+  getStale,
+  setCache,
+  invalidateCacheByPrefix,
+  deduplicateRequest,
+} from "@/lib/dataCache";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -41,10 +48,41 @@ export const usePresencias = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
+  const abortRef = useRef<AbortController | null>(null);
+
+  const filterByMarcas = useCallback(
+    (data: Presencia[]) => {
+      if (!marcaSeleccionada && marcasPermitidas.length > 0) {
+        return data.filter((p) =>
+          p.agencia ? marcasPermitidas.includes(p.agencia) : false,
+        );
+      }
+      return data;
+    },
+    [marcaSeleccionada, marcasPermitidas],
+  );
 
   const cargarPresencias = useCallback(async () => {
+    const cacheKey = `presencias:${marcaSeleccionada || "all"}`;
+
+    // Return stale data immediately if available
+    const stale = getStale<Presencia[]>(cacheKey);
+    if (stale) {
+      setPresencias(filterByMarcas(stale));
+      setCargando(false);
+    }
+
+    // Skip network if cache is fresh
+    const fresh = getCached<Presencia[]>(cacheKey);
+    if (fresh) return;
+
+    // Abort previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      setCargando(true);
+      if (!stale) setCargando(true);
       setError(null);
 
       const url = marcaSeleccionada
@@ -53,30 +91,25 @@ export const usePresencias = () => {
           )}`
         : `${API_URL}/presencia-tradicional/`;
 
-      const response = await fetchConToken(url);
+      const data = await deduplicateRequest<Presencia[]>(cacheKey, async () => {
+        const response = await fetchConToken(url, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Error al cargar presencias");
+        return response.json();
+      });
 
-      if (!response.ok) {
-        throw new Error("Error al cargar presencias");
-      }
-
-      const data = await response.json();
-      // Si no hay marca específica, filtrar por marcas permitidas del usuario
-      if (!marcaSeleccionada && marcasPermitidas.length > 0) {
-        setPresencias(
-          data.filter((p: Presencia) =>
-            p.agencia ? marcasPermitidas.includes(p.agencia) : false,
-          ),
-        );
-      } else {
-        setPresencias(data);
+      if (!controller.signal.aborted) {
+        setCache(cacheKey, data, url);
+        setPresencias(filterByMarcas(data));
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error cargando presencias:", err);
     } finally {
-      setCargando(false);
+      if (!controller.signal.aborted) setCargando(false);
     }
-  }, [marcaSeleccionada, marcasPermitidas]);
+  }, [marcaSeleccionada, marcasPermitidas, filterByMarcas]);
 
   const crearPresencia = async (presenciaData: Record<string, unknown>) => {
     try {
@@ -131,11 +164,11 @@ export const usePresencias = () => {
         throw new Error(errorMessage);
       }
 
+      invalidateCacheByPrefix("presencias:");
       await cargarPresencias();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error creando presencia:", err);
       return false;
     }
   };
@@ -196,11 +229,11 @@ export const usePresencias = () => {
         throw new Error(errorMessage);
       }
 
+      invalidateCacheByPrefix("presencias:");
       await cargarPresencias();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error actualizando presencia:", err);
       return false;
     }
   };
@@ -218,17 +251,20 @@ export const usePresencias = () => {
         throw new Error("Error al eliminar presencia");
       }
 
+      invalidateCacheByPrefix("presencias:");
       await cargarPresencias();
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error eliminando presencia:", err);
       return false;
     }
   };
 
   useEffect(() => {
     cargarPresencias();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [cargarPresencias]);
 
   return {

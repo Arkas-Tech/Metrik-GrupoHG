@@ -7,6 +7,7 @@ from models import PresenciaTradicional
 from database import SessionLocal
 from .auth import get_current_user
 from datetime import date
+import json as json_module
 
 router = APIRouter(
     prefix='/presencia-tradicional',
@@ -107,7 +108,24 @@ async def read_all_presencia(user: user_dependency, db: db_dependency,
         query = query.limit(limit)
 
     presencias = query.all()
-    return presencias
+
+    # Strip heavy base64 content from list response (97MB → ~500KB)
+    # Full data available via GET /{presencia_id}
+    result = []
+    for p in presencias:
+        item = {c.name: getattr(p, c.name) for c in PresenciaTradicional.__table__.columns}
+        # Keep only fieldValues from datos_extra_json (needed for date filtering)
+        # Strip fieldImages/fieldFiles which contain base64-encoded images (~97MB total)
+        if p.datos_extra_json:
+            try:
+                extras = json_module.loads(p.datos_extra_json)
+                item["datos_extra_json"] = json_module.dumps({"fieldValues": extras.get("fieldValues", {})})
+            except (json_module.JSONDecodeError, TypeError):
+                item["datos_extra_json"] = None
+        # Strip imagenes_json for list view (4.3MB of base64 images)
+        item["imagenes_json"] = None
+        result.append(item)
+    return result
 
 @router.get("/{presencia_id}", response_model=PresenciaTradicionalResponse, status_code=status.HTTP_200_OK)
 async def read_presencia(user: user_dependency, db: db_dependency, presencia_id: int = Path(gt=0)):

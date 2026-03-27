@@ -31,12 +31,6 @@ export function useAuth() {
   const authLocal = useAuthLocal();
   const authBackend = useAuthBackend();
 
-  console.log("useAuthUnified: useBackend =", useBackend);
-  console.log("useAuthUnified: authLocal.usuario =", authLocal.usuario);
-  console.log("useAuthUnified: authBackend.usuario =", authBackend.usuario);
-
-  // Si estamos usando backend, SIEMPRE usar authBackend
-  // NO usar authLocal como fallback para evitar datos obsoletos del localStorage
   if (useBackend) {
     return authBackend;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Evento,
   GastoEvento,
@@ -9,6 +9,13 @@ import {
   Factura,
 } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
+import {
+  getCached,
+  getStale,
+  setCache,
+  invalidateCacheByPrefix,
+  deduplicateRequest,
+} from "@/lib/dataCache";
 
 interface EventoBackend {
   id: number;
@@ -84,98 +91,134 @@ export function useEventos() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const cargarEventos = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetchConToken(`${API_URL}/eventos/with-briefs`);
+  const mapEventos = useCallback((data: EventoWithBrief[]): Evento[] => {
+    return data.map((evento) => {
+      let brief = undefined;
 
-      if (!response.ok) {
-        throw new Error(`Error al cargar eventos: ${response.status}`);
+      if (evento.brief) {
+        const b = evento.brief;
+        brief = {
+          id: b.id.toString(),
+          eventoId: evento.id.toString(),
+          objetivoEspecifico: b.objetivo_especifico,
+          audienciaDetallada: b.audiencia_detallada,
+          mensajeClave: b.mensaje_clave,
+          actividades: (b.actividades || []).map(
+            (act: ActividadBriefBackend) => ({
+              id: act.id.toString(),
+              nombre: act.nombre,
+              descripcion: act.descripcion,
+              duracion: act.duracion,
+              responsable: act.responsable,
+              recursos: act.recursos,
+            }),
+          ),
+          cronograma: (b.cronograma || []).map(
+            (cron: CronogramaBriefBackend) => ({
+              id: cron.id.toString(),
+              actividad: cron.actividad,
+              fechaInicio: cron.fecha_inicio,
+              fechaFin: cron.fecha_fin,
+              responsable: cron.responsable,
+              estado: cron.estado,
+            }),
+          ),
+          requerimientos: b.requerimientos || "",
+          proveedores: b.proveedores || "",
+          logistica: b.logistica || "",
+          presupuestoDetallado: b.presupuesto_detallado || "",
+          observacionesEspeciales: b.observaciones_especiales || "",
+          fechaCreacion: b.fecha_creacion ? b.fecha_creacion.split("T")[0] : "",
+          fechaModificacion: b.fecha_modificacion,
+          creadoPor: b.creado_por,
+          aprobadoPor: b.aprobado_por,
+          fechaAprobacion: b.fecha_aprobacion,
+        };
       }
 
-      const data: EventoWithBrief[] = await response.json();
-      const eventosMapeados = data.map((evento) => {
-        let brief = undefined;
+      return {
+        id: evento.id.toString(),
+        nombre: evento.nombre,
+        descripcion: evento.descripcion || "",
+        tipoEvento: evento.tipo_evento,
+        fechaInicio: evento.fecha_inicio,
+        fechaFin: evento.fecha_fin,
+        ubicacion: evento.ubicacion || "",
+        marca: evento.marca,
+        responsable: evento.responsable || "",
+        estado: evento.estado,
+        objetivo: evento.objetivo || "",
+        audiencia: evento.audiencia || "",
+        presupuestoEstimado: evento.presupuesto_estimado || 0,
+        presupuestoReal: evento.presupuesto_real,
+        observaciones: evento.observaciones || "",
+        gastosProyectados: [],
+        brief,
+        fechaCreacion: evento.fecha_creacion,
+        fechaModificacion: evento.fecha_modificacion,
+        creadoPor: evento.creado_por,
+      };
+    });
+  }, []);
 
-        if (evento.brief) {
-          const b = evento.brief;
-          brief = {
-            id: b.id.toString(),
-            eventoId: evento.id.toString(),
-            objetivoEspecifico: b.objetivo_especifico,
-            audienciaDetallada: b.audiencia_detallada,
-            mensajeClave: b.mensaje_clave,
-            actividades: (b.actividades || []).map(
-              (act: ActividadBriefBackend) => ({
-                id: act.id.toString(),
-                nombre: act.nombre,
-                descripcion: act.descripcion,
-                duracion: act.duracion,
-                responsable: act.responsable,
-                recursos: act.recursos,
-              }),
-            ),
-            cronograma: (b.cronograma || []).map(
-              (cron: CronogramaBriefBackend) => ({
-                id: cron.id.toString(),
-                actividad: cron.actividad,
-                fechaInicio: cron.fecha_inicio,
-                fechaFin: cron.fecha_fin,
-                responsable: cron.responsable,
-                estado: cron.estado,
-              }),
-            ),
-            requerimientos: b.requerimientos || "",
-            proveedores: b.proveedores || "",
-            logistica: b.logistica || "",
-            presupuestoDetallado: b.presupuesto_detallado || "",
-            observacionesEspeciales: b.observaciones_especiales || "",
-            fechaCreacion: b.fecha_creacion
-              ? b.fecha_creacion.split("T")[0]
-              : "",
-            fechaModificacion: b.fecha_modificacion,
-            creadoPor: b.creado_por,
-            aprobadoPor: b.aprobado_por,
-            fechaAprobacion: b.fecha_aprobacion,
-          };
-        }
+  const cargarEventos = useCallback(async () => {
+    const cacheKey = "eventos:all";
 
-        return {
-          id: evento.id.toString(),
-          nombre: evento.nombre,
-          descripcion: evento.descripcion || "",
-          tipoEvento: evento.tipo_evento,
-          fechaInicio: evento.fecha_inicio,
-          fechaFin: evento.fecha_fin,
-          ubicacion: evento.ubicacion || "",
-          marca: evento.marca,
-          responsable: evento.responsable || "",
-          estado: evento.estado,
-          objetivo: evento.objetivo || "",
-          audiencia: evento.audiencia || "",
-          presupuestoEstimado: evento.presupuesto_estimado || 0,
-          presupuestoReal: evento.presupuesto_real,
-          observaciones: evento.observaciones || "",
-          gastosProyectados: [],
-          brief,
-          fechaCreacion: evento.fecha_creacion,
-          fechaModificacion: evento.fecha_modificacion,
-          creadoPor: evento.creado_por,
-        };
-      });
-      setEventos(eventosMapeados);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("Error cargando eventos:", err);
-    } finally {
+    // Return stale data immediately if available
+    const stale = getStale<Evento[]>(cacheKey);
+    if (stale) {
+      setEventos(stale);
       setLoading(false);
     }
-  }, []);
+
+    // Skip network if cache is fresh
+    const fresh = getCached<Evento[]>(cacheKey);
+    if (fresh) return;
+
+    // Abort previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      if (!stale) setLoading(true);
+
+      const eventosMapeados = await deduplicateRequest<Evento[]>(
+        cacheKey,
+        async () => {
+          const response = await fetchConToken(
+            `${API_URL}/eventos/with-briefs`,
+            {
+              signal: controller.signal,
+            },
+          );
+          if (!response.ok)
+            throw new Error(`Error al cargar eventos: ${response.status}`);
+          const data: EventoWithBrief[] = await response.json();
+          return mapEventos(data);
+        },
+      );
+
+      if (!controller.signal.aborted) {
+        setCache(cacheKey, eventosMapeados);
+        setEventos(eventosMapeados);
+        setError(null);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
+  }, [mapEventos]);
 
   useEffect(() => {
     cargarEventos();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [cargarEventos]);
 
   const crearEvento = useCallback(
@@ -240,6 +283,7 @@ export function useEventos() {
           creadoPor: eventoCreado.creado_por,
         };
         setEventos((prev) => [eventoMapeado, ...prev]);
+        invalidateCacheByPrefix("eventos:");
         return eventoMapeado;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al crear evento");
@@ -295,6 +339,7 @@ export function useEventos() {
         setEventos((prev) =>
           prev.map((e) => (e.id === id ? eventoActualizado : e)),
         );
+        invalidateCacheByPrefix("eventos:");
 
         return true;
       } catch (err) {
@@ -316,6 +361,7 @@ export function useEventos() {
       if (!response.ok) throw new Error("Error al eliminar evento");
 
       setEventos((prev) => prev.filter((evento) => evento.id !== id));
+      invalidateCacheByPrefix("eventos:");
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al eliminar");

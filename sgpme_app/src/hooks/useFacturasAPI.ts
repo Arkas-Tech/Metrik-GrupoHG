@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Factura, FiltrosFactura, EstadisticasFactura } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
+import {
+  getCached,
+  getStale,
+  setCache,
+  invalidateCacheByPrefix,
+  deduplicateRequest,
+} from "@/lib/dataCache";
 
 interface FacturaBackend {
   id: number;
@@ -59,107 +66,133 @@ export function useFacturasAPI() {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const cargarFacturas = useCallback(async () => {
+    const cacheKey = "facturas:all";
+
+    // Return stale data immediately if available
+    const stale = getStale<Factura[]>(cacheKey);
+    if (stale) {
+      setFacturas(stale);
+      setLoading(false);
+    }
+
+    // Skip network if cache is fresh
+    const fresh = getCached<Factura[]>(cacheKey);
+    if (fresh) return;
+
+    // Abort previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      console.log("🔄 Cargando facturas desde API...");
-      setLoading(true);
-      const response = await fetchConToken(`${API_URL}/facturas/`);
+      if (!stale) setLoading(true);
 
-      if (!response.ok) {
-        throw new Error(`Error al cargar facturas: ${response.status}`);
-      }
+      const facturasTransformadas = await deduplicateRequest<Factura[]>(
+        cacheKey,
+        async () => {
+          const response = await fetchConToken(`${API_URL}/facturas/`, {
+            signal: controller.signal,
+          });
+          if (!response.ok)
+            throw new Error(`Error al cargar facturas: ${response.status}`);
+          const data = await response.json();
 
-      const data = await response.json();
-      console.log(`📊 Datos recibidos del backend:`, data.length, "facturas");
-
-      const facturasTransformadas = data.map((fact: FacturaBackend) => ({
-        id: fact.id.toString(),
-        folio: fact.numero_factura || "",
-        proveedor: fact.proveedor || "",
-        rfc: "",
-        subtotal: fact.subtotal || 0,
-        iva: fact.iva || 0,
-        total: fact.monto || 0,
-        fechaEmision:
-          fact.fecha_factura || new Date().toISOString().split("T")[0],
-        fechaEstimadaPago:
-          fact.fecha_vencimiento || new Date().toISOString().split("T")[0],
-        fechaRealPago: fact.fecha_pago || undefined,
-        fechaIngresada: fact.fecha_ingresada || undefined,
-        estado: fact.estado || "Pendiente",
-        productos: fact.productos || "",
-        observaciones: fact.observaciones || "",
-        proyeccionId: fact.proyeccion_id
-          ? fact.proyeccion_id.toString()
-          : undefined,
-        eventoId: fact.evento_id ? fact.evento_id.toString() : undefined,
-        eventoNombre: fact.evento_nombre || undefined,
-        campanyaId: fact.campanya_id ? fact.campanya_id.toString() : undefined,
-        campanyaNombre: fact.campanya_nombre || undefined,
-        marca: fact.marca || "",
-        categoria: fact.categoria || undefined,
-        subcategoria: fact.subcategoria || undefined,
-        usoCfdi: fact.uso_cfdi || "",
-        metodoPago: fact.metodo_pago || "",
-        ordenCompra: fact.orden_compra || "",
-        mesAsignado: fact.mes_asignado || undefined,
-        añoAsignado: fact.año_asignado || undefined,
-        archivos: (fact.archivos || []).map((archivo: ArchivoBackend) => ({
-          id: archivo.id.toString(),
-          nombre: archivo.nombre_archivo,
-          tipo: archivo.tipo_archivo,
-          url: `${API_URL}/facturas/${fact.id}/archivos/${archivo.id}/descargar`,
-          fechaSubida: archivo.fecha_subida.split(" ")[0],
-          seccion: archivo.seccion || undefined,
-        })),
-        cotizaciones: (fact.cotizaciones || []).map(
-          (cotizacion: CotizacionBackend) => ({
-            id: cotizacion.id.toString(),
-            proveedor: cotizacion.proveedor,
-            monto: cotizacion.monto,
-            archivo: cotizacion.nombre_archivo
-              ? {
-                  id: cotizacion.id.toString(),
-                  nombre: cotizacion.nombre_archivo,
-                  tipo:
-                    cotizacion.nombre_archivo.split(".").pop()?.toUpperCase() ||
-                    "ARCHIVO",
-                  url: `${API_URL}/facturas/${fact.id}/cotizaciones/${cotizacion.id}/descargar`,
-                  fechaSubida:
-                    cotizacion.fecha_subida?.split(" ")[0] ||
-                    new Date().toISOString().split("T")[0],
-                }
+          return data.map((fact: FacturaBackend) => ({
+            id: fact.id.toString(),
+            folio: fact.numero_factura || "",
+            proveedor: fact.proveedor || "",
+            rfc: "",
+            subtotal: fact.subtotal || 0,
+            iva: fact.iva || 0,
+            total: fact.monto || 0,
+            fechaEmision:
+              fact.fecha_factura || new Date().toISOString().split("T")[0],
+            fechaEstimadaPago:
+              fact.fecha_vencimiento || new Date().toISOString().split("T")[0],
+            fechaRealPago: fact.fecha_pago || undefined,
+            fechaIngresada: fact.fecha_ingresada || undefined,
+            estado: fact.estado || "Pendiente",
+            productos: fact.productos || "",
+            observaciones: fact.observaciones || "",
+            proyeccionId: fact.proyeccion_id
+              ? fact.proyeccion_id.toString()
               : undefined,
-            observaciones: cotizacion.observaciones,
-          }),
-        ),
-        fechaCreacion: fact.fecha_creacion
-          ? fact.fecha_creacion.split("T")[0]
-          : new Date().toISOString().split("T")[0],
-        fechaModificacion: undefined,
-        autorizadoPor: undefined,
-        fechaAutorizacion: undefined,
-      }));
-
-      console.log(
-        `✅ Facturas transformadas:`,
-        facturasTransformadas.length,
-        "facturas en estado",
+            eventoId: fact.evento_id ? fact.evento_id.toString() : undefined,
+            eventoNombre: fact.evento_nombre || undefined,
+            campanyaId: fact.campanya_id
+              ? fact.campanya_id.toString()
+              : undefined,
+            campanyaNombre: fact.campanya_nombre || undefined,
+            marca: fact.marca || "",
+            categoria: fact.categoria || undefined,
+            subcategoria: fact.subcategoria || undefined,
+            usoCfdi: fact.uso_cfdi || "",
+            metodoPago: fact.metodo_pago || "",
+            ordenCompra: fact.orden_compra || "",
+            mesAsignado: fact.mes_asignado || undefined,
+            añoAsignado: fact.año_asignado || undefined,
+            archivos: (fact.archivos || []).map((archivo: ArchivoBackend) => ({
+              id: archivo.id.toString(),
+              nombre: archivo.nombre_archivo,
+              tipo: archivo.tipo_archivo,
+              url: `${API_URL}/facturas/${fact.id}/archivos/${archivo.id}/descargar`,
+              fechaSubida: archivo.fecha_subida.split(" ")[0],
+              seccion: archivo.seccion || undefined,
+            })),
+            cotizaciones: (fact.cotizaciones || []).map(
+              (cotizacion: CotizacionBackend) => ({
+                id: cotizacion.id.toString(),
+                proveedor: cotizacion.proveedor,
+                monto: cotizacion.monto,
+                archivo: cotizacion.nombre_archivo
+                  ? {
+                      id: cotizacion.id.toString(),
+                      nombre: cotizacion.nombre_archivo,
+                      tipo:
+                        cotizacion.nombre_archivo
+                          .split(".")
+                          .pop()
+                          ?.toUpperCase() || "ARCHIVO",
+                      url: `${API_URL}/facturas/${fact.id}/cotizaciones/${cotizacion.id}/descargar`,
+                      fechaSubida:
+                        cotizacion.fecha_subida?.split(" ")[0] ||
+                        new Date().toISOString().split("T")[0],
+                    }
+                  : undefined,
+                observaciones: cotizacion.observaciones,
+              }),
+            ),
+            fechaCreacion: fact.fecha_creacion
+              ? fact.fecha_creacion.split("T")[0]
+              : new Date().toISOString().split("T")[0],
+            fechaModificacion: undefined,
+            autorizadoPor: undefined,
+            fechaAutorizacion: undefined,
+          }));
+        },
       );
 
-      setFacturas(facturasTransformadas);
-      setError(null);
+      if (!controller.signal.aborted) {
+        setCache(cacheKey, facturasTransformadas);
+        setFacturas(facturasTransformadas);
+        setError(null);
+      }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Error desconocido");
-      console.error("❌ Error cargando facturas:", err);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     cargarFacturas();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [cargarFacturas]);
 
   const guardarFactura = useCallback(
@@ -167,17 +200,10 @@ export function useFacturasAPI() {
       factura: Factura,
     ): Promise<{ success: boolean; facturaId?: string }> => {
       try {
-        console.log("🔵 Iniciando guardarFactura:", {
-          id: factura.id,
-          folio: factura.folio,
-        });
-
         const isUpdate =
           factura.id &&
           factura.id !== "temp" &&
           facturas.some((f) => f.id === factura.id);
-
-        console.log("🔵 Tipo de operación:", isUpdate ? "UPDATE" : "CREATE");
 
         const facturaData = {
           numero_factura: factura.folio,
@@ -211,14 +237,6 @@ export function useFacturasAPI() {
           año_asignado: factura.añoAsignado || null,
         };
 
-        console.log("📝 Datos a enviar:", facturaData);
-        console.log("🔍 Detalle mes/año:", {
-          "factura.mesAsignado": factura.mesAsignado,
-          "factura.añoAsignado": factura.añoAsignado,
-          "facturaData.mes_asignado": facturaData.mes_asignado,
-          "facturaData.año_asignado": facturaData.año_asignado,
-        });
-
         let response: Response;
 
         if (isUpdate) {
@@ -249,15 +267,12 @@ export function useFacturasAPI() {
         if (!isUpdate) {
           const facturaCreada = await response.json();
           facturaId = facturaCreada.id?.toString();
-          console.log("🆔 Nueva factura creada con ID:", facturaId);
         } else {
           facturaId = factura.id;
         }
 
-        console.log("✅ Factura guardada exitosamente, recargando lista...");
-
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
-        console.log("✅ Lista de facturas recargada");
         return { success: true, facturaId };
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
@@ -271,25 +286,19 @@ export function useFacturasAPI() {
   const eliminarFactura = useCallback(
     async (id: string): Promise<boolean> => {
       try {
-        console.log("🔴 Eliminando factura:", id);
-
         const response = await fetchConToken(`${API_URL}/facturas/${id}`, {
           method: "DELETE",
         });
 
         if (!response.ok) {
-          console.error("❌ Error eliminando:", response.status);
           throw new Error(`Error al eliminar factura: ${response.status}`);
         }
 
-        console.log("✅ Factura eliminada, recargando lista...");
-
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
-        console.log("✅ Lista recargada después de eliminar");
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
-        console.error("Error eliminando factura:", err);
         return false;
       }
     },
@@ -316,15 +325,13 @@ export function useFacturasAPI() {
         );
 
         if (!response.ok) {
-          console.error("❌ Error marcando factura como pagada");
           return false;
         }
 
-        console.log("✅ Factura marcada como pagada exitosamente");
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas(); // Recargar facturas
         return true;
       } catch (error) {
-        console.error("❌ Error marcando factura como pagada:", error);
         return false;
       }
     },
@@ -342,15 +349,13 @@ export function useFacturasAPI() {
         );
 
         if (!response.ok) {
-          console.error("❌ Error autorizando factura");
           return false;
         }
 
-        console.log("✅ Factura autorizada exitosamente");
-        await cargarFacturas(); // Recargar facturas para obtener la fecha_ingresada actualizada
+        invalidateCacheByPrefix("facturas:");
+        await cargarFacturas();
         return true;
       } catch (error) {
-        console.error("❌ Error autorizando factura:", error);
         return false;
       }
     },
@@ -385,15 +390,13 @@ export function useFacturasAPI() {
         );
 
         if (!response.ok) {
-          console.error("❌ Error ingresando factura");
           return false;
         }
 
-        console.log("✅ Factura ingresada exitosamente");
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
         return true;
       } catch (error) {
-        console.error("❌ Error ingresando factura:", error);
         return false;
       }
     },
@@ -606,12 +609,11 @@ export function useFacturasAPI() {
         }
 
         const result = await response.json();
-        console.log("✅ Archivos subidos exitosamente:", result.message);
 
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
         return true;
       } catch (err) {
-        console.error("❌ Error subiendo archivos:", err);
         setError(
           err instanceof Error ? err.message : "Error subiendo archivos",
         );
@@ -656,12 +658,11 @@ export function useFacturasAPI() {
         }
 
         const result = await response.json();
-        console.log("✅ Cotización subida exitosamente:", result.message);
 
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
         return true;
       } catch (err) {
-        console.error("❌ Error subiendo cotización:", err);
         setError(
           err instanceof Error ? err.message : "Error subiendo cotización",
         );
@@ -689,10 +690,10 @@ export function useFacturasAPI() {
           );
         }
 
+        invalidateCacheByPrefix("facturas:");
         await cargarFacturas();
         return true;
       } catch (err) {
-        console.error("❌ Error subiendo archivos de productos:", err);
         return false;
       }
     },
@@ -766,15 +767,13 @@ export function useFacturasAPI() {
         );
 
         if (!response.ok) {
-          console.error("❌ Error eliminando archivo");
           return false;
         }
 
-        console.log("✅ Archivo eliminado exitosamente");
-        await cargarFacturas(); // Recargar facturas
+        invalidateCacheByPrefix("facturas:");
+        await cargarFacturas();
         return true;
       } catch (error) {
-        console.error("❌ Error eliminando archivo:", error);
         return false;
       }
     },

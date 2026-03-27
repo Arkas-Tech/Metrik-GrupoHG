@@ -143,55 +143,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    // Instant render from localStorage cache (no network wait)
+    if (token) {
+      try {
+        const cached = localStorage.getItem("usuario");
+        if (cached) {
+          const parsed = JSON.parse(cached) as Usuario;
+          setUsuario(parsed);
+          setPermisos(PERMISOS_POR_TIPO[parsed.tipo]);
+          setLoading(false);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    // Background verify with backend
     const verificarSesion = async () => {
-      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-      if (token) {
-        try {
-          const response = await fetch(AUTH_ENDPOINTS.USER_PROFILE, {
-            headers: {
-              Authorization: `Bearer ${token}`,
+      try {
+        const response = await fetch(AUTH_ENDPOINTS.USER_PROFILE, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+
+          const usuarioMapeado: Usuario = {
+            id: userData.id.toString(),
+            nombre: userData.full_name,
+            email: userData.email,
+            tipo: userData.role as TipoUsuario,
+            grupo: "Grupo HG",
+            fechaCreacion: new Date().toISOString().split("T")[0],
+            activo: true,
+            permisos: userData.permisos || {
+              dashboard: true,
+              estrategia: true,
+              facturas: true,
+              eventos: true,
+              digital: true,
             },
-          });
+            permisos_agencias: userData.permisos_agencias || {},
+          };
 
-          if (response.ok) {
-            // IMPORTANTE: Obtener datos actualizados del backend, no del localStorage
-            const userData = await response.json();
-
-            const usuarioMapeado: Usuario = {
-              id: userData.id.toString(),
-              nombre: userData.full_name,
-              email: userData.email,
-              tipo: userData.role as TipoUsuario,
-              grupo: "Grupo HG",
-              fechaCreacion: new Date().toISOString().split("T")[0],
-              activo: true,
-              permisos: userData.permisos || {
-                dashboard: true,
-                estrategia: true,
-                facturas: true,
-                eventos: true,
-                digital: true,
-              },
-              permisos_agencias: userData.permisos_agencias || {},
-            };
-
-            setUsuario(usuarioMapeado);
-            setPermisos(PERMISOS_POR_TIPO[usuarioMapeado.tipo]);
-            // Actualizar localStorage con datos frescos del backend
-            localStorage.setItem("usuario", JSON.stringify(usuarioMapeado));
-          } else {
-            console.error(
-              "useAuthBackend - Error en verificación, limpiando sesión",
-            );
-            localStorage.removeItem("token");
-            localStorage.removeItem("usuario");
-          }
-        } catch (error) {
-          console.error("Error al verificar sesión:", error);
+          setUsuario(usuarioMapeado);
+          setPermisos(PERMISOS_POR_TIPO[usuarioMapeado.tipo]);
+          localStorage.setItem("usuario", JSON.stringify(usuarioMapeado));
+        } else {
           localStorage.removeItem("token");
           localStorage.removeItem("usuario");
+          setUsuario(null);
+          setPermisos(null);
         }
+      } catch {
+        // Network error — keep cached user if available
       }
       setLoading(false);
     };
