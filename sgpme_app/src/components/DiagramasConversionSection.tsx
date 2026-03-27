@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, useMemo, useRef, Dispatch, SetStateAction } from "react";
 import { fetchConToken } from "@/lib/auth-utils";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import {
@@ -313,6 +313,89 @@ function DiagramaFlowCard({
   );
 }
 
+/* ═══════════ CampanaCombobox ═══════════ */
+function CampanaCombobox({
+  value,
+  onChange,
+  opciones,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  opciones: string[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync local query when external value changes
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered =
+    query.trim() === ""
+      ? opciones
+      : opciones.filter((o) =>
+          o.toLowerCase().includes(query.toLowerCase()),
+        );
+
+  return (
+    <div ref={containerRef} className="relative flex-1">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder={placeholder || "Buscar campaña..."}
+        className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+          {filtered.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(o);
+                setQuery(o);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                value === o
+                  ? "bg-purple-50 font-semibold text-purple-700"
+                  : "text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+              }`}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════ */
 export default function DiagramasConversionSection() {
   const API = process.env.NEXT_PUBLIC_API_URL || "";
@@ -362,25 +445,27 @@ export default function DiagramasConversionSection() {
     if (!modalOpen || !fMarca) return;
     const plataforma = fModelo === "GFCRM" ? "google-ads" : "meta-ads";
     let cancelled = false;
-    setLoadingCampanas(true);
-    fetchConToken(
-      `${API}/${plataforma}/campanas?marca=${encodeURIComponent(fMarca)}`,
-    )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { nombre: string }[] | null) => {
+    async function cargarCampanas() {
+      setLoadingCampanas(true);
+      try {
+        const res = await fetchConToken(
+          `${API}/${plataforma}/campanas?marca=${encodeURIComponent(fMarca)}`,
+        );
+        if (cancelled) return;
+        const data: { nombre: string }[] | null = res.ok ? await res.json() : null;
         if (cancelled) return;
         setCampanasDisponibles(
           data && Array.isArray(data)
             ? data.map((c) => c.nombre).filter(Boolean)
             : [],
         );
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setCampanasDisponibles([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingCampanas(false);
-      });
+      }
+    }
+    cargarCampanas();
     return () => {
       cancelled = true;
     };
@@ -822,20 +907,12 @@ export default function DiagramasConversionSection() {
                   {fAnuncios.map((a, i) => (
                     <div key={i} className="flex gap-2">
                       {campanasDisponibles.length > 0 ? (
-                        <select
+                        <CampanaCombobox
                           value={a}
-                          onChange={(e) =>
-                            updItem(setFAnuncios, i, e.target.value)
-                          }
-                          className="flex-1 border rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-                        >
-                          <option value="">Seleccionar campaña...</option>
-                          {campanasDisponibles.map((nombre) => (
-                            <option key={nombre} value={nombre}>
-                              {nombre}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(v) => updItem(setFAnuncios, i, v)}
+                          opciones={campanasDisponibles}
+                          placeholder={`Buscar campaña ${i + 1}...`}
+                        />
                       ) : (
                         <input
                           type="text"
