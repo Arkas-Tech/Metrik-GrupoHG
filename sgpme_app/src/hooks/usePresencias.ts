@@ -63,7 +63,7 @@ export const usePresencias = () => {
   );
 
   const cargarPresencias = useCallback(
-    async (intentos = 0) => {
+    async () => {
       const cacheKey = `presencias:${marcaSeleccionada || "all"}`;
 
       // Return stale data immediately if available
@@ -95,18 +95,16 @@ export const usePresencias = () => {
         const data = await deduplicateRequest<Presencia[]>(
           cacheKey,
           async () => {
-            const response = await fetchConToken(url, {
-              signal: controller.signal,
-            });
-            if (!response.ok) {
-              // Retry automático hasta 2 veces en errores 4xx/5xx
-              if (intentos < 2 && !controller.signal.aborted) {
-                await new Promise((r) => setTimeout(r, 1500));
-                return cargarPresencias(intentos + 1) as unknown as Presencia[];
-              }
-              throw new Error(`Error al cargar presencias (${response.status})`);
+            // Retry loop interno: hasta 3 intentos sin abortar el controller actual
+            let lastStatus = 0;
+            for (let attempt = 0; attempt <= 2; attempt++) {
+              if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+              if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+              const response = await fetchConToken(url, { signal: controller.signal });
+              if (response.ok) return response.json();
+              lastStatus = response.status;
             }
-            return response.json();
+            throw new Error(`Error al cargar presencias (${lastStatus})`);
           },
         );
 

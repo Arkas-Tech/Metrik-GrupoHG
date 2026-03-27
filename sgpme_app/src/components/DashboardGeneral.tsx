@@ -605,10 +605,10 @@ export default function DashboardGeneral({
   }, [añoSeleccionado]);
 
   // Cargar datos cuando el componente se monta
+  // Nota: cargarPresencias es manejado internamente por usePresencias via su propio useEffect
   useEffect(() => {
     cargarCampanas(agenciaSeleccionada || undefined);
-    cargarPresencias();
-  }, [agenciaSeleccionada, cargarCampanas, cargarPresencias]);
+  }, [agenciaSeleccionada, cargarCampanas]);
 
   // Cargar marcas al inicio
   useEffect(() => {
@@ -3080,7 +3080,10 @@ export default function DashboardGeneral({
           <div className="text-center py-8">
             <p className="text-sm text-red-500 mb-3">{errorPresencias}</p>
             <button
-              onClick={() => { invalidateCacheByPrefix("presencias:"); cargarPresencias(); }}
+              onClick={() => {
+                invalidateCacheByPrefix("presencias:");
+                cargarPresencias();
+              }}
               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
             >
               Reintentar
