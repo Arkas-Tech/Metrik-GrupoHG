@@ -125,11 +125,25 @@ async def read_all_presencia(user: user_dependency, db: db_dependency,
                     k: v for k, v in raw_fv.items()
                     if not (isinstance(v, str) and (v.startswith("data:") or len(v) > 500))
                 }
-                item["datos_extra_json"] = json_module.dumps({"fieldValues": light_fv})
+                # Keep fieldImages for dashboard card thumbnails but cap each image at 200KB
+                raw_fi = extras.get("fieldImages") or {}
+                light_fi: dict = {}
+                for field_id, imgs in raw_fi.items():
+                    if isinstance(imgs, list):
+                        filtered = [
+                            img for img in imgs
+                            if isinstance(img, dict)
+                            and not (isinstance(img.get("url"), str) and len(img["url"]) > 200_000)
+                        ]
+                        if filtered:
+                            light_fi[field_id] = filtered[:1]  # keep only first image per field
+                item["datos_extra_json"] = json_module.dumps({
+                    "fieldValues": light_fv,
+                    "fieldImages": light_fi,
+                })
             except (json_module.JSONDecodeError, TypeError):
                 item["datos_extra_json"] = None
-        # Strip imagenes_json for list view (4.3MB of base64 images)
-        item["imagenes_json"] = None
+        # imagenes_json kept for dashboard card image display (4.3MB total, acceptable)
         result.append(item)
     return result
 
