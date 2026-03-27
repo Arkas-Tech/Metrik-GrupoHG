@@ -10,7 +10,8 @@ interface ImageUploadMultipleProps {
       id: string;
       nombre: string;
       url: string;
-      descripcion: string;
+      categoria: string;
+      checked: boolean;
       file?: File;
     }[],
   ) => void;
@@ -28,7 +29,15 @@ export default function ImageUploadMultiple({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
-  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+  const ALLOWED_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+  ];
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -46,7 +55,8 @@ export default function ImageUploadMultiple({
       id: string;
       nombre: string;
       url: string;
-      descripcion: string;
+      categoria: string;
+      checked: boolean;
       file?: File;
     }[] = [];
 
@@ -67,24 +77,39 @@ export default function ImageUploadMultiple({
       }
 
       try {
-        // Comprimir imagen
-        const result = await compressImage(file);
+        const isVideo = file.type.startsWith("video/");
+        let base64String: string;
+        let resultFile: File;
 
-        // Convertir a base64
-        const base64String = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(result.file);
-        });
+        if (isVideo) {
+          // Videos: convertir directo a base64 sin comprimir
+          base64String = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          resultFile = file;
+        } else {
+          // Imágenes: comprimir primero
+          const result = await compressImage(file);
+          base64String = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(result.file);
+          });
+          resultFile = result.file;
+        }
 
         // Agregar a la lista
         processedImages.push({
           id: `img_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
-          nombre: file.name.replace(/\.[^/.]+$/, ""), // Usar nombre del archivo sin extensión
+          nombre: file.name.replace(/\.[^/.]+$/, ""),
           url: base64String,
-          descripcion: "", // Descripción vacía por defecto
-          file: result.file,
+          categoria: "",
+          checked: false,
+          file: resultFile,
         });
       } catch (err) {
         console.error(`Error procesando ${file.name}:`, err);
@@ -137,7 +162,7 @@ export default function ImageUploadMultiple({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/jpg"
+          accept="image/jpeg,image/png,image/webp,image/jpg,video/mp4,video/quicktime,video/webm"
           onChange={handleFileSelect}
           className="hidden"
           disabled={disabled || uploading}
@@ -161,14 +186,15 @@ export default function ImageUploadMultiple({
             <CloudArrowUpIcon className="h-12 w-12 mx-auto text-gray-400" />
             <div>
               <p className="text-gray-900 font-medium">
-                Arrastra imágenes aquí o haz clic para seleccionar
+                Arrastra imágenes o videos aquí o haz clic para seleccionar
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                Selecciona una o varias imágenes - JPG, PNG o WebP
+                Selecciona una o varias imágenes/videos - JPG, PNG, WebP, MP4,
+                WebM
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                Las imágenes se agregarán automáticamente, podrás editarlas
-                después
+                Los archivos se agregarán automáticamente, podrás asignar
+                categoría después
               </p>
             </div>
           </div>
@@ -183,15 +209,18 @@ export default function ImageUploadMultiple({
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <p className="text-blue-800 text-sm font-medium mb-1">
-          💡 Agregar múltiples imágenes:
+          💡 Agregar múltiples archivos:
         </p>
         <ul className="text-blue-700 text-xs space-y-1">
           <li>
-            • Puedes seleccionar todas las imágenes que quieras de una vez
+            • Puedes seleccionar todas las imágenes y videos que quieras de una
+            vez
           </li>
-          <li>• Las imágenes se agregarán automáticamente</li>
-          <li>• Después podrás editar el nombre y descripción de cada una</li>
-          <li>• Formatos permitidos: JPG, PNG, WebP (máx. 5MB cada una)</li>
+          <li>• Los archivos se agregarán automáticamente</li>
+          <li>• Después podrás asignar una categoría a cada uno</li>
+          <li>
+            • Formatos permitidos: JPG, PNG, WebP, MP4, WebM (máx. 5MB cada uno)
+          </li>
         </ul>
       </div>
     </div>

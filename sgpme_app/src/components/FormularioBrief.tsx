@@ -24,9 +24,25 @@ interface Imagen {
   id: string;
   nombre: string;
   url: string;
-  descripcion: string;
+  categoria: string;
+  checked: boolean;
   file?: File;
 }
+
+const CATEGORIAS_IMAGEN = [
+  "Fachada de la agencia",
+  "Decoración completa del showroom",
+  "Decoración del vehiculo",
+  "Trafico a Piso",
+  "Exhibicion de obsequios",
+  "Ejecucion de la actividad",
+  "Servicio de catering",
+  "Redes sociales",
+  "Campaña invitación",
+  "Invitación Clientes",
+  "Video Invitacion",
+  "Evidencia Hubspot / Leadlab",
+] as const;
 
 export default function FormularioBrief({
   evento,
@@ -136,7 +152,13 @@ export default function FormularioBrief({
     if (briefInicial?.observacionesEspeciales) {
       try {
         const evidencia = JSON.parse(briefInicial.observacionesEspeciales);
-        return evidencia.imagenes || [];
+        return (evidencia.imagenes || []).map(
+          (img: Imagen & { descripcion?: string }) => ({
+            ...img,
+            categoria: img.categoria || "",
+            checked: img.checked ?? false,
+          }),
+        );
       } catch {
         return [];
       }
@@ -177,20 +199,18 @@ export default function FormularioBrief({
     isOpen: boolean;
     url: string;
     nombre: string;
-    descripcion: string;
-  }>({ isOpen: false, url: "", nombre: "", descripcion: "" });
+  }>({ isOpen: false, url: "", nombre: "" });
 
   const abrirImagenModal = (imagen: Imagen) => {
     setImagenModal({
       isOpen: true,
       url: imagen.url,
       nombre: imagen.nombre,
-      descripcion: imagen.descripcion,
     });
   };
 
   const cerrarImagenModal = () => {
-    setImagenModal({ isOpen: false, url: "", nombre: "", descripcion: "" });
+    setImagenModal({ isOpen: false, url: "", nombre: "" });
   };
 
   const agregarAreaMejora = () => {
@@ -212,21 +232,18 @@ export default function FormularioBrief({
     setImagenes((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const actualizarNombreImagen = (id: string, nuevoNombre: string) => {
+  const actualizarCategoriaImagen = (id: string, nuevaCategoria: string) => {
     setImagenes((prev) =>
       prev.map((img) =>
-        img.id === id ? { ...img, nombre: nuevoNombre } : img,
+        img.id === id ? { ...img, categoria: nuevaCategoria } : img,
       ),
     );
   };
 
-  const actualizarDescripcionImagen = (
-    id: string,
-    nuevaDescripcion: string,
-  ) => {
+  const toggleCheckImagen = (id: string) => {
     setImagenes((prev) =>
       prev.map((img) =>
-        img.id === id ? { ...img, descripcion: nuevaDescripcion } : img,
+        img.id === id ? { ...img, checked: !img.checked } : img,
       ),
     );
   };
@@ -325,7 +342,7 @@ export default function FormularioBrief({
 
       await onSubmit(briefCompleto);
     } catch (error) {
-      console.error("Error al guardar brief:", error);
+      console.error("Error al guardar reporte:", error);
     }
   };
 
@@ -363,7 +380,7 @@ export default function FormularioBrief({
 
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">
-          📊 Brief de Evidencia del Evento
+          📊 Reporte de Evidencia del Evento
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -541,27 +558,35 @@ export default function FormularioBrief({
             {imagenes.length > 0 && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  💡 Edita el nombre y descripción de cada imagen:
+                  💡 Marca cada imagen y asigna una categoría:
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {imagenes.map((imagen) => (
                     <div
                       key={imagen.id}
-                      className="border border-gray-200 rounded-lg p-3 bg-white"
+                      className={`border rounded-lg p-3 bg-white transition-colors ${imagen.checked ? "border-green-400 bg-green-50" : "border-gray-200"}`}
                     >
-                      {/* Imagen preview */}
+                      {/* Imagen/Video preview */}
                       {imagen.url && (
                         <div
                           className="relative w-full h-32 rounded mb-2 cursor-pointer group overflow-hidden bg-gray-100"
                           onClick={() => abrirImagenModal(imagen)}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={imagen.url}
-                            alt={imagen.nombre}
-                            className="w-full h-32 object-cover rounded"
-                            loading="eager"
-                          />
+                          {imagen.url.startsWith("data:video/") ? (
+                            <video
+                              src={imagen.url}
+                              className="w-full h-32 object-cover rounded"
+                              muted
+                            />
+                          ) : (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={imagen.url}
+                              alt={imagen.nombre}
+                              className="w-full h-32 object-cover rounded"
+                              loading="eager"
+                            />
+                          )}
                           {imagen.file && (
                             <div className="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded z-10">
                               📁 Local
@@ -599,36 +624,36 @@ export default function FormularioBrief({
                         </div>
                       )}
 
-                      {/* Campo nombre editable */}
-                      <div className="mb-2">
+                      {/* Checkbox */}
+                      <div className="flex items-center gap-2 mb-2">
                         <input
-                          type="text"
-                          value={imagen.nombre}
-                          onChange={(e) =>
-                            actualizarNombreImagen(imagen.id, e.target.value)
-                          }
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                          placeholder="Nombre"
+                          type="checkbox"
+                          checked={imagen.checked}
+                          onChange={() => toggleCheckImagen(imagen.id)}
+                          className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                           disabled={loading}
                         />
+                        <span className="text-xs text-gray-600">
+                          {imagen.checked ? "✓ Verificada" : "Marcar"}
+                        </span>
                       </div>
 
-                      {/* Campo descripción editable */}
-                      <div>
-                        <textarea
-                          value={imagen.descripcion}
-                          onChange={(e) =>
-                            actualizarDescripcionImagen(
-                              imagen.id,
-                              e.target.value,
-                            )
-                          }
-                          rows={2}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
-                          placeholder="Descripción..."
-                          disabled={loading}
-                        />
-                      </div>
+                      {/* Selector de categoría */}
+                      <select
+                        value={imagen.categoria}
+                        onChange={(e) =>
+                          actualizarCategoriaImagen(imagen.id, e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                        disabled={loading}
+                      >
+                        <option value="">Seleccionar categoría...</option>
+                        {CATEGORIAS_IMAGEN.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   ))}
                 </div>
@@ -761,8 +786,8 @@ export default function FormularioBrief({
                   {loading
                     ? "Guardando..."
                     : briefInicial
-                      ? "Actualizar Brief"
-                      : "Guardar Brief"}
+                      ? "Actualizar Reporte"
+                      : "Guardar Reporte"}
                 </span>
               </button>
             </div>
@@ -775,7 +800,7 @@ export default function FormularioBrief({
         isOpen={imagenModal.isOpen}
         imageUrl={imagenModal.url}
         imageName={imagenModal.nombre}
-        imageDescription={imagenModal.descripcion}
+        imageDescription=""
         onClose={cerrarImagenModal}
       />
     </div>

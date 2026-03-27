@@ -313,7 +313,7 @@ export default function EventosPage() {
         setVistaActual("dashboard");
       } else {
         showToast(
-          "Error al guardar el brief. Por favor intenta de nuevo.",
+          "Error al guardar el reporte. Por favor intenta de nuevo.",
           "error",
         );
       }
@@ -346,7 +346,7 @@ export default function EventosPage() {
     if (!evento.brief) return;
 
     const confirmacion = window.confirm(
-      `¿Estás seguro de que deseas eliminar el brief del evento "${evento.nombre}"?\n\nEsta acción no se puede deshacer.`,
+      `¿Estás seguro de que deseas eliminar el reporte del evento "${evento.nombre}"?\n\nEsta acción no se puede deshacer.`,
     );
 
     if (!confirmacion) return;
@@ -354,14 +354,14 @@ export default function EventosPage() {
     try {
       const exito = await eliminarBrief(evento.id);
       if (exito) {
-        showToast("Brief eliminado correctamente", "success");
+        showToast("Reporte eliminado correctamente", "success");
         await cargarEventos();
       } else {
-        showToast("Error al eliminar el brief", "error");
+        showToast("Error al eliminar el reporte", "error");
       }
     } catch (error) {
-      console.error("Error al eliminar brief:", error);
-      showToast("Error al eliminar el brief", "error");
+      console.error("Error al eliminar reporte:", error);
+      showToast("Error al eliminar el reporte", "error");
     }
   };
 
@@ -705,11 +705,12 @@ export default function EventosPage() {
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                     📊 Resumen de Métricas
                     <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      {calcularMetricasBriefs.eventosConBrief} eventos con brief
+                      {calcularMetricasBriefs.eventosConBrief} eventos con
+                      reporte
                     </span>
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Consolidado de todas las métricas de eventos con brief
+                    Consolidado de todas las métricas de eventos con reporte
                     completado
                   </p>
                 </div>
@@ -999,13 +1000,13 @@ export default function EventosPage() {
                     <div className="bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                       <span className="font-medium text-green-800">
                         📋 {eventosFiltrados.filter((e) => e.brief).length}{" "}
-                        Briefs Completados
+                        Reportes Completados
                       </span>
                     </div>
                     <div className="bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
                       <span className="font-medium text-orange-800">
                         ⏳ {eventosFiltrados.filter((e) => !e.brief).length}{" "}
-                        Briefs Pendientes
+                        Reportes Pendientes
                       </span>
                     </div>
                   </div>
@@ -1205,13 +1206,13 @@ export default function EventosPage() {
                                   </div>
                                   <div className="space-y-3">
                                     <h4 className="font-medium text-gray-900 flex items-center">
-                                      📄 Brief del Evento
+                                      📄 Reporte del Evento
                                     </h4>
                                     <div className="space-y-2">
                                       {evento.brief ? (
                                         <div>
                                           <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 mb-2">
-                                            ✓ Brief Completado
+                                            ✓ Reporte Completado
                                           </span>
                                           <div className="flex flex-col gap-2">
                                             {usuario.tipo === "auditor" ? (
@@ -1222,7 +1223,7 @@ export default function EventosPage() {
                                                 }}
                                                 className="px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
                                               >
-                                                📋 Ver Brief Completo
+                                                📋 Ver Reporte Completo
                                               </button>
                                             ) : (
                                               <div className="flex gap-2 flex-wrap">
@@ -1234,7 +1235,7 @@ export default function EventosPage() {
                                                   }}
                                                   className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
                                                 >
-                                                  ✏️ Editar Brief
+                                                  ✏️ Editar Reporte
                                                 </button>
                                                 <button
                                                   onClick={(e) => {
@@ -1263,7 +1264,7 @@ export default function EventosPage() {
                                       ) : (
                                         <div>
                                           <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-600 mb-2">
-                                            ⏳ Brief Pendiente
+                                            ⏳ Reporte Pendiente
                                           </span>
                                           {(usuario.tipo === "administrador" ||
                                             usuario.tipo === "developer" ||
@@ -1276,7 +1277,7 @@ export default function EventosPage() {
                                               }}
                                               className="px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors block"
                                             >
-                                              ➕ Crear Brief
+                                              ➕ Crear Reporte
                                             </button>
                                           )}
                                         </div>

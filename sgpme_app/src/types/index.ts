@@ -444,7 +444,9 @@ export interface ImagenEvento {
   id: string;
   nombre: string;
   url: string;
-  descripcion: string;
+  descripcion?: string;
+  categoria: string;
+  checked: boolean;
 }
 
 export const ESTADOS_EVENTO = [

@@ -882,78 +882,174 @@ export function useEventos() {
             addText("IMÁGENES DEL EVENTO", 16, true);
             addSpace(5);
 
-            for (const [index, imagen] of evidencia.imagenes.entries()) {
-              if (yPos > pageHeight - 100) {
-                pdf.addPage();
-                yPos = 20;
+            // Agrupar imágenes por categoría
+            const porCategoria: Record<string, typeof evidencia.imagenes> = {};
+            const sinCategoria: typeof evidencia.imagenes = [];
+            for (const imagen of evidencia.imagenes) {
+              const cat = imagen.categoria || "";
+              if (cat) {
+                if (!porCategoria[cat]) porCategoria[cat] = [];
+                porCategoria[cat].push(imagen);
+              } else {
+                sinCategoria.push(imagen);
               }
+            }
 
-              addText(`${index + 1}. ${imagen.nombre}`, 12, true);
-              if (imagen.descripcion) {
-                addText(`   ${imagen.descripcion}`, 10);
-              }
+            const categorias = Object.keys(porCategoria);
+
+            for (const categoria of categorias) {
+              addText(categoria.toUpperCase(), 14, true);
               addSpace(3);
 
-              try {
-                if (imagen.url) {
-                  const img = new Image();
-                  img.src = imagen.url;
-
-                  await new Promise<void>((resolve) => {
-                    img.onload = () => {
-                      const maxWidth = pageWidth - 2 * margin;
-                      const maxHeight = 100;
-
-                      let imgWidth = img.width;
-                      let imgHeight = img.height;
-
-                      if (imgWidth > maxWidth) {
-                        const ratio = maxWidth / imgWidth;
-                        imgWidth = maxWidth;
-                        imgHeight = imgHeight * ratio;
-                      }
-
-                      if (imgHeight > maxHeight) {
-                        const ratio = maxHeight / imgHeight;
-                        imgHeight = maxHeight;
-                        imgWidth = imgWidth * ratio;
-                      }
-
-                      if (yPos + imgHeight > pageHeight - 30) {
-                        pdf.addPage();
-                        yPos = 20;
-                      }
-
-                      pdf.addImage(
-                        imagen.url,
-                        "JPEG",
-                        margin,
-                        yPos,
-                        imgWidth,
-                        imgHeight,
-                      );
-                      yPos += imgHeight + 10;
-                      resolve();
-                    };
-
-                    img.onerror = () => {
-                      console.warn(
-                        `No se pudo cargar la imagen ${imagen.nombre}`,
-                      );
-                      resolve();
-                    };
-                  });
+              for (const [index, imagen] of porCategoria[categoria].entries()) {
+                if (yPos > pageHeight - 100) {
+                  pdf.addPage();
+                  yPos = 20;
                 }
-              } catch (imgError) {
-                console.warn(
-                  `No se pudo agregar la imagen ${imagen.nombre}:`,
-                  imgError,
-                );
-                addText(`   (Imagen no disponible)`, 10);
-              }
 
+                addText(`${index + 1}. ${imagen.nombre || "Imagen"}`, 12, true);
+                addSpace(3);
+
+                try {
+                  if (imagen.url && !imagen.url.startsWith("data:video/")) {
+                    const img = new Image();
+                    img.src = imagen.url;
+
+                    await new Promise<void>((resolve) => {
+                      img.onload = () => {
+                        const maxWidth = pageWidth - 2 * margin;
+                        const maxHeight = 100;
+
+                        let imgWidth = img.width;
+                        let imgHeight = img.height;
+
+                        if (imgWidth > maxWidth) {
+                          const ratio = maxWidth / imgWidth;
+                          imgWidth = maxWidth;
+                          imgHeight = imgHeight * ratio;
+                        }
+
+                        if (imgHeight > maxHeight) {
+                          const ratio = maxHeight / imgHeight;
+                          imgHeight = maxHeight;
+                          imgWidth = imgWidth * ratio;
+                        }
+
+                        if (yPos + imgHeight > pageHeight - 30) {
+                          pdf.addPage();
+                          yPos = 20;
+                        }
+
+                        pdf.addImage(
+                          imagen.url,
+                          "JPEG",
+                          margin,
+                          yPos,
+                          imgWidth,
+                          imgHeight,
+                        );
+                        yPos += imgHeight + 10;
+                        resolve();
+                      };
+
+                      img.onerror = () => {
+                        console.warn(
+                          `No se pudo cargar la imagen ${imagen.nombre}`,
+                        );
+                        resolve();
+                      };
+                    });
+                  } else if (imagen.url?.startsWith("data:video/")) {
+                    addText(`   (Video - no incluido en PDF)`, 10);
+                  }
+                } catch (imgError) {
+                  console.warn(
+                    `No se pudo agregar la imagen ${imagen.nombre}:`,
+                    imgError,
+                  );
+                  addText(`   (Imagen no disponible)`, 10);
+                }
+
+                addSpace(5);
+              }
               addSpace(5);
             }
+
+            if (sinCategoria.length > 0) {
+              addText("SIN CATEGORÍA", 14, true);
+              addSpace(3);
+
+              for (const [index, imagen] of sinCategoria.entries()) {
+                if (yPos > pageHeight - 100) {
+                  pdf.addPage();
+                  yPos = 20;
+                }
+
+                addText(`${index + 1}. ${imagen.nombre || "Imagen"}`, 12, true);
+                addSpace(3);
+
+                try {
+                  if (imagen.url && !imagen.url.startsWith("data:video/")) {
+                    const img = new Image();
+                    img.src = imagen.url;
+
+                    await new Promise<void>((resolve) => {
+                      img.onload = () => {
+                        const maxWidth = pageWidth - 2 * margin;
+                        const maxHeight = 100;
+
+                        let imgWidth = img.width;
+                        let imgHeight = img.height;
+
+                        if (imgWidth > maxWidth) {
+                          const ratio = maxWidth / imgWidth;
+                          imgWidth = maxWidth;
+                          imgHeight = imgHeight * ratio;
+                        }
+
+                        if (imgHeight > maxHeight) {
+                          const ratio = maxHeight / imgHeight;
+                          imgHeight = maxHeight;
+                          imgWidth = imgWidth * ratio;
+                        }
+
+                        if (yPos + imgHeight > pageHeight - 30) {
+                          pdf.addPage();
+                          yPos = 20;
+                        }
+
+                        pdf.addImage(
+                          imagen.url,
+                          "JPEG",
+                          margin,
+                          yPos,
+                          imgWidth,
+                          imgHeight,
+                        );
+                        yPos += imgHeight + 10;
+                        resolve();
+                      };
+
+                      img.onerror = () => {
+                        console.warn(
+                          `No se pudo cargar la imagen ${imagen.nombre}`,
+                        );
+                        resolve();
+                      };
+                    });
+                  }
+                } catch (imgError) {
+                  console.warn(
+                    `No se pudo agregar la imagen ${imagen.nombre}:`,
+                    imgError,
+                  );
+                  addText(`   (Imagen no disponible)`, 10);
+                }
+
+                addSpace(5);
+              }
+            }
+
             addSpace(10);
           }
 
@@ -968,7 +1064,7 @@ export function useEventos() {
           const nombreLimpio = evento.nombre
             .replace(/[^a-zA-Z0-9\s]/g, "")
             .replace(/\s+/g, "_");
-          const fileName = `Brief_${nombreLimpio}_${fechaEvento}.pdf`;
+          const fileName = `Reporte_${nombreLimpio}_${fechaEvento}.pdf`;
           pdf.save(fileName);
 
           return true;

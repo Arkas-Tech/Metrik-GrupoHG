@@ -34,6 +34,9 @@ export default function BriefTemplate({
 }: BriefTemplateProps) {
   const [facturasExpandidas, setFacturasExpandidas] = useState(false);
   const [imagenPreview, setImagenPreview] = useState<ImagenEvento | null>(null);
+  const [categoriasExpandidas, setCategoriasExpandidas] = useState<
+    Record<string, boolean>
+  >({});
   const { facturas } = useFacturas();
 
   // Filtrar facturas asignadas a este evento (todos los estados)
@@ -152,12 +155,12 @@ export default function BriefTemplate({
             <div className="flex items-center">
               <PhotoIcon className="h-5 w-5 text-blue-600 mr-2" />
               <span className="text-blue-800 font-medium">
-                Vista Previa del Brief
+                Vista Previa del Reporte
               </span>
             </div>
             <p className="text-blue-600 text-sm mt-1">
-              Esta es una vista previa de cómo se verá el brief completo para el
-              auditor.
+              Esta es una vista previa de cómo se verá el reporte completo para
+              el auditor.
             </p>
           </div>
         )}
@@ -465,33 +468,155 @@ export default function BriefTemplate({
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
               Galería del Evento
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {imagenes.map((imagen: ImagenEvento) => (
-                <div
-                  key={imagen.id}
-                  className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setImagenPreview(imagen)}
-                >
-                  <div className="relative h-48">
-                    <Image
-                      src={imagen.url}
-                      alt={imagen.nombre}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-semibold text-gray-800 mb-1">
-                      {imagen.nombre}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      {imagen.descripcion}
-                    </p>
-                  </div>
+            {(() => {
+              // Agrupar imágenes por categoría
+              const porCategoria: Record<string, ImagenEvento[]> = {};
+              const sinCategoria: ImagenEvento[] = [];
+              imagenes.forEach((imagen: ImagenEvento) => {
+                const cat = imagen.categoria || "";
+                if (cat) {
+                  if (!porCategoria[cat]) porCategoria[cat] = [];
+                  porCategoria[cat].push(imagen);
+                } else {
+                  sinCategoria.push(imagen);
+                }
+              });
+
+              const categorias = Object.keys(porCategoria);
+
+              return (
+                <div className="space-y-4">
+                  {categorias.map((categoria) => (
+                    <div
+                      key={categoria}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCategoriasExpandidas((prev) => ({
+                            ...prev,
+                            [categoria]: !prev[categoria],
+                          }))
+                        }
+                        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <PhotoIcon className="h-5 w-5 text-blue-600" />
+                          <span className="font-semibold text-gray-800">
+                            {categoria}
+                          </span>
+                          <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {porCategoria[categoria].length}
+                          </span>
+                        </div>
+                        {categoriasExpandidas[categoria] ? (
+                          <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                        )}
+                      </button>
+                      {categoriasExpandidas[categoria] && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {porCategoria[categoria].map(
+                            (imagen: ImagenEvento) => (
+                              <div
+                                key={imagen.id}
+                                className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => setImagenPreview(imagen)}
+                              >
+                                <div className="relative h-48">
+                                  {imagen.url.startsWith("data:video/") ? (
+                                    <video
+                                      src={imagen.url}
+                                      className="w-full h-48 object-cover"
+                                      muted
+                                    />
+                                  ) : (
+                                    <Image
+                                      src={imagen.url}
+                                      alt={imagen.nombre}
+                                      fill
+                                      className="object-cover"
+                                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    />
+                                  )}
+                                </div>
+                                {imagen.checked && (
+                                  <div className="px-4 py-2">
+                                    <span className="text-green-600 text-sm font-medium">
+                                      ✓ Verificada
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {sinCategoria.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCategoriasExpandidas((prev) => ({
+                            ...prev,
+                            __sin_categoria__: !prev["__sin_categoria__"],
+                          }))
+                        }
+                        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <PhotoIcon className="h-5 w-5 text-gray-400" />
+                          <span className="font-semibold text-gray-600">
+                            Sin categoría
+                          </span>
+                          <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                            {sinCategoria.length}
+                          </span>
+                        </div>
+                        {categoriasExpandidas["__sin_categoria__"] ? (
+                          <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                        ) : (
+                          <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                        )}
+                      </button>
+                      {categoriasExpandidas["__sin_categoria__"] && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {sinCategoria.map((imagen: ImagenEvento) => (
+                            <div
+                              key={imagen.id}
+                              className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => setImagenPreview(imagen)}
+                            >
+                              <div className="relative h-48">
+                                {imagen.url.startsWith("data:video/") ? (
+                                  <video
+                                    src={imagen.url}
+                                    className="w-full h-48 object-cover"
+                                    muted
+                                  />
+                                ) : (
+                                  <Image
+                                    src={imagen.url}
+                                    alt={imagen.nombre}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         )}
 
@@ -510,25 +635,31 @@ export default function BriefTemplate({
               </button>
               <div className="relative w-full h-full flex flex-col items-center justify-center">
                 <div className="relative max-w-full max-h-[85vh]">
-                  <Image
-                    src={imagenPreview.url}
-                    alt={imagenPreview.nombre}
-                    width={1200}
-                    height={800}
-                    className="object-contain max-h-[85vh] w-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-                <div className="mt-4 bg-white rounded-lg p-4 max-w-2xl">
-                  <h3 className="font-semibold text-gray-900 mb-1">
-                    {imagenPreview.nombre}
-                  </h3>
-                  {imagenPreview.descripcion && (
-                    <p className="text-sm text-gray-600">
-                      {imagenPreview.descripcion}
-                    </p>
+                  {imagenPreview.url.startsWith("data:video/") ? (
+                    <video
+                      src={imagenPreview.url}
+                      controls
+                      className="max-h-[85vh] w-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <Image
+                      src={imagenPreview.url}
+                      alt={imagenPreview.nombre}
+                      width={1200}
+                      height={800}
+                      className="object-contain max-h-[85vh] w-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   )}
                 </div>
+                {imagenPreview.categoria && (
+                  <div className="mt-4 bg-white rounded-lg p-4 max-w-2xl">
+                    <span className="bg-blue-100 text-blue-700 text-sm font-medium px-3 py-1 rounded-full">
+                      {imagenPreview.categoria}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -569,7 +700,7 @@ export default function BriefTemplate({
         <div className="border-t pt-6 mt-8">
           <div className="flex flex-wrap justify-between items-center text-sm text-gray-500">
             <div>
-              <p>Brief generado el {formatearFecha(brief.fechaCreacion)}</p>
+              <p>Reporte generado el {formatearFecha(brief.fechaCreacion)}</p>
               {brief.fechaAprobacion && (
                 <p>Aprobado el {formatearFecha(brief.fechaAprobacion)}</p>
               )}

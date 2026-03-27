@@ -264,14 +264,14 @@ export default function ModalEventosDia({
                                   </div>
                                   <div className="mt-4">
                                     <h5 className="font-medium text-gray-900 mb-2">
-                                      Brief del Evento
+                                      Reporte del Evento
                                     </h5>
                                     {evento.brief ? (
                                       <div className="space-y-2">
                                         <div className="flex items-center space-x-2">
                                           <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                                             <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                            Brief Disponible
+                                            Reporte Disponible
                                           </span>
                                           {evento.brief.aprobadoPor && (
                                             <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
@@ -297,7 +297,7 @@ export default function ModalEventosDia({
                                       <div className="space-y-2">
                                         <div className="flex items-center space-x-2">
                                           <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                                            ⚠️ Sin Brief
+                                            ⚠️ Sin Reporte
                                           </span>
                                           {onCrearBrief && (
                                             <button
@@ -309,7 +309,7 @@ export default function ModalEventosDia({
                                               }}
                                               className="px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
                                             >
-                                              ➕ Crear Brief
+                                              ➕ Crear Reporte
                                             </button>
                                           )}
                                         </div>
