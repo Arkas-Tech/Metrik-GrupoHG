@@ -413,7 +413,10 @@ export default function FormularioFactura({
       const xmlDoc = parser.parseFromString(contenidoXML, "text/xml");
 
       if (xmlDoc.documentElement.nodeName === "parsererror") {
-        showToast("Error al leer el archivo XML. Verifica que sea un XML válido.", "error");
+        showToast(
+          "Error al leer el archivo XML. Verifica que sea un XML válido.",
+          "error",
+        );
         return;
       }
 
@@ -430,7 +433,10 @@ export default function FormularioFactura({
         )[0];
 
       if (!comprobante) {
-        showToast("No se pudo encontrar la información del comprobante en el XML. Verifica que sea un CFDI válido.", "error");
+        showToast(
+          "No se pudo encontrar la información del comprobante en el XML. Verifica que sea un CFDI válido.",
+          "error",
+        );
         return;
       }
 
@@ -526,10 +532,16 @@ export default function FormularioFactura({
         }
       }
 
-      showToast("Información del XML cargada correctamente. Revisa y ajusta los datos si es necesario.", "success");
+      showToast(
+        "Información del XML cargada correctamente. Revisa y ajusta los datos si es necesario.",
+        "success",
+      );
     } catch (error) {
       console.error("Error al procesar XML:", error);
-      showToast("Error al procesar el archivo XML. Verifica que sea un CFDI válido.", "error");
+      showToast(
+        "Error al procesar el archivo XML. Verifica que sea un CFDI válido.",
+        "error",
+      );
     } finally {
       setProcesandoXML(false);
     }
@@ -552,7 +564,10 @@ export default function FormularioFactura({
       archivosCotizaciones.length +
       archivosValidos.length;
     if (totalCotizaciones > 3) {
-      showToast("Máximo 3 cotizaciones por factura (incluyendo las existentes)", "error");
+      showToast(
+        "Máximo 3 cotizaciones por factura (incluyendo las existentes)",
+        "error",
+      );
       return;
     }
 

@@ -342,11 +342,7 @@ export interface Evento {
   fechaInicio: string;
   fechaFin?: string;
   fechasTentativas?: string[];
-  estado:
-    | "Realizado"
-    | "Prospectado"
-    | "Confirmado"
-    | "Cancelado";
+  estado: "Realizado" | "Prospectado" | "Confirmado" | "Cancelado";
   objetivo: string;
   audiencia: string;
   responsable: string;

@@ -221,7 +221,7 @@ export async function GET() {
     console.error("Error al obtener eventos:", error);
     return NextResponse.json(
       { error: "Error al obtener eventos" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
     console.error("Error al crear evento:", error);
     return NextResponse.json(
       { error: "Error al crear evento" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -265,7 +265,7 @@ export async function PUT(request: NextRequest) {
       if (eventoIndex === -1) {
         return NextResponse.json(
           { error: "Evento no encontrado" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -284,7 +284,7 @@ export async function PUT(request: NextRequest) {
     console.error("Error al actualizar eventos:", error);
     return NextResponse.json(
       { error: "Error al actualizar eventos" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -297,7 +297,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "ID de evento requerido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -310,7 +310,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error al eliminar evento:", error);
     return NextResponse.json(
       { error: "Error al eliminar evento" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

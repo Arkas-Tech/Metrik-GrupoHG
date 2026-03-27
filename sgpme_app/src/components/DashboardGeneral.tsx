@@ -194,6 +194,7 @@ export default function DashboardGeneral({
     subcategoriasMediosTradicionales,
     setSubcategoriasMediosTradicionales,
   ] = useState<string[]>([]);
+  const [cargandoSubcategorias, setCargandoSubcategorias] = useState(true);
   const [marcaActual, setMarcaActual] = useState(agenciaSeleccionada);
   const [modalFormularioPresencia, setModalFormularioPresencia] =
     useState(false);
@@ -674,6 +675,8 @@ export default function DashboardGeneral({
           "Error cargando subcategorías de medios tradicionales:",
           error,
         );
+      } finally {
+        setCargandoSubcategorias(false);
       }
     };
     cargarSubcategorias();
@@ -3089,6 +3092,11 @@ export default function DashboardGeneral({
               Reintentar
             </button>
           </div>
+        ) : cargandoSubcategorias ? (
+          <div className="text-center py-8 text-gray-400">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+            <p className="text-sm">Cargando presencias...</p>
+          </div>
         ) : subcategoriasMediosTradicionales.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No hay subcategorías configuradas en Medios Tradicionales.</p>
@@ -3353,7 +3361,10 @@ export default function DashboardGeneral({
                       payload,
                     );
                     if (success) {
-                      showToast("Presencia actualizada exitosamente", "success");
+                      showToast(
+                        "Presencia actualizada exitosamente",
+                        "success",
+                      );
                       await cargarPresencias();
                     } else {
                       showToast("Error al actualizar la presencia", "error");
