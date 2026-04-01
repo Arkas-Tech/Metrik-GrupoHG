@@ -23,6 +23,8 @@ import { compressImage } from "@/lib/imageCompression";
 import type { Proveedor } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { showToast } from "@/lib/toast";
+import UbicacionInput from "./UbicacionInput";
+import type { UbicacionValue } from "./UbicacionInput";
 
 // ─── Local imports from ConfiguracionFormularios ───────────────────────────
 
@@ -32,7 +34,8 @@ type FieldTipo =
   | "selector"
   | "fecha"
   | "imagenes"
-  | "archivos";
+  | "archivos"
+  | "ubicacion";
 type TipoArchivo = "imagenes" | "pdf" | "cualquier";
 
 interface FieldConfig {
@@ -698,6 +701,33 @@ export default function FormularioPresenciaDinamico({
               </div>
             )}
           </div>
+        );
+      }
+
+      case "ubicacion": {
+        const ubicVal: UbicacionValue | null = (() => {
+          if (!val) return null;
+          if (
+            typeof val === "object" &&
+            "lat" in (val as Record<string, unknown>)
+          )
+            return val as unknown as UbicacionValue;
+          if (typeof val === "string") {
+            try {
+              return JSON.parse(val) as UbicacionValue;
+            } catch {
+              return null;
+            }
+          }
+          return null;
+        })();
+        return (
+          <UbicacionInput
+            value={ubicVal}
+            onChange={(v) => setVal(campo.id, v ? JSON.stringify(v) : "")}
+            placeholder={campo.placeholder ?? "Buscar dirección..."}
+            required={campo.requerido}
+          />
         );
       }
 

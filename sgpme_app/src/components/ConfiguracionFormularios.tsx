@@ -17,6 +17,7 @@ import {
   PhotoIcon,
   FolderIcon,
   ListBulletIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "@/hooks/useToast";
 
@@ -28,7 +29,8 @@ export type FieldTipo =
   | "selector"
   | "fecha"
   | "imagenes"
-  | "archivos";
+  | "archivos"
+  | "ubicacion";
 
 export type TipoArchivo = "imagenes" | "pdf" | "cualquier";
 
@@ -138,6 +140,12 @@ const FIELD_TYPES: {
     icon: <FolderIcon className="w-5 h-5" />,
     color: "text-gray-600 bg-gray-50",
   },
+  {
+    tipo: "ubicacion",
+    label: "Ubicación",
+    icon: <MapPinIcon className="w-5 h-5" />,
+    color: "text-red-600 bg-red-50",
+  },
 ];
 
 const FIELD_COLORS: Record<FieldTipo, string> = {
@@ -147,6 +155,7 @@ const FIELD_COLORS: Record<FieldTipo, string> = {
   fecha: "bg-orange-50 border-orange-200 text-orange-700",
   imagenes: "bg-pink-50 border-pink-200 text-pink-700",
   archivos: "bg-gray-50 border-gray-200 text-gray-700",
+  ubicacion: "bg-red-50 border-red-200 text-red-700",
 };
 
 function uid() {

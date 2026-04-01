@@ -16,6 +16,7 @@ import {
   DocumentIcon,
 } from "@heroicons/react/24/outline";
 import type { Presencia } from "@/hooks/usePresencias";
+import UbicacionDisplay from "./UbicacionDisplay";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
@@ -25,7 +26,8 @@ type FieldTipo =
   | "selector"
   | "fecha"
   | "imagenes"
-  | "archivos";
+  | "archivos"
+  | "ubicacion";
 type TipoArchivo = "imagenes" | "pdf" | "cualquier";
 
 interface FieldConfig {
@@ -289,6 +291,24 @@ export default function PresenciaDetallesDinamico({ presencia }: Props) {
         <span className="font-semibold text-green-700">{formatMoney(raw)}</span>
       );
     if (campo.tipo === "fecha") return <span>{formatDate(String(raw))}</span>;
+
+    if (campo.tipo === "ubicacion") {
+      try {
+        const ubicVal = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (
+          ubicVal &&
+          typeof ubicVal === "object" &&
+          "lat" in ubicVal &&
+          "lng" in ubicVal
+        ) {
+          return <UbicacionDisplay value={ubicVal} />;
+        }
+      } catch {
+        /* fall through */
+      }
+      return <span>{String(raw)}</span>;
+    }
+
     return <span>{String(raw)}</span>;
   }
 
