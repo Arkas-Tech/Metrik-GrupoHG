@@ -902,19 +902,12 @@ export default function ConciliacionBDCSection() {
                   {resumen.sem} semana{resumen.sem !== 1 ? "s" : ""}
                 </p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <TarjetaResumen
                   label="Leads Activos"
                   bdc={resumen.actBDC}
                   mkt={resumen.actMKT}
                   color="border-green-200 bg-green-50"
-                  showMkt={false}
-                />
-                <TarjetaResumen
-                  label="Ventas"
-                  bdc={resumen.ventasBDC}
-                  mkt={0}
-                  color="border-emerald-300 bg-emerald-50"
                   showMkt={false}
                 />
                 <TarjetaResumen
@@ -1047,9 +1040,6 @@ export default function ConciliacionBDCSection() {
                   {registrosMes.map((r) => {
                     const totBDC = sumM(r.comparacion_medios, "bdc");
                     const totMKT = sumM(r.comparacion_medios, "mkt");
-                    const ventasSem =
-                      r.leads_activos.find((l) => l.estado === "Ventas")?.bdc ??
-                      0;
                     const open = expandedWeeks.has(r.id);
                     return (
                       <div
@@ -1076,12 +1066,6 @@ export default function ConciliacionBDCSection() {
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-gray-600">
-                            <span>
-                              Ventas:{" "}
-                              <strong className="text-emerald-700">
-                                {ventasSem}
-                              </strong>
-                            </span>
                             <span>
                               BDC:{" "}
                               <strong className="text-gray-800">
