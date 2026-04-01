@@ -141,6 +141,9 @@ const CampanasPage = () => {
   const [editandoGasto, setEditandoGasto] = useState<number | null>(null);
   const [gastoTemporal, setGastoTemporal] = useState<number>(0);
 
+  // Filtro por estado
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState<string>("Todas");
+
   // Filtros
   const fechaActual = new Date();
   const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([
@@ -683,6 +686,13 @@ const CampanasPage = () => {
       )
         return false;
 
+      // Filtrar por estado
+      if (
+        estadoSeleccionado !== "Todas" &&
+        campana.estado !== estadoSeleccionado
+      )
+        return false;
+
       const cumplePlataforma =
         plataformaSeleccionada === "Todas" ||
         campana.plataforma === plataformaSeleccionada;
@@ -789,6 +799,7 @@ const CampanasPage = () => {
     setMesesSeleccionados([]);
     setAñoSeleccionado(fechaActual.getFullYear());
     setPlataformaSeleccionada("Todas");
+    setEstadoSeleccionado("Todas");
     setBusquedaCampana("");
     setFechaInicio("");
     setFechaFin("");
@@ -947,8 +958,8 @@ const CampanasPage = () => {
               </button>
             </div>
 
-            {/* Fila superior: Año, Plataforma, Búsqueda */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Fila superior: Año, Plataforma, Estado, Búsqueda */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Año
@@ -979,6 +990,21 @@ const CampanasPage = () => {
                       {plataforma}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado
+                </label>
+                <select
+                  value={estadoSeleccionado}
+                  onChange={(e) => setEstadoSeleccionado(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-900"
+                >
+                  <option value="Todas">Todas</option>
+                  <option value="Activa">Activa</option>
+                  <option value="Pausada">Pausada</option>
+                  <option value="Completada">Completada</option>
                 </select>
               </div>
               <div>
