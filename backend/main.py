@@ -7,7 +7,7 @@ import time
 import traceback
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools, maintenance
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools, maintenance, funnel_pisos
 from jose import jwt, JWTError
 from starlette.responses import JSONResponse
 
@@ -259,6 +259,7 @@ app.include_router(conciliacion_bdc.router)
 app.include_router(diagramas_conversion.router)
 app.include_router(dev_tools.router)
 app.include_router(maintenance.router)
+app.include_router(funnel_pisos.router)
 
 @app.get("/")
 async def root():

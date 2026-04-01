@@ -494,3 +494,36 @@ class FeatureFlag(Base):
     enabled = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class FunnelPisos(Base):
+    __tablename__ = 'funnel_pisos'
+
+    id = Column(Integer, primary_key=True, index=True)
+    marca = Column(String, nullable=False)
+    mes = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    pisos = Column(Integer, default=0)
+    cotizaciones = Column(Integer, default=0)
+    solicitudes_credito = Column(Integer, default=0)
+    ventas = Column(Integer, default=0)
+    editado_por = Column(String, nullable=True)
+    fecha_edicion = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint('marca', 'mes', 'anio', name='uq_funnel_pisos_marca_mes_anio'),)
+
+
+class FunnelPisosHistorial(Base):
+    __tablename__ = 'funnel_pisos_historial'
+
+    id = Column(Integer, primary_key=True, index=True)
+    funnel_pisos_id = Column(Integer, ForeignKey('funnel_pisos.id'), nullable=False)
+    marca = Column(String, nullable=False)
+    mes = Column(Integer, nullable=False)
+    anio = Column(Integer, nullable=False)
+    pisos = Column(Integer, default=0)
+    cotizaciones = Column(Integer, default=0)
+    solicitudes_credito = Column(Integer, default=0)
+    ventas = Column(Integer, default=0)
+    editado_por = Column(String, nullable=True)
+    fecha_edicion = Column(DateTime, server_default=func.now())
