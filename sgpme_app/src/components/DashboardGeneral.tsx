@@ -121,6 +121,29 @@ interface CustomTooltipProps {
   label?: string;
 }
 
+function buildProfileUrl(plataforma: string, usuario: string): string | null {
+  const u = usuario.replace(/^@/, "").trim();
+  if (!u) return null;
+  switch (plataforma) {
+    case "Instagram":
+      return `https://www.instagram.com/${u}`;
+    case "TikTok":
+      return `https://www.tiktok.com/@${u}`;
+    case "YouTube":
+      return `https://www.youtube.com/@${u}`;
+    case "Facebook":
+      return `https://www.facebook.com/${u}`;
+    case "X (Twitter)":
+      return `https://x.com/${u}`;
+    case "Twitch":
+      return `https://www.twitch.tv/${u}`;
+    case "LinkedIn":
+      return `https://www.linkedin.com/in/${u}`;
+    default:
+      return null;
+  }
+}
+
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const presupuesto = payload.find((p) => p.dataKey === "presupuesto")?.value
@@ -3702,15 +3725,30 @@ export default function DashboardGeneral({
                     </div>
                     {plataformas.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {plataformas.map((pl, i) => (
-                          <span
-                            key={i}
-                            className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
-                          >
-                            {pl.plataforma}
-                            {pl.usuario ? ` · ${pl.usuario}` : ""}
-                          </span>
-                        ))}
+                        {plataformas.map((pl, i) => {
+                          const profileUrl = pl.usuario
+                            ? buildProfileUrl(pl.plataforma, pl.usuario)
+                            : null;
+                          const label = `${pl.plataforma}${pl.usuario ? ` · ${pl.usuario}` : ""}`;
+                          return profileUrl ? (
+                            <a
+                              key={i}
+                              href={profileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-white/60 text-purple-700 text-xs px-2 py-0.5 rounded-full hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
+                            >
+                              {label}
+                            </a>
+                          ) : (
+                            <span
+                              key={i}
+                              className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                     <div className="space-y-2">
