@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Evento, GastoEvento, TIPOS_EVENTO } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { obtenerArrayMarcas } from "@/lib/evento-utils";
 import { fetchConToken } from "@/lib/auth-utils";
 import DateInput from "./DateInput";
 
@@ -28,11 +29,7 @@ export default function FormularioEvento({
     if (eventoInicial) {
       return {
         nombre: eventoInicial.nombre,
-        marca: Array.isArray(eventoInicial.marca)
-          ? eventoInicial.marca
-          : eventoInicial.marca
-            ? [eventoInicial.marca]
-            : [],
+        marca: obtenerArrayMarcas(eventoInicial.marca),
         fechaInicio: eventoInicial.fechaInicio,
         fechaFin: eventoInicial.fechaFin || "",
         fechasTentativas: eventoInicial.fechasTentativas || [],

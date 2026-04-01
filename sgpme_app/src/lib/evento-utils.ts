@@ -62,10 +62,11 @@ export function obtenerArrayMarcas(marca: string | string[]): string[] {
 
   // Soporte para múltiples marcas separadas por "|"
   if (marca.includes("|")) {
-    return marca
+    const arr = marca
       .split("|")
       .map((m) => m.trim())
       .filter(Boolean);
+    return [...new Set(arr)];
   }
 
   return [marca];

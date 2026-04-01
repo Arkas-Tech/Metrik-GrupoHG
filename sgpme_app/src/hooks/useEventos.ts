@@ -261,7 +261,7 @@ export function useEventos() {
           fecha_fin: nuevoEvento.fechaFin,
           ubicacion: nuevoEvento.ubicacion,
           marca: Array.isArray(nuevoEvento.marca)
-            ? nuevoEvento.marca.join("|")
+            ? [...new Set(nuevoEvento.marca)].join("|")
             : nuevoEvento.marca,
           responsable: nuevoEvento.responsable,
           estado: nuevoEvento.estado,
@@ -345,7 +345,7 @@ export function useEventos() {
           ubicacion: datosActualizados.ubicacion || evento.ubicacion,
           marca: (() => {
             const m = datosActualizados.marca ?? evento.marca;
-            return Array.isArray(m) ? m.join("|") : m;
+            return Array.isArray(m) ? [...new Set(m)].join("|") : m;
           })(),
           responsable: datosActualizados.responsable || evento.responsable,
           estado: datosActualizados.estado || evento.estado,

@@ -43,7 +43,7 @@ class EventoRequest(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     ubicacion: Optional[str] = None
-    marca: str = Field(min_length=1, max_length=100)
+    marca: str = Field(min_length=1, max_length=500)
     responsable: str = Field(min_length=1, max_length=100)
     estado: str = Field(min_length=1, max_length=50)
     objetivo: Optional[str] = None
