@@ -148,8 +148,10 @@ if [ "$BACKEND_CHANGED" = true ]; then
         cd "$APP_DIR"
     fi
     
-    log "   🔄 Reloading backend..."
-    pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    log "   🔄 Restarting backend (delete+start to apply config)..."
+    pm2 delete metrik-backend >> "$BUILD_LOG" 2>&1 || true
+    pm2 start "$APP_DIR/ecosystem.config.js" --only metrik-backend >> "$BUILD_LOG" 2>&1
+    pm2 save >> "$BUILD_LOG" 2>&1
     sleep 3
     log "   ✅ Backend actualizado"
 fi
@@ -371,7 +373,9 @@ if [ "$BACKEND_HEALTHY" = false ]; then
     log "⚠️  Backend unhealthy, haciendo rollback..."
     cd "$APP_DIR"
     git checkout "$BEFORE_COMMIT" -- backend/ HGApp/ 2>/dev/null || true
-    pm2 reload "$APP_DIR/ecosystem.config.js" --only metrik-backend --update-env >> "$BUILD_LOG" 2>&1
+    pm2 delete metrik-backend >> "$BUILD_LOG" 2>&1 || true
+    pm2 start "$APP_DIR/ecosystem.config.js" --only metrik-backend >> "$BUILD_LOG" 2>&1
+    pm2 save >> "$BUILD_LOG" 2>&1
     log "══════════════════════════════════════════════"
     log "  ⚠️  BACKEND ROLLED BACK to $BEFORE_COMMIT"
     log "══════════════════════════════════════════════"
