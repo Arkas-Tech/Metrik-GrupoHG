@@ -1,5 +1,5 @@
 "use client";
-
+// Google Maps Places Autocomplete + interactive map for presencia tradicional
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MapPinIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
