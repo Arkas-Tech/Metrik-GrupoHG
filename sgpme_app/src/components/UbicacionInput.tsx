@@ -17,6 +17,50 @@ interface UbicacionInputProps {
 }
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const USER_COORDS_KEY = "ubic_user_coords";
+const USER_COORDS_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+interface CachedCoords {
+  lat: number;
+  lng: number;
+  ts: number;
+}
+
+function getCachedCoords(): CachedCoords | null {
+  try {
+    const raw = localStorage.getItem(USER_COORDS_KEY);
+    if (!raw) return null;
+    const parsed: CachedCoords = JSON.parse(raw);
+    if (Date.now() - parsed.ts > USER_COORDS_TTL) {
+      localStorage.removeItem(USER_COORDS_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveCoords(lat: number, lng: number) {
+  try {
+    localStorage.setItem(USER_COORDS_KEY, JSON.stringify({ lat, lng, ts: Date.now() }));
+  } catch {}
+}
+
+function applyLocationBias(
+  autocomplete: google.maps.places.Autocomplete,
+  lat: number,
+  lng: number
+) {
+  // ~50km radius bias — results anywhere but local ones appear first
+  const delta = 0.45;
+  autocomplete.setBounds(
+    new google.maps.LatLngBounds(
+      { lat: lat - delta, lng: lng - delta },
+      { lat: lat + delta, lng: lng + delta }
+    )
+  );
+}
 
 // Global script loader to avoid duplicates
 let scriptLoaded = false;
@@ -66,6 +110,24 @@ export default function UbicacionInput({
     loadGoogleMapsScript().then(() => setReady(true));
   }, []);
 
+  // Get user location silently (no prompt if permission already granted)
+  // Uses maximumAge so browser returns cached GPS without asking again
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        saveCoords(lat, lng);
+        // Apply bias if autocomplete already initialized
+        if (autocompleteRef.current) {
+          applyLocationBias(autocompleteRef.current, lat, lng);
+        }
+      },
+      () => {}, // silently ignore errors/denial
+      { maximumAge: 3600000, timeout: 5000, enableHighAccuracy: false }
+    );
+  }, []);
+
   // Init map + autocomplete when ready
   useEffect(() => {
     if (!ready || !mapRef.current || !inputRef.current) return;
@@ -106,6 +168,12 @@ export default function UbicacionInput({
       fields: ["geometry", "formatted_address", "name"],
     });
     autocompleteRef.current = autocomplete;
+
+    // Apply cached location bias immediately (no permission prompt)
+    const cached = getCachedCoords();
+    if (cached) {
+      applyLocationBias(autocomplete, cached.lat, cached.lng);
+    }
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
