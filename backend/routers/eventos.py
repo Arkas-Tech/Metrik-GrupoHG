@@ -48,6 +48,10 @@ class EventoRequest(BaseModel):
     estado: str = Field(min_length=1, max_length=50)
     objetivo: Optional[str] = None
     audiencia: Optional[str] = None
+    horario: Optional[str] = None
+    audiencia_esperada: Optional[int] = None
+    demografia: Optional[str] = None
+    nse: Optional[str] = None
     presupuesto_estimado: Optional[float] = None
     presupuesto_real: Optional[float] = None
     observaciones: Optional[str] = None
@@ -65,6 +69,10 @@ class EventoResponse(BaseModel):
     estado: str
     objetivo: Optional[str]
     audiencia: Optional[str]
+    horario: Optional[str]
+    audiencia_esperada: Optional[int]
+    demografia: Optional[str]
+    nse: Optional[str]
     presupuesto_estimado: Optional[float]
     presupuesto_real: Optional[float]
     observaciones: Optional[str]
@@ -271,6 +279,10 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
             "estado": evento.estado,
             "objetivo": evento.objetivo,
             "audiencia": evento.audiencia,
+            "horario": evento.horario,
+            "audiencia_esperada": evento.audiencia_esperada,
+            "demografia": evento.demografia,
+            "nse": evento.nse,
             "presupuesto_estimado": evento.presupuesto_estimado,
             "presupuesto_real": evento.presupuesto_real,
             "observaciones": evento.observaciones,
@@ -333,6 +345,10 @@ async def create_evento(user: user_dependency, db: db_dependency, evento_request
         estado=evento_request.estado,
         objetivo=evento_request.objetivo,
         audiencia=evento_request.audiencia,
+        horario=evento_request.horario,
+        audiencia_esperada=evento_request.audiencia_esperada,
+        demografia=evento_request.demografia,
+        nse=evento_request.nse,
         presupuesto_estimado=evento_request.presupuesto_estimado,
         presupuesto_real=evento_request.presupuesto_real,
         observaciones=evento_request.observaciones,
@@ -367,6 +383,10 @@ async def update_evento(user: user_dependency, db: db_dependency,
     evento.estado = evento_request.estado
     evento.objetivo = evento_request.objetivo
     evento.audiencia = evento_request.audiencia
+    evento.horario = evento_request.horario
+    evento.audiencia_esperada = evento_request.audiencia_esperada
+    evento.demografia = evento_request.demografia
+    evento.nse = evento_request.nse
     evento.presupuesto_estimado = evento_request.presupuesto_estimado
     evento.presupuesto_real = evento_request.presupuesto_real
     evento.observaciones = evento_request.observaciones

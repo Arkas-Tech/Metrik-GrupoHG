@@ -51,6 +51,7 @@ export default function EventosPage() {
     guardarBrief,
     eliminarBrief,
     exportarBriefPDF,
+    exportarEventoPDF,
     cargarBriefCompleto,
   } = useEventos();
   const { facturas } = useFacturas();
@@ -590,6 +591,7 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
+                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
                     />
                   </div>
                 )}
@@ -618,6 +620,7 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
+                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
                     />
                   </div>
                 )}
@@ -646,6 +649,7 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
+                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
                     />
                   </div>
                 )}
@@ -1365,6 +1369,15 @@ export default function EventosPage() {
                                       ⚙️ Acciones
                                     </h4>
                                     <div className="flex flex-col gap-2">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          exportarEventoPDF(evento.id);
+                                        }}
+                                        className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors text-left"
+                                      >
+                                        ⬇️ Descargar PDF
+                                      </button>
                                       {tienePermiso(
                                         "proyecciones",
                                         "editar",
@@ -1735,6 +1748,7 @@ export default function EventosPage() {
                   setVistaActual("template");
                 }
               }}
+              onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
             />
           </div>
         )}
@@ -1769,6 +1783,7 @@ export default function EventosPage() {
                   setVistaActual("template");
                 }
               }}
+              onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
             />
           </div>
         )}
@@ -1858,6 +1873,7 @@ export default function EventosPage() {
                   !eventoEditando.briefs?.some((b) => b.marca === m) ||
                   m === briefMarcaSeleccionada,
               )}
+              facturas={facturas}
               onSubmit={manejarGuardarBrief}
               onCancel={() => setVistaActual("dashboard")}
               loading={loading}

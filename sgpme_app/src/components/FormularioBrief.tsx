@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
-import { BriefEvento, Evento } from "@/types";
+import { BriefEvento, Evento, Factura } from "@/types";
 import { formatearMarca } from "@/lib/evento-utils";
 import ImageUploadMultiple from "./ImageUploadMultiple";
 import ImageModal from "./ImageModal";
@@ -12,6 +12,7 @@ interface FormularioBriefProps {
   briefInicial?: BriefEvento;
   marcaSeleccionada?: string;
   agenciasDisponibles?: string[];
+  facturas?: Factura[];
   onSubmit: (
     brief: Omit<
       BriefEvento,
@@ -29,6 +30,11 @@ interface Imagen {
   asignacion: string;
   checked: boolean;
   file?: File;
+}
+
+interface Partida {
+  nombre: string;
+  precio: number;
 }
 
 const ASIGNACIONES_IMAGEN = [
@@ -51,6 +57,7 @@ export default function FormularioBrief({
   briefInicial,
   marcaSeleccionada,
   agenciasDisponibles,
+  facturas = [],
   onSubmit,
   onCancel,
   loading = false,
@@ -202,6 +209,23 @@ export default function FormularioBrief({
 
   const [errores, setErrores] = useState<{ [key: string]: string }>({});
 
+  // Partidas por factura
+  const facturasEvento = facturas.filter((f) => f.eventoId === evento.id);
+  const [partidas, setPartidas] = useState<Record<string, Partida[]>>(() => {
+    if (briefInicial?.observacionesEspeciales) {
+      try {
+        const data = JSON.parse(briefInicial.observacionesEspeciales);
+        return data.partidas || {};
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+
+  // Refs for category file inputs
+  const categoryInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
   // Estado para el modal de imagen
   const [imagenModal, setImagenModal] = useState<{
     isOpen: boolean;
@@ -230,6 +254,56 @@ export default function FormularioBrief({
 
   const removerAreaMejora = (index: number) => {
     setAreasDeMejora((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const agregarPartida = (facturaId: string) => {
+    setPartidas((prev) => ({
+      ...prev,
+      [facturaId]: [...(prev[facturaId] || []), { nombre: "", precio: 0 }],
+    }));
+  };
+
+  const actualizarPartida = (facturaId: string, index: number, field: keyof Partida, value: string | number) => {
+    setPartidas((prev) => ({
+      ...prev,
+      [facturaId]: (prev[facturaId] || []).map((p, i) =>
+        i === index ? { ...p, [field]: field === "precio" ? parseFloat(String(value)) || 0 : value } : p
+      ),
+    }));
+  };
+
+  const removerPartida = (facturaId: string, index: number) => {
+    setPartidas((prev) => ({
+      ...prev,
+      [facturaId]: (prev[facturaId] || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleCategoryImageUpload = (categoria: string, files: FileList) => {
+    const newImages: Imagen[] = Array.from(files).map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      nombre: file.name,
+      url: URL.createObjectURL(file),
+      asignacion: categoria,
+      checked: false,
+      file,
+    }));
+
+    // Convert to base64
+    newImages.forEach((img) => {
+      if (img.file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagenes((prev) =>
+            prev.map((i) => (i.id === img.id ? { ...i, url: e.target?.result as string } : i))
+          );
+        };
+        reader.readAsDataURL(img.file);
+      }
+    });
+
+    setImagenes((prev) => [...prev, ...newImages]);
+    setSeccionesExpandidas((prev) => ({ ...prev, [categoria]: true }));
   };
 
   const handleImagesAdd = (imagesData: Imagen[]) => {
@@ -377,6 +451,7 @@ export default function FormularioBrief({
           imagenes,
           conclusiones,
           areasDeMejora,
+          partidas,
           observacionesOriginales: formData.observacionesEspeciales,
         }),
       };
@@ -586,6 +661,96 @@ export default function FormularioBrief({
               </div>
             </div>
           </div>
+
+          {/* Sección de Gastos / Facturas */}
+          {facturasEvento.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                💰 Gastos del Evento ({facturasEvento.length} factura{facturasEvento.length !== 1 ? "s" : ""})
+              </label>
+              <div className="space-y-4">
+                {facturasEvento.map((factura) => {
+                  const partidasFactura = partidas[factura.id] || [];
+                  const totalPartidas = partidasFactura.reduce((sum, p) => sum + p.precio, 0);
+                  return (
+                    <div key={factura.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-gray-800 text-sm">{factura.proveedor}</span>
+                          <span className="text-xs text-gray-500">Folio: {factura.folio}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            factura.estado === "Pagada" ? "bg-green-100 text-green-700" :
+                            factura.estado === "Autorizada" ? "bg-blue-100 text-blue-700" :
+                            "bg-yellow-100 text-yellow-700"
+                          }`}>{factura.estado}</span>
+                        </div>
+                        <span className="font-medium text-gray-900">{formatearMonto(factura.subtotal)}</span>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Partidas</span>
+                          <button
+                            type="button"
+                            onClick={() => agregarPartida(factura.id)}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
+                            disabled={loading}
+                          >
+                            + Agregar partida
+                          </button>
+                        </div>
+                        {partidasFactura.length > 0 && (
+                          <div className="space-y-2">
+                            {partidasFactura.map((partida, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={partida.nombre}
+                                  onChange={(e) => actualizarPartida(factura.id, idx, "nombre", e.target.value)}
+                                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                  placeholder="Nombre de la partida"
+                                  disabled={loading}
+                                />
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+                                  <input
+                                    type="number"
+                                    value={partida.precio || ""}
+                                    onChange={(e) => actualizarPartida(factura.id, idx, "precio", e.target.value)}
+                                    className="w-32 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                    placeholder="0.00"
+                                    min={0}
+                                    step="0.01"
+                                    disabled={loading}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removerPartida(factura.id, idx)}
+                                  className="text-red-500 hover:text-red-700 text-sm"
+                                  disabled={loading}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            <div className="flex justify-end pt-1 border-t border-gray-100">
+                              <span className="text-sm font-medium text-gray-700">Total partidas: {formatearMonto(totalPartidas)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-end px-4 py-2 bg-gray-50 rounded-lg">
+                  <span className="font-medium text-gray-900">
+                    Total Gastado: {formatearMonto(facturasEvento.reduce((sum, f) => sum + f.subtotal, 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Descripción del Desarrollo del Evento *
@@ -608,216 +773,90 @@ export default function FormularioBrief({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-4">
-              Imágenes del Evento{" "}
-              {imagenes.length > 0 && `(${imagenes.length})`}
+              📸 Evidencia Fotográfica del Evento{" "}
+              {imagenes.length > 0 && `(${imagenes.length} imágenes)`}
             </label>
-            <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              <h4 className="font-medium text-gray-900 mb-3">
-                📸 Agregar Imágenes del Evento
-              </h4>
-              <ImageUploadMultiple
-                onImagesAdd={handleImagesAdd}
-                disabled={loading}
-              />
-            </div>
-            {imagenes.length > 0 && (
-              <div className="space-y-4">
-                {/* Imágenes sin asignar */}
-                {imagenesSinAsignar.length > 0 && (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedIds.length === imagenesSinAsignar.length &&
-                          imagenesSinAsignar.length > 0
-                        }
-                        onChange={seleccionarTodo}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        disabled={loading}
-                      />
-                      <span className="text-sm font-medium text-gray-700">
-                        {imagenesSinAsignar.length} sin asignar
-                      </span>
-                    </div>
-                    {selectedIds.length > 0 && (
-                      <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border-b border-blue-200">
-                        <span className="text-sm text-blue-700 whitespace-nowrap">
-                          Asignar {selectedIds.length} imagen
-                          {selectedIds.length !== 1 ? "es" : ""} a:
-                        </span>
-                        <select
-                          value={asignacionPendiente}
-                          onChange={(e) =>
-                            setAsignacionPendiente(e.target.value)
-                          }
-                          className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
-                          disabled={loading}
-                        >
-                          <option value="">Seleccionar asignación...</option>
-                          {ASIGNACIONES_IMAGEN.map((a) => (
-                            <option key={a} value={a}>
-                              {a}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={confirmarAsignacion}
-                          disabled={!asignacionPendiente || loading}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-300 transition-colors whitespace-nowrap"
-                        >
-                          Confirmar
-                        </button>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
-                      {imagenesSinAsignar.map((imagen) => (
-                        <div
-                          key={imagen.id}
-                          className={`border rounded-lg p-2 bg-white transition-colors ${
-                            selectedIds.includes(imagen.id)
-                              ? "border-blue-400 bg-blue-50"
-                              : "border-gray-200"
-                          }`}
-                        >
-                          <div
-                            className="relative w-full h-28 rounded mb-2 cursor-pointer group overflow-hidden bg-gray-100"
-                            onClick={() => abrirImagenModal(imagen)}
-                          >
-                            {imagen.url.startsWith("data:video/") ? (
-                              <video
-                                src={imagen.url}
-                                className="w-full h-28 object-cover rounded"
-                                muted
-                              />
-                            ) : (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={imagen.url}
-                                alt={imagen.nombre}
-                                className="w-full h-28 object-cover rounded"
-                                loading="eager"
-                              />
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removerImagen(imagen.id);
-                              }}
-                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
-                              disabled={loading}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(imagen.id)}
-                              onChange={() => toggleSeleccionImagen(imagen.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              disabled={loading}
-                            />
-                            <span className="text-xs text-gray-600 truncate">
-                              {imagen.nombre}
-                            </span>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Imágenes asignadas por sección */}
-                {Array.from(
-                  new Set(imagenesAsignadas.map((i) => i.asignacion)),
-                ).map((asig) => {
-                  const imgs = imagenesAsignadas.filter(
-                    (i) => i.asignacion === asig,
-                  );
-                  return (
-                    <div
-                      key={asig}
-                      className="border border-gray-200 rounded-lg overflow-hidden"
+            <div className="space-y-3">
+              {ASIGNACIONES_IMAGEN.map((categoria) => {
+                const imgsCategoria = imagenes.filter((i) => i.asignacion === categoria);
+                const isExpanded = seccionesExpandidas[categoria] || false;
+                return (
+                  <div key={categoria} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeccionesExpandidas((prev) => ({
+                          ...prev,
+                          [categoria]: !prev[categoria],
+                        }))
+                      }
+                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSeccionesExpandidas((prev) => ({
-                            ...prev,
-                            [asig]: !prev[asig],
-                          }))
-                        }
-                        className="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-green-800 text-sm">
-                            {asig}
-                          </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-800 text-sm">{categoria}</span>
+                        {imgsCategoria.length > 0 && (
                           <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                            {imgs.length}
+                            {imgsCategoria.length}
                           </span>
-                        </div>
-                        <span className="text-green-600 text-sm">
-                          {seccionesExpandidas[asig] ? "▲" : "▼"}
-                        </span>
-                      </button>
-                      {seccionesExpandidas[asig] && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
-                          {imgs.map((imagen) => (
-                            <div
-                              key={imagen.id}
-                              className="border border-gray-200 rounded-lg p-2 bg-white"
-                            >
+                        )}
+                      </div>
+                      <span className="text-gray-500 text-sm">{isExpanded ? "▲" : "▼"}</span>
+                    </button>
+                    {isExpanded && (
+                      <div className="p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {imgsCategoria.map((imagen) => (
+                            <div key={imagen.id} className="border border-gray-200 rounded-lg p-2 bg-white">
                               <div
                                 className="relative w-full h-28 rounded mb-2 cursor-pointer overflow-hidden bg-gray-100"
                                 onClick={() => abrirImagenModal(imagen)}
                               >
                                 {imagen.url.startsWith("data:video/") ? (
-                                  <video
-                                    src={imagen.url}
-                                    className="w-full h-28 object-cover rounded"
-                                    muted
-                                  />
+                                  <video src={imagen.url} className="w-full h-28 object-cover rounded" muted />
                                 ) : (
                                   /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img
-                                    src={imagen.url}
-                                    alt={imagen.nombre}
-                                    className="w-full h-28 object-cover rounded"
-                                    loading="eager"
-                                  />
+                                  <img src={imagen.url} alt={imagen.nombre} className="w-full h-28 object-cover rounded" loading="eager" />
                                 )}
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removerImagen(imagen.id);
-                                  }}
+                                  onClick={(e) => { e.stopPropagation(); removerImagen(imagen.id); }}
                                   className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
                                   disabled={loading}
                                 >
                                   ✕
                                 </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => quitarAsignacion(imagen.id)}
-                                className="w-full text-xs text-gray-500 hover:text-blue-600 transition-colors py-0.5"
-                                disabled={loading}
-                              >
-                                ↩ Quitar asignación
-                              </button>
+                              <span className="text-xs text-gray-600 truncate block">{imagen.nombre}</span>
                             </div>
                           ))}
+                          <div
+                            onClick={() => categoryInputRefs.current[categoria]?.click()}
+                            className="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-white hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-colors flex flex-col items-center justify-center min-h-[140px]"
+                          >
+                            <span className="text-3xl text-gray-400">+</span>
+                            <span className="text-xs text-gray-500 mt-1">Agregar</span>
+                            <input
+                              ref={(el) => { categoryInputRefs.current[categoria] = el; }}
+                              type="file"
+                              multiple
+                              accept="image/*,video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  handleCategoryImageUpload(categoria, e.target.files);
+                                  e.target.value = "";
+                                }
+                              }}
+                              disabled={loading}
+                            />
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-4">

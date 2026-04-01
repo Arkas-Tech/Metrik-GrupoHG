@@ -16,6 +16,7 @@ interface CalendarioAnualProps {
   onEventoClick?: (evento: Evento) => void;
   onCrearBrief?: (eventoId: string) => void;
   onVerBrief?: (eventoId: string) => void;
+  onDescargarEventoPDF?: (eventoId: string) => void;
 }
 
 const MESES_CORTOS = [
@@ -51,6 +52,7 @@ export default function CalendarioAnual({
   onEventoClick,
   onCrearBrief,
   onVerBrief,
+  onDescargarEventoPDF,
 }: CalendarioAnualProps) {
   const añoActual = new Date().getFullYear();
   const [año, setAño] = useState(añoActual);
@@ -453,6 +455,7 @@ export default function CalendarioAnual({
         eventos={eventosDelDiaSeleccionado}
         onCrearBrief={onCrearBrief}
         onVerBrief={onVerBrief}
+        onDescargarEventoPDF={onDescargarEventoPDF}
       />
     </div>
   );

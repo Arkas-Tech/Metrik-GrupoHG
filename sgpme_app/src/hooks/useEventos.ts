@@ -151,6 +151,10 @@ export function useEventos() {
         estado: evento.estado,
         objetivo: evento.objetivo || "",
         audiencia: evento.audiencia || "",
+        horario: evento.horario || undefined,
+        audienciaEsperada: evento.audiencia_esperada || undefined,
+        demografia: evento.demografia || undefined,
+        nse: evento.nse || undefined,
         presupuestoEstimado: evento.presupuesto_estimado || 0,
         presupuestoReal: evento.presupuesto_real,
         observaciones: evento.observaciones || "",
@@ -259,6 +263,10 @@ export function useEventos() {
           estado: nuevoEvento.estado,
           objetivo: nuevoEvento.objetivo,
           audiencia: nuevoEvento.audiencia,
+          horario: nuevoEvento.horario || null,
+          audiencia_esperada: nuevoEvento.audienciaEsperada || null,
+          demografia: nuevoEvento.demografia || null,
+          nse: nuevoEvento.nse || null,
           presupuesto_estimado: nuevoEvento.presupuestoEstimado,
           presupuesto_real: nuevoEvento.presupuestoReal,
           observaciones: nuevoEvento.observaciones,
@@ -294,6 +302,10 @@ export function useEventos() {
           estado: eventoCreado.estado,
           objetivo: eventoCreado.objetivo || "",
           audiencia: eventoCreado.audiencia || "",
+          horario: eventoCreado.horario || undefined,
+          audienciaEsperada: eventoCreado.audiencia_esperada || undefined,
+          demografia: eventoCreado.demografia || undefined,
+          nse: eventoCreado.nse || undefined,
           presupuestoEstimado: eventoCreado.presupuesto_estimado || 0,
           presupuestoReal: eventoCreado.presupuesto_real,
           observaciones: eventoCreado.observaciones || "",
@@ -335,6 +347,13 @@ export function useEventos() {
           estado: datosActualizados.estado || evento.estado,
           objetivo: datosActualizados.objetivo || evento.objetivo,
           audiencia: datosActualizados.audiencia || evento.audiencia,
+          horario: datosActualizados.horario ?? evento.horario ?? null,
+          audiencia_esperada:
+            datosActualizados.audienciaEsperada ??
+            evento.audienciaEsperada ??
+            null,
+          demografia: datosActualizados.demografia ?? evento.demografia ?? null,
+          nse: datosActualizados.nse ?? evento.nse ?? null,
           presupuesto_estimado:
             datosActualizados.presupuestoEstimado || evento.presupuestoEstimado,
           presupuesto_real:
@@ -1115,6 +1134,196 @@ export function useEventos() {
     [eventos],
   );
 
+  const exportarEventoPDF = useCallback(
+    async (eventoId: string): Promise<boolean> => {
+      try {
+        const evento = eventos.find((e) => e.id === eventoId);
+        if (!evento) {
+          alert("No se encontró el evento");
+          return false;
+        }
+
+        const jsPDF = (await import("jspdf")).jsPDF;
+        const pdf = new jsPDF("p", "mm", "a4");
+
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const margin = 20;
+        const lineHeight = 7;
+        let yPos = 20;
+
+        const addText = (
+          text: string,
+          fontSize: number = 12,
+          isBold: boolean = false,
+        ) => {
+          if (yPos > pageHeight - 30) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.setFontSize(fontSize);
+          pdf.setFont("helvetica", isBold ? "bold" : "normal");
+          const lines = pdf.splitTextToSize(text, pageWidth - 2 * margin);
+          lines.forEach((line: string) => {
+            if (yPos > pageHeight - 30) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            pdf.text(line, margin, yPos);
+            yPos += lineHeight;
+          });
+        };
+
+        const addSpace = (space: number = 5) => {
+          yPos += space;
+        };
+
+        const addField = (label: string, value: string) => {
+          if (!value) return;
+          addText(`${label}: ${value}`, 12, false);
+          addSpace(2);
+        };
+
+        // Header
+        pdf.setFillColor(37, 99, 235);
+        pdf.rect(0, 0, pageWidth, 40, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(20);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(evento.nombre, margin, 20);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        const fechaTexto = `${new Date(evento.fechaInicio).toLocaleDateString("es-ES")} - ${new Date(evento.fechaFin || evento.fechaInicio).toLocaleDateString("es-ES")}`;
+        pdf.text(fechaTexto, margin, 28);
+        const marcaTexto = Array.isArray(evento.marca)
+          ? evento.marca.join(", ")
+          : evento.marca;
+        pdf.text(marcaTexto, margin, 35);
+
+        yPos = 50;
+        pdf.setTextColor(0, 0, 0);
+
+        // Información General
+        addText("INFORMACIÓN GENERAL", 16, true);
+        addSpace(3);
+        addField("Tipo de Evento", evento.tipoEvento);
+        addField("Estado", evento.estado);
+        addField("Responsable", evento.responsable);
+        addField("Marca/Agencia", marcaTexto);
+        addField("Horario", evento.horario || "");
+        addField("Ubicación", evento.ubicacion || "");
+        addSpace(5);
+
+        // Fechas
+        addText("FECHAS", 16, true);
+        addSpace(3);
+        addField(
+          "Fecha de Inicio",
+          new Date(evento.fechaInicio).toLocaleDateString("es-ES"),
+        );
+        addField(
+          "Fecha de Fin",
+          evento.fechaFin
+            ? new Date(evento.fechaFin).toLocaleDateString("es-ES")
+            : "",
+        );
+        if (evento.fechasTentativas && evento.fechasTentativas.length > 0) {
+          addField(
+            "Fechas Tentativas",
+            evento.fechasTentativas
+              .map((f) => new Date(f).toLocaleDateString("es-ES"))
+              .join(", "),
+          );
+        }
+        addSpace(5);
+
+        // Objetivo y Audiencia
+        addText("OBJETIVO Y AUDIENCIA", 16, true);
+        addSpace(3);
+        addText("Objetivo:", 12, true);
+        addText(evento.objetivo, 12);
+        addSpace(3);
+        if (evento.audienciaEsperada) {
+          addField(
+            "Audiencia Esperada",
+            new Intl.NumberFormat("es-MX").format(evento.audienciaEsperada),
+          );
+        }
+        addField("Demografía", evento.demografia || "");
+        addField("NSE", evento.nse || "");
+        if (evento.audiencia) {
+          addField("Audiencia (notas)", evento.audiencia);
+        }
+        addSpace(5);
+
+        // Presupuesto
+        addText("PRESUPUESTO", 16, true);
+        addSpace(3);
+        addField(
+          "Presupuesto Estimado",
+          `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2 }).format(evento.presupuestoEstimado)}`,
+        );
+        if (evento.presupuestoReal) {
+          addField(
+            "Presupuesto Real",
+            `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2 }).format(evento.presupuestoReal)}`,
+          );
+        }
+        addSpace(5);
+
+        // Gastos Proyectados
+        if (evento.gastosProyectados && evento.gastosProyectados.length > 0) {
+          addText("GASTOS PROYECTADOS", 16, true);
+          addSpace(3);
+          evento.gastosProyectados.forEach((gasto) => {
+            addText(
+              `• ${gasto.concepto}: $${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2 }).format(gasto.monto)}`,
+              12,
+            );
+          });
+          addSpace(5);
+        }
+
+        // Descripción
+        if (evento.descripcion) {
+          addText("DESCRIPCIÓN", 16, true);
+          addSpace(3);
+          addText(evento.descripcion, 12);
+          addSpace(5);
+        }
+
+        // Observaciones
+        if (evento.observaciones) {
+          addText("OBSERVACIONES", 16, true);
+          addSpace(3);
+          addText(evento.observaciones, 12);
+          addSpace(5);
+        }
+
+        // Footer
+        const fechaGeneracion = new Date().toLocaleString("es-ES");
+        pdf.setFontSize(8);
+        pdf.setTextColor(128, 128, 128);
+        pdf.text(`Generado el ${fechaGeneracion}`, margin, pageHeight - 10);
+
+        const fechaEvento = new Date(evento.fechaInicio)
+          .toLocaleDateString("es-ES")
+          .replace(/\//g, "-");
+        const nombreLimpio = evento.nombre
+          .replace(/[^a-zA-Z0-9\s]/g, "")
+          .replace(/\s+/g, "_");
+        pdf.save(`Evento_${nombreLimpio}_${fechaEvento}.pdf`);
+
+        return true;
+      } catch (err) {
+        console.error("Error al exportar PDF del evento:", err);
+        alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
+        return false;
+      }
+    },
+    [eventos],
+  );
+
   // On-demand: fetch full brief with images for a specific event
   const cargarBriefCompleto = useCallback(
     async (eventoId: string, marca?: string): Promise<Evento | null> => {
@@ -1218,6 +1427,7 @@ export function useEventos() {
     guardarBrief,
     eliminarBrief,
     exportarBriefPDF,
+    exportarEventoPDF,
     cargarBriefCompleto,
   };
 }

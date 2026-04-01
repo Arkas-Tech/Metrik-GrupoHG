@@ -18,6 +18,7 @@ interface ModalEventosDiaProps {
   eventos: Evento[];
   onCrearBrief?: (eventoId: string) => void;
   onVerBrief?: (eventoId: string) => void;
+  onDescargarEventoPDF?: (eventoId: string) => void;
 }
 
 const COLORES_ESTADO = {
@@ -49,6 +50,7 @@ export default function ModalEventosDia({
   eventos,
   onCrearBrief,
   onVerBrief,
+  onDescargarEventoPDF,
 }: ModalEventosDiaProps) {
   const [expandedEventoId, setExpandedEventoId] = useState<string | null>(null);
 
@@ -326,6 +328,22 @@ export default function ModalEventosDia({
                                   </div>
                                 </div>
                               </div>
+
+                              {onDescargarEventoPDF && (
+                                <div className="mt-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDescargarEventoPDF(
+                                        evento.id.toString(),
+                                      );
+                                    }}
+                                    className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
+                                  >
+                                    ⬇️ Descargar PDF del Evento
+                                  </button>
+                                </div>
+                              )}
 
                               {evento.descripcion && (
                                 <div className="mt-4">

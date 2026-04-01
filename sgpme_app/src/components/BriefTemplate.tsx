@@ -55,6 +55,7 @@ export default function BriefTemplate({
   let conclusiones = "";
   let areasDeMejora = [];
   let metricas = null;
+  let partidas: Record<string, { nombre: string; precio: number }[]> = {};
 
   try {
     const observaciones = JSON.parse(brief.observacionesEspeciales || "{}");
@@ -65,6 +66,7 @@ export default function BriefTemplate({
     descripcionEvento = observaciones.feedback || "";
     conclusiones = observaciones.conclusiones || "";
     areasDeMejora = observaciones.areasDeMejora || [];
+    partidas = observaciones.partidas || {};
 
     metricas = observaciones.metricas || {
       pruebasManejo: 0,
@@ -169,121 +171,6 @@ export default function BriefTemplate({
             </p>
           </div>
         )}
-        {evidencia && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-600 text-sm font-medium">
-                    Asistentes Totales
-                  </p>
-                  <p className="text-3xl font-bold text-green-700 mt-1">
-                    {formatearNumero(evidencia.asistentes)}
-                  </p>
-                </div>
-                <UserGroupIcon className="h-8 w-8 text-green-500" />
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-600 text-sm font-medium">
-                    Leads Generados
-                  </p>
-                  <p className="text-3xl font-bold text-blue-700 mt-1">
-                    {formatearNumero(evidencia.leads)}
-                  </p>
-                </div>
-                <ChartBarIcon className="h-8 w-8 text-blue-500" />
-              </div>
-            </div>
-
-            <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-600 text-sm font-medium">
-                    Tasa de Conversión
-                  </p>
-                  <p className="text-3xl font-bold text-purple-700 mt-1">
-                    {((evidencia.leads / evidencia.asistentes) * 100).toFixed(
-                      1,
-                    )}
-                    %
-                  </p>
-                </div>
-                <StarIcon className="h-8 w-8 text-purple-500" />
-              </div>
-            </div>
-          </div>
-        )}
-        {metricas &&
-          (metricas.pruebasManejo > 0 ||
-            metricas.cotizaciones > 0 ||
-            metricas.solicitudesCredito > 0 ||
-            metricas.ventas > 0) && (
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <ChartBarIcon className="h-7 w-7 mr-3 text-green-600" />
-                Métricas del Evento
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-green-600 text-sm font-medium">
-                        Pruebas de Manejo
-                      </p>
-                      <p className="text-3xl font-bold text-green-700 mt-1">
-                        {formatearNumero(metricas.pruebasManejo)}
-                      </p>
-                    </div>
-                    <ChartBarIcon className="h-8 w-8 text-green-500" />
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-yellow-600 text-sm font-medium">
-                        Cotizaciones
-                      </p>
-                      <p className="text-3xl font-bold text-yellow-700 mt-1">
-                        {formatearNumero(metricas.cotizaciones)}
-                      </p>
-                    </div>
-                    <DocumentTextIcon className="h-8 w-8 text-yellow-500" />
-                  </div>
-                </div>
-
-                <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-indigo-600 text-sm font-medium">
-                        Solicitudes de Crédito
-                      </p>
-                      <p className="text-3xl font-bold text-indigo-700 mt-1">
-                        {formatearNumero(metricas.solicitudesCredito)}
-                      </p>
-                    </div>
-                    <StarIcon className="h-8 w-8 text-indigo-500" />
-                  </div>
-                </div>
-
-                <div className="bg-red-50 p-6 rounded-xl border border-red-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-red-600 text-sm font-medium">Ventas</p>
-                      <p className="text-3xl font-bold text-red-700 mt-1">
-                        {formatearNumero(metricas.ventas)}
-                      </p>
-                    </div>
-                    <CalendarIcon className="h-8 w-8 text-red-500" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="space-y-6">
             <div>
@@ -386,32 +273,45 @@ export default function BriefTemplate({
                     {facturasEvento.map((factura) => (
                       <div
                         key={factura.id}
-                        className="border border-gray-200 rounded-md p-3 grid grid-cols-3 gap-3 text-sm"
+                        className="border border-gray-200 rounded-md p-3 text-sm"
                       >
-                        <div>
-                          <span className="text-gray-500 text-xs block">
-                            Proveedor
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {factura.proveedor}
-                          </span>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <span className="text-gray-500 text-xs block">
+                              Proveedor
+                            </span>
+                            <span className="font-medium text-gray-800">
+                              {factura.proveedor}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs block">
+                              Subtotal
+                            </span>
+                            <span className="font-medium text-gray-800">
+                              {formatearMoneda(factura.subtotal)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 text-xs block">
+                              Subcategoría
+                            </span>
+                            <span className="font-medium text-gray-800">
+                              {factura.subcategoria || "Sin categoría"}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-gray-500 text-xs block">
-                            Subtotal
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {formatearMoneda(factura.subtotal)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 text-xs block">
-                            Subcategoría
-                          </span>
-                          <span className="font-medium text-gray-800">
-                            {factura.subcategoria || "Sin categoría"}
-                          </span>
-                        </div>
+                        {partidas[factura.id] && partidas[factura.id].length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <span className="text-gray-500 text-xs block mb-1">Partidas</span>
+                            {partidas[factura.id].map((p, idx) => (
+                              <div key={idx} className="flex justify-between text-xs text-gray-700 py-0.5">
+                                <span>{p.nombre}</span>
+                                <span className="font-medium">{formatearMoneda(p.precio)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -468,6 +368,118 @@ export default function BriefTemplate({
             </div>
           </div>
         </div>
+        {evidencia && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 text-sm font-medium">
+                    Asistentes Totales
+                  </p>
+                  <p className="text-3xl font-bold text-green-700 mt-1">
+                    {formatearNumero(evidencia.asistentes)}
+                  </p>
+                </div>
+                <UserGroupIcon className="h-8 w-8 text-green-500" />
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 text-sm font-medium">
+                    Leads Generados
+                  </p>
+                  <p className="text-3xl font-bold text-blue-700 mt-1">
+                    {formatearNumero(evidencia.leads)}
+                  </p>
+                </div>
+                <ChartBarIcon className="h-8 w-8 text-blue-500" />
+              </div>
+            </div>
+
+            <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-600 text-sm font-medium">
+                    Tasa de Conversión
+                  </p>
+                  <p className="text-3xl font-bold text-purple-700 mt-1">
+                    {((evidencia.leads / evidencia.asistentes) * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <StarIcon className="h-8 w-8 text-purple-500" />
+              </div>
+            </div>
+          </div>
+        )}
+        {metricas &&
+          (metricas.pruebasManejo > 0 ||
+            metricas.cotizaciones > 0 ||
+            metricas.solicitudesCredito > 0 ||
+            metricas.ventas > 0) && (
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <ChartBarIcon className="h-7 w-7 mr-3 text-green-600" />
+                Métricas del Evento
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-600 text-sm font-medium">
+                        Pruebas de Manejo
+                      </p>
+                      <p className="text-3xl font-bold text-green-700 mt-1">
+                        {formatearNumero(metricas.pruebasManejo)}
+                      </p>
+                    </div>
+                    <ChartBarIcon className="h-8 w-8 text-green-500" />
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-yellow-600 text-sm font-medium">
+                        Cotizaciones
+                      </p>
+                      <p className="text-3xl font-bold text-yellow-700 mt-1">
+                        {formatearNumero(metricas.cotizaciones)}
+                      </p>
+                    </div>
+                    <DocumentTextIcon className="h-8 w-8 text-yellow-500" />
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-indigo-600 text-sm font-medium">
+                        Solicitudes de Crédito
+                      </p>
+                      <p className="text-3xl font-bold text-indigo-700 mt-1">
+                        {formatearNumero(metricas.solicitudesCredito)}
+                      </p>
+                    </div>
+                    <StarIcon className="h-8 w-8 text-indigo-500" />
+                  </div>
+                </div>
+
+                <div className="bg-red-50 p-6 rounded-xl border border-red-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-red-600 text-sm font-medium">Ventas</p>
+                      <p className="text-3xl font-bold text-red-700 mt-1">
+                        {formatearNumero(metricas.ventas)}
+                      </p>
+                    </div>
+                    <CalendarIcon className="h-8 w-8 text-red-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         {imagenes && imagenes.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">

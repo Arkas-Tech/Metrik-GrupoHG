@@ -39,6 +39,10 @@ export default function FormularioEvento({
         estado: eventoInicial.estado,
         objetivo: eventoInicial.objetivo,
         audiencia: eventoInicial.audiencia,
+        horario: eventoInicial.horario || "",
+        audienciaEsperada: eventoInicial.audienciaEsperada || 0,
+        demografia: eventoInicial.demografia || "",
+        nse: eventoInicial.nse || "",
         responsable: eventoInicial.responsable,
         presupuestoEstimado: eventoInicial.presupuestoEstimado,
         descripcion: eventoInicial.descripcion || "",
@@ -57,6 +61,10 @@ export default function FormularioEvento({
       estado: "Prospectado" as Evento["estado"],
       objetivo: "",
       audiencia: "",
+      horario: "",
+      audienciaEsperada: 0,
+      demografia: "",
+      nse: "",
       responsable: "",
       presupuestoEstimado: 0,
       descripcion: "",
@@ -131,7 +139,11 @@ export default function FormularioEvento({
           ? value === ""
             ? ""
             : parseFloat(value.replace(/,/g, "")) || 0
-          : value,
+          : name === "audienciaEsperada"
+            ? value === ""
+              ? ""
+              : parseInt(value) || 0
+            : value,
     }));
 
     if (errores[name]) {
@@ -181,10 +193,6 @@ export default function FormularioEvento({
 
     if (!formData.objetivo.trim()) {
       nuevosErrores.objetivo = "El objetivo es requerido";
-    }
-
-    if (!formData.audiencia.trim()) {
-      nuevosErrores.audiencia = "La audiencia es requerida";
     }
 
     if (!formData.responsable.trim()) {
@@ -348,7 +356,7 @@ export default function FormularioEvento({
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Fecha de Inicio *
@@ -408,6 +416,21 @@ export default function FormularioEvento({
               </button>
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Horario del Evento
+            </label>
+            <input
+              type="text"
+              name="horario"
+              value={formData.horario}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="Ej: 10:00 AM - 2:00 PM"
+              disabled={loading}
+            />
+          </div>
         </div>
         {formData.fechasTentativas.length > 0 && (
           <div className="space-y-2">
@@ -448,24 +471,60 @@ export default function FormularioEvento({
             <p className="mt-1 text-sm text-red-600">{errores.objetivo}</p>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Audiencia Objetivo *
-          </label>
-          <textarea
-            name="audiencia"
-            value={formData.audiencia}
-            onChange={handleInputChange}
-            rows={2}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
-              errores.audiencia ? "border-red-300" : "border-gray-300"
-            }`}
-            placeholder="Ej: Medios especializados, clientes VIP, distribuidores..."
-            disabled={loading}
-          />
-          {errores.audiencia && (
-            <p className="mt-1 text-sm text-red-600">{errores.audiencia}</p>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Audiencia Esperada
+            </label>
+            <input
+              type="number"
+              name="audienciaEsperada"
+              value={formData.audienciaEsperada || ""}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="Ej: 500"
+              min={0}
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Demografía
+            </label>
+            <input
+              type="text"
+              name="demografia"
+              value={formData.demografia}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="Ej: Hombres y mujeres 25-45 años"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              NSE
+            </label>
+            <div className="flex space-x-4 mt-1">
+              {["(C/C-)", "(C+)", "(A/B)"].map((opcion) => (
+                <label
+                  key={opcion}
+                  className="flex items-center space-x-2 cursor-pointer"
+                >
+                  <input
+                    type="radio"
+                    name="nse"
+                    value={opcion}
+                    checked={formData.nse === opcion}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    disabled={loading}
+                  />
+                  <span className="text-sm text-gray-700">{opcion}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>

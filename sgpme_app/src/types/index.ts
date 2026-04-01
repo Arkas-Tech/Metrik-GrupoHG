@@ -345,6 +345,10 @@ export interface Evento {
   estado: "Realizado" | "Prospectado" | "Confirmado" | "Cancelado";
   objetivo: string;
   audiencia: string;
+  horario?: string;
+  audienciaEsperada?: number;
+  demografia?: string;
+  nse?: string;
   responsable: string;
   presupuestoEstimado: number;
   presupuestoReal?: number;
