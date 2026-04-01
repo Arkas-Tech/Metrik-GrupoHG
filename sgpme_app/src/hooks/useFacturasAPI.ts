@@ -195,6 +195,21 @@ export function useFacturasAPI() {
     };
   }, [cargarFacturas]);
 
+  // Helper para actualización optimista local (sin recargar del servidor)
+  const actualizarFacturaLocal = useCallback(
+    (id: string, cambios: Partial<Factura>) => {
+      setFacturas((prev) => {
+        const updated = prev.map((f) =>
+          f.id === id ? { ...f, ...cambios } : f,
+        );
+        invalidateCacheByPrefix("facturas:");
+        setCache("facturas:all", updated);
+        return updated;
+      });
+    },
+    [],
+  );
+
   const guardarFactura = useCallback(
     async (
       factura: Factura,
@@ -267,12 +282,15 @@ export function useFacturasAPI() {
         if (!isUpdate) {
           const facturaCreada = await response.json();
           facturaId = facturaCreada.id?.toString();
+          // Para nuevas facturas, necesitamos recargar para obtener datos completos
+          invalidateCacheByPrefix("facturas:");
+          await cargarFacturas();
         } else {
           facturaId = factura.id;
+          // Actualización optimista: actualizar localmente sin recargar
+          actualizarFacturaLocal(factura.id, factura);
         }
 
-        invalidateCacheByPrefix("facturas:");
-        await cargarFacturas();
         return { success: true, facturaId };
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
@@ -280,7 +298,7 @@ export function useFacturasAPI() {
         return { success: false };
       }
     },
-    [facturas, cargarFacturas],
+    [facturas, cargarFacturas, actualizarFacturaLocal],
   );
 
   const eliminarFactura = useCallback(
@@ -328,14 +346,17 @@ export function useFacturasAPI() {
           return false;
         }
 
-        invalidateCacheByPrefix("facturas:");
-        await cargarFacturas(); // Recargar facturas
+        // Optimistic: actualizar localmente
+        actualizarFacturaLocal(id, {
+          estado: "Pagada" as Factura["estado"],
+          fechaRealPago: new Date().toISOString().split("T")[0],
+        });
         return true;
       } catch (error) {
         return false;
       }
     },
-    [cargarFacturas],
+    [actualizarFacturaLocal],
   );
 
   const autorizar = useCallback(
@@ -352,14 +373,16 @@ export function useFacturasAPI() {
           return false;
         }
 
-        invalidateCacheByPrefix("facturas:");
-        await cargarFacturas();
+        // Optimistic: actualizar localmente
+        actualizarFacturaLocal(id, {
+          estado: "Autorizada" as Factura["estado"],
+        });
         return true;
       } catch (error) {
         return false;
       }
     },
-    [cargarFacturas],
+    [actualizarFacturaLocal],
   );
 
   const rechazar = useCallback(
@@ -393,14 +416,17 @@ export function useFacturasAPI() {
           return false;
         }
 
-        invalidateCacheByPrefix("facturas:");
-        await cargarFacturas();
+        // Optimistic: actualizar localmente
+        actualizarFacturaLocal(id, {
+          estado: "Ingresada" as Factura["estado"],
+          fechaIngresada: fechaIngreso,
+        });
         return true;
       } catch (error) {
         return false;
       }
     },
-    [cargarFacturas],
+    [actualizarFacturaLocal],
   );
 
   const obtenerFacturasPorFiltros = useCallback(

@@ -106,16 +106,12 @@ function FacturasPageContent() {
   });
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
-  const [graficaKey, setGraficaKey] = useState(0);
 
   // Estados para popup de comprobante de pago
   const [mostrarPopupComprobante, setMostrarPopupComprobante] = useState(false);
   const [facturaIdParaPagar, setFacturaIdParaPagar] = useState<string | null>(
     null,
   );
-  const [facturasIdsParaPagarMasivo, setFacturasIdsParaPagarMasivo] = useState<
-    string[]
-  >([]);
   const [archivoComprobante, setArchivoComprobante] = useState<File | null>(
     null,
   );
@@ -479,10 +475,6 @@ function FacturasPageContent() {
             await guardarFactura(facturaActualizada);
           }
       }
-      // Forzar recarga de la gráfica en cualquier cambio de estado (excepto Pagada que se hace en el popup)
-      if (nuevoEstado !== "Pagada") {
-        setGraficaKey((prev) => prev + 1);
-      }
       console.log("✅ Estado cambiado exitosamente");
     } catch (error) {
       console.error("❌ Error al cambiar estado:", error);
@@ -493,8 +485,6 @@ function FacturasPageContent() {
     console.log("🔵 Ingresando factura", id, "con fecha", fechaIngreso);
     try {
       await ingresarFactura(id, fechaIngreso);
-      // Forzar recarga de la gráfica
-      setGraficaKey((prev) => prev + 1);
       console.log("✅ Factura ingresada exitosamente");
     } catch (error) {
       console.error("❌ Error al ingresar factura:", error);
@@ -512,20 +502,13 @@ function FacturasPageContent() {
 
     console.log("📝 Marcando como pagada con comprobante...");
     try {
-      if (facturasIdsParaPagarMasivo.length > 0) {
-        // Bulk Pagada: apply comprobante to all selected invoices
-        for (const id of facturasIdsParaPagarMasivo) {
-          await marcarComoPagada(id, archivoComprobante);
-        }
-        setFacturasIdsParaPagarMasivo([]);
-      } else if (facturaIdParaPagar) {
+      if (facturaIdParaPagar) {
         await marcarComoPagada(facturaIdParaPagar, archivoComprobante);
       }
       setMostrarPopupComprobante(false);
       setFacturaIdParaPagar(null);
       setArchivoComprobante(null);
-      setGraficaKey((prev) => prev + 1);
-      console.log("✅ Factura(s) marcada(s) como pagada exitosamente");
+      console.log("✅ Factura marcada como pagada exitosamente");
     } catch (error) {
       console.error("❌ Error al marcar factura como pagada:", error);
     }
@@ -534,64 +517,7 @@ function FacturasPageContent() {
   const cerrarPopupComprobante = () => {
     setMostrarPopupComprobante(false);
     setFacturaIdParaPagar(null);
-    setFacturasIdsParaPagarMasivo([]);
     setArchivoComprobante(null);
-  };
-
-  const manejarCambioEstadoMasivo = async (
-    ids: string[],
-    nuevoEstado: Factura["estado"],
-    fechaIngreso?: string,
-  ) => {
-    console.log("🔵 Cambio masivo de estado:", ids, "→", nuevoEstado);
-    try {
-      if (nuevoEstado === "Pagada") {
-        // If invoices need ingreso first (fechaIngreso provided by ListaFacturas)
-        if (fechaIngreso) {
-          for (const id of ids) {
-            await ingresarFactura(id, fechaIngreso);
-          }
-        }
-        // Open payment popup for all selected
-        setFacturasIdsParaPagarMasivo(ids);
-        setMostrarPopupComprobante(true);
-      } else if (nuevoEstado === "Ingresada" && fechaIngreso) {
-        for (const id of ids) {
-          await ingresarFactura(id, fechaIngreso);
-        }
-        setGraficaKey((prev) => prev + 1);
-      } else if (nuevoEstado === "Autorizada") {
-        for (const id of ids) {
-          await autorizar(id);
-        }
-        setGraficaKey((prev) => prev + 1);
-      } else {
-        // Pendiente (revert), Rechazada, etc.
-        for (const id of ids) {
-          const factura = facturas.find((f) => f.id === id);
-          if (factura) {
-            const facturaActualizada = {
-              ...factura,
-              estado: nuevoEstado,
-              fechaModificacion: new Date().toISOString(),
-            };
-            const estadosAnteriores: Factura["estado"][] = ["Ingresada", "Pagada"];
-            const estadosNuevos: Factura["estado"][] = ["Pendiente", "Autorizada"];
-            if (
-              estadosNuevos.includes(nuevoEstado) &&
-              estadosAnteriores.includes(factura.estado)
-            ) {
-              facturaActualizada.fechaIngresada = undefined;
-            }
-            await guardarFactura(facturaActualizada);
-          }
-        }
-        setGraficaKey((prev) => prev + 1);
-      }
-      console.log("✅ Cambio masivo completado");
-    } catch (error) {
-      console.error("❌ Error en cambio masivo:", error);
-    }
   };
 
   const confirmarCambioEstadoConEliminacion = async () => {
@@ -909,7 +835,6 @@ function FacturasPageContent() {
               {/* Gráfica de proyección vs gasto */}
               <div className="w-full">
                 <GraficaProyeccionVsGasto
-                  refreshTrigger={graficaKey}
                   año={filtros.año}
                   mes={filtros.mes}
                   categoriaFiltro={filtros.categoria}
@@ -942,7 +867,6 @@ function FacturasPageContent() {
                     usuario?.tipo === "administrador" ||
                     usuario?.tipo === "developer"
                   }
-                  onCambioEstadoMasivo={manejarCambioEstadoMasivo}
                 />
               </div>
             </div>

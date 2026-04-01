@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Factura, Archivo, Cotizacion } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
 import { showToast } from "@/lib/toast";
-import { QueueListIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 interface ListaFacturasProps {
   facturas: Factura[];
@@ -39,11 +38,6 @@ interface ListaFacturasProps {
     ingresar: boolean;
   };
   esAdministrador?: boolean;
-  onCambioEstadoMasivo?: (
-    ids: string[],
-    nuevoEstado: Factura["estado"],
-    fechaIngreso?: string,
-  ) => void;
 }
 
 export default function ListaFacturas({
@@ -63,22 +57,16 @@ export default function ListaFacturas({
     ingresar: true,
   },
   esAdministrador = false,
-  onCambioEstadoMasivo,
 }: ListaFacturasProps) {
   const [facturaExpandida, setFacturaExpandida] = useState<string | null>(null);
-  const [facturasSeleccionadas, setFacturasSeleccionadas] = useState<string[]>(
-    [],
-  );
+
   const [mostrarPopupIngreso, setMostrarPopupIngreso] = useState(false);
   const [facturaAIngresar, setFacturaAIngresar] = useState<string | null>(null);
   const [fechaIngreso, setFechaIngreso] = useState("");
   const [nuevoEstadoDeseado, setNuevoEstadoDeseado] = useState<
     Factura["estado"] | null
   >(null);
-  const [modoIngresoEsBulk, setModoIngresoEsBulk] = useState(false);
-  const [bulkEstadoDeseado, setBulkEstadoDeseado] = useState<
-    Factura["estado"] | null
-  >(null);
+
   const [ordenFechaIngreso, setOrdenFechaIngreso] = useState<"asc" | "desc">(
     "asc",
   );
@@ -111,12 +99,6 @@ export default function ListaFacturas({
 
   const toggleExpandir = (id: string) => {
     setFacturaExpandida(facturaExpandida === id ? null : id);
-  };
-
-  const toggleSeleccionFactura = (id: string) => {
-    setFacturasSeleccionadas((prev) =>
-      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id],
-    );
   };
 
   const toggleOrdenFechaIngreso = () => {
@@ -153,14 +135,6 @@ export default function ListaFacturas({
 
     return 0;
   });
-
-  const seleccionarTodasFacturas = () => {
-    if (facturasSeleccionadas.length === facturas.length) {
-      setFacturasSeleccionadas([]);
-    } else {
-      setFacturasSeleccionadas(facturas.map((f) => f.id));
-    }
-  };
 
   const getEstadoColor = (estado: Factura["estado"]) => {
     switch (estado) {
@@ -244,18 +218,6 @@ export default function ListaFacturas({
   };
 
   const confirmarIngreso = () => {
-    if (modoIngresoEsBulk && bulkEstadoDeseado && onCambioEstadoMasivo) {
-      onCambioEstadoMasivo(
-        facturasSeleccionadas,
-        bulkEstadoDeseado,
-        fechaIngreso,
-      );
-      setModoIngresoEsBulk(false);
-      setBulkEstadoDeseado(null);
-      setFacturasSeleccionadas([]);
-      cerrarPopupIngreso();
-      return;
-    }
     if (facturaAIngresar && fechaIngreso && onIngresarFactura) {
       onIngresarFactura(facturaAIngresar, fechaIngreso);
       // Si había un estado deseado (Pagada), cambiarlo después de ingresar
@@ -267,41 +229,6 @@ export default function ListaFacturas({
       cerrarPopupIngreso();
     }
   };
-
-  const manejarBulkCambioEstado = (nuevoEstado: Factura["estado"]) => {
-    if (!onCambioEstadoMasivo) return;
-    const necesitanIngreso = facturasSeleccionadas.some((id) => {
-      const f = facturas.find((f) => f.id === id);
-      return (
-        f &&
-        !f.fechaIngresada &&
-        (f.estado === "Pendiente" || f.estado === "Autorizada")
-      );
-    });
-    if (
-      (nuevoEstado === "Ingresada" || nuevoEstado === "Pagada") &&
-      necesitanIngreso
-    ) {
-      const hoy = new Date().toISOString().split("T")[0];
-      setFechaIngreso(hoy);
-      setBulkEstadoDeseado(nuevoEstado);
-      setModoIngresoEsBulk(true);
-      setMostrarPopupIngreso(true);
-    } else {
-      onCambioEstadoMasivo(facturasSeleccionadas, nuevoEstado);
-      setFacturasSeleccionadas([]);
-    }
-  };
-
-  // Computed: estado común de facturas seleccionadas (null si son distintos)
-  const estadosDeSeleccionadas = facturasSeleccionadas
-    .map((id) => facturas.find((f) => f.id === id)?.estado)
-    .filter((e): e is Factura["estado"] => !!e);
-  const estadoComun =
-    estadosDeSeleccionadas.length > 0 &&
-    new Set(estadosDeSeleccionadas).size === 1
-      ? estadosDeSeleccionadas[0]
-      : null;
 
   const manejarCambioEstado = (
     factura: Factura,
@@ -355,78 +282,10 @@ export default function ListaFacturas({
         </p>
       </div>
 
-      {/* Barra de acciones masivas */}
-      {facturasSeleccionadas.length > 0 && (
-        <div className="px-6 py-3 bg-blue-50 border-b border-blue-200">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium text-blue-800">
-              {facturasSeleccionadas.length} factura
-              {facturasSeleccionadas.length !== 1 ? "s" : ""} seleccionada
-              {facturasSeleccionadas.length !== 1 ? "s" : ""}
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {estadoComun ? (
-                <select
-                  value={estadoComun}
-                  onChange={(e) => {
-                    const val = e.target.value as Factura["estado"];
-                    if (val !== estadoComun) manejarBulkCambioEstado(val);
-                  }}
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer ${getEstadoColor(estadoComun)}`}
-                >
-                  <option value={estadoComun}>{estadoComun}</option>
-                  {estadoComun === "Pendiente" && permisos.autorizar && (
-                    <option value="Autorizada">→ Autorizada</option>
-                  )}
-                  {(estadoComun === "Pendiente" ||
-                    estadoComun === "Autorizada") &&
-                    permisos.ingresar && (
-                      <option value="Ingresada">→ Ingresada</option>
-                    )}
-                  {(estadoComun === "Pendiente" ||
-                    estadoComun === "Autorizada" ||
-                    estadoComun === "Ingresada") &&
-                    permisos.marcarPagada && (
-                      <option value="Pagada">→ Pagada</option>
-                    )}
-                  {(estadoComun === "Ingresada" ||
-                    estadoComun === "Pagada" ||
-                    estadoComun === "Rechazada") &&
-                    esAdministrador && (
-                      <option value="Pendiente">→ Pendiente</option>
-                    )}
-                </select>
-              ) : (
-                <span className="text-xs text-blue-600">
-                  Selecciona facturas con el mismo estado para cambiarlas
-                  masivamente
-                </span>
-              )}
-              <button
-                onClick={() => setFacturasSeleccionadas([])}
-                title="Cancelar selección"
-                className="ml-1 p-1 rounded hover:bg-blue-100 text-blue-600 hover:text-blue-800 transition-colors relative"
-              >
-                <QueueListIcon className="h-4 w-4" />
-                <XMarkIcon className="h-2.5 w-2.5 absolute top-0 right-0 stroke-[3]" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <input
-                  type="checkbox"
-                  checked={facturasSeleccionadas.length === facturas.length}
-                  onChange={seleccionarTodasFacturas}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Folio
               </th>
@@ -492,7 +351,7 @@ export default function ListaFacturas({
           <tbody className="bg-white divide-y divide-gray-200">
             {facturas.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-12 text-center">
+                <td colSpan={8} className="px-6 py-12 text-center">
                   <div className="text-gray-500 text-6xl mb-4">📄</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     No hay facturas
@@ -509,15 +368,6 @@ export default function ListaFacturas({
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => toggleExpandir(factura.id)}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={facturasSeleccionadas.includes(factura.id)}
-                        onChange={() => toggleSeleccionFactura(factura.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {factura.folio}
                     </td>
@@ -936,37 +786,6 @@ export default function ListaFacturas({
           </tbody>
         </table>
       </div>
-      {facturasSeleccionadas.length > 0 && (
-        <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
-          <span className="text-sm text-gray-700">
-            {facturasSeleccionadas.length} factura
-            {facturasSeleccionadas.length !== 1 ? "s" : ""} seleccionada
-            {facturasSeleccionadas.length !== 1 ? "s" : ""}
-          </span>
-          <div className="space-x-2">
-            <button
-              onClick={() => {
-                facturasSeleccionadas.forEach((id) => {
-                  const factura = facturas.find((f) => f.id === id);
-                  if (factura?.estado === "Autorizada") {
-                    onCambiarEstado(id, "Pagada");
-                  }
-                });
-                setFacturasSeleccionadas([]);
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
-            >
-              Marcar como Pagadas
-            </button>
-            <button
-              onClick={() => setFacturasSeleccionadas([])}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded text-sm"
-            >
-              Deseleccionar
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Popup para ingresar factura */}
       {mostrarPopupIngreso && (

@@ -2175,38 +2175,92 @@ export default function DashboardGeneral({
             <div className="bg-amber-50 rounded-lg p-6 border border-amber-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-600">Pisos</span>
-                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                <svg
+                  className="w-5 h-5 text-amber-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-amber-900">{funnelPisos.pisos.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-amber-900">
+                {funnelPisos.pisos.toLocaleString("es-MX")}
+              </p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Cotizaciones</span>
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <span className="text-sm font-medium text-gray-600">
+                  Cotizaciones
+                </span>
+                <svg
+                  className="w-5 h-5 text-yellow-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-yellow-900">{funnelPisos.cotizaciones.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-yellow-900">
+                {funnelPisos.cotizaciones.toLocaleString("es-MX")}
+              </p>
             </div>
             <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Solicitudes de crédito</span>
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                <span className="text-sm font-medium text-gray-600">
+                  Solicitudes de crédito
+                </span>
+                <svg
+                  className="w-5 h-5 text-orange-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                  />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-orange-900">{funnelPisos.solicitudes.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-orange-900">
+                {funnelPisos.solicitudes.toLocaleString("es-MX")}
+              </p>
             </div>
             <div className="bg-emerald-50 rounded-lg p-6 border border-emerald-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Ventas</span>
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <span className="text-sm font-medium text-gray-600">
+                  Ventas
+                </span>
+                <svg
+                  className="w-5 h-5 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-emerald-900">{funnelPisos.ventas.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-emerald-900">
+                {funnelPisos.ventas.toLocaleString("es-MX")}
+              </p>
             </div>
           </div>
         </div>
@@ -2217,17 +2271,34 @@ export default function DashboardGeneral({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-bold text-gray-900">Métricas de Pisos</h3>
-              <button onClick={() => setModalPisosOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <h3 className="text-lg font-bold text-gray-900">
+                Métricas de Pisos
+              </h3>
+              <button
+                onClick={() => setModalPisosOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <div className="px-6 py-4 space-y-4">
               {/* Agencia */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Agencia</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Agencia
+                </label>
                 <select
                   value={fpMarca}
                   onChange={(e) => {
@@ -2238,15 +2309,22 @@ export default function DashboardGeneral({
                   className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
                 >
                   <option value="">Selecciona agencia...</option>
-                  {(marcasPermitidas.length > 0 ? marcasPermitidas : MARCAS).map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                  {(marcasPermitidas.length > 0
+                    ? marcasPermitidas
+                    : MARCAS
+                  ).map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
                   ))}
                 </select>
               </div>
               {/* Periodo */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mes</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mes
+                  </label>
                   <select
                     value={fpMes}
                     onChange={(e) => {
@@ -2257,12 +2335,16 @@ export default function DashboardGeneral({
                     className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
                   >
                     {MESES_ORDEN.map((n, i) => (
-                      <option key={i} value={i + 1}>{n}</option>
+                      <option key={i} value={i + 1}>
+                        {n}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Año
+                  </label>
                   <select
                     value={fpAnio}
                     onChange={(e) => {
@@ -2273,36 +2355,88 @@ export default function DashboardGeneral({
                     className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
                   >
                     {AÑOS.map((a) => (
-                      <option key={a} value={a}>{a}</option>
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
               {/* Métricas */}
-              <fieldset disabled={!fpMarca} className={!fpMarca ? "opacity-50" : ""}>
+              <fieldset
+                disabled={!fpMarca}
+                className={!fpMarca ? "opacity-50" : ""}
+              >
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pisos</label>
-                    <input type="number" min={0} value={fpPisos || ""} onChange={(e) => setFpPisos(parseInt(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center" placeholder="0" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pisos
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fpPisos || ""}
+                      onChange={(e) =>
+                        setFpPisos(parseInt(e.target.value) || 0)
+                      }
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                      placeholder="0"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cotizaciones</label>
-                    <input type="number" min={0} value={fpCotizaciones || ""} onChange={(e) => setFpCotizaciones(parseInt(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center" placeholder="0" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cotizaciones
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fpCotizaciones || ""}
+                      onChange={(e) =>
+                        setFpCotizaciones(parseInt(e.target.value) || 0)
+                      }
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                      placeholder="0"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Solicitudes de crédito</label>
-                    <input type="number" min={0} value={fpSolicitudes || ""} onChange={(e) => setFpSolicitudes(parseInt(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center" placeholder="0" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Solicitudes de crédito
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fpSolicitudes || ""}
+                      onChange={(e) =>
+                        setFpSolicitudes(parseInt(e.target.value) || 0)
+                      }
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                      placeholder="0"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ventas</label>
-                    <input type="number" min={0} value={fpVentas || ""} onChange={(e) => setFpVentas(parseInt(e.target.value) || 0)} className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center" placeholder="0" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ventas
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fpVentas || ""}
+                      onChange={(e) =>
+                        setFpVentas(parseInt(e.target.value) || 0)
+                      }
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
               </fieldset>
               {/* Info última edición */}
               {fpEditadoPor && (
                 <p className="text-xs text-gray-500 italic">
-                  Última edición por <strong>{fpEditadoPor}</strong>{fpFechaEdicion ? ` el ${new Date(fpFechaEdicion).toLocaleString("es-MX")}` : ""}
+                  Última edición por <strong>{fpEditadoPor}</strong>
+                  {fpFechaEdicion
+                    ? ` el ${new Date(fpFechaEdicion).toLocaleString("es-MX")}`
+                    : ""}
                 </p>
               )}
               {fpCargando && (
@@ -2310,7 +2444,10 @@ export default function DashboardGeneral({
               )}
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
-              <button onClick={() => setModalPisosOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50">
+              <button
+                onClick={() => setModalPisosOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+              >
                 Cancelar
               </button>
               <button
