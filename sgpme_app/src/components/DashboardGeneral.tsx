@@ -288,6 +288,17 @@ export default function DashboardGeneral({
     >
   >({});
 
+  // Conciliación BDC data for digital funnel
+  const [conciliacionesBDC, setConciliacionesBDC] = useState<
+    Array<{
+      id: number;
+      marca: string;
+      mes: number;
+      anio: number;
+      leads_activos: string;
+    }>
+  >([]);
+
   // Datos organizados por mes: { [mes: number]: Array<datos> }
   const [desplazamientoPorMes, setDesplazamientoPorMes] = useState<{
     [mes: number]: {
@@ -539,6 +550,28 @@ export default function DashboardGeneral({
       cancelled = true;
     };
   }, [filtroMesGlobal, añoSeleccionado]);
+
+  // Fetch conciliación BDC data for digital funnel (citas + ventas)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetchConToken(
+          `${API_URL}/conciliacion-bdc/?anio=${añoSeleccionado}`,
+        );
+        if (!cancelled && res.ok) {
+          setConciliacionesBDC(await res.json());
+        }
+      } catch {
+        if (!cancelled) setConciliacionesBDC([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [añoSeleccionado]);
 
   // Función para manejar la carga de PDF
   const handlePdfUpload = (
@@ -1143,6 +1176,78 @@ export default function DashboardGeneral({
   const metricasMeta = calcularMetricasPlataforma("Meta Ads");
   const metricasGoogle = calcularMetricasPlataforma("Google Ads");
   const metricasTikTok = calcularMetricasPlataforma("TikTok Ads");
+
+  // ── Funnel Digital: leads (campañas) + citas/ventas (conciliación BDC) ──
+  const funnelDigital = useMemo(() => {
+    const leads =
+      metricasMeta.leads + metricasGoogle.leads + metricasTikTok.leads;
+
+    // Filtrar conciliaciones por mes + marca
+    const concFiltradas = conciliacionesBDC.filter((c) => {
+      if (c.mes !== filtroMesGlobal) return false;
+      if (agenciaSeleccionada) return c.marca === agenciaSeleccionada;
+      return marcasPermitidas.length === 0 || marcasPermitidas.includes(c.marca);
+    });
+
+    let citas = 0;
+    let ventas = 0;
+    for (const c of concFiltradas) {
+      try {
+        const activos: Array<{ estado: string; bdc: number }> =
+          typeof c.leads_activos === "string"
+            ? JSON.parse(c.leads_activos)
+            : c.leads_activos || [];
+        for (const a of activos) {
+          if (a.estado === "Cita agendada" || a.estado === "Cita cumplida")
+            citas += a.bdc || 0;
+          if (a.estado === "Ventas") ventas += a.bdc || 0;
+        }
+      } catch {
+        /* ignore parse errors */
+      }
+    }
+
+    return { leads, citas, ventas };
+  }, [
+    metricasMeta.leads,
+    metricasGoogle.leads,
+    metricasTikTok.leads,
+    conciliacionesBDC,
+    filtroMesGlobal,
+    agenciaSeleccionada,
+    marcasPermitidas,
+  ]);
+
+  // ── Funnel Eventos: asistentes, leads, ventas desde reportes ──
+  const funnelEventos = useMemo(() => {
+    let asistentes = 0;
+    let leads = 0;
+    let ventasEv = 0;
+
+    for (const evento of eventosFiltrados) {
+      if (!evento.briefs || evento.briefs.length === 0) continue;
+      for (const brief of evento.briefs) {
+        // Filtrar por marca si es brief multi-marca
+        if (agenciaSeleccionada && brief.marca && brief.marca !== agenciaSeleccionada) continue;
+        if (!agenciaSeleccionada && marcasPermitidas.length > 0 && brief.marca && !marcasPermitidas.includes(brief.marca)) continue;
+
+        try {
+          const obs =
+            typeof brief.observacionesEspeciales === "string"
+              ? JSON.parse(brief.observacionesEspeciales)
+              : brief.observacionesEspeciales;
+          if (!obs) continue;
+          asistentes += obs.evidencia?.asistentes || 0;
+          leads += obs.evidencia?.leads || 0;
+          ventasEv += obs.metricas?.ventas || 0;
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+    }
+
+    return { asistentes, leads, ventas: ventasEv };
+  }, [eventosFiltrados, agenciaSeleccionada, marcasPermitidas]);
 
   // Datos para Presencia Tradicional — filtra por año + mes global.
   // Usa rango de fechas de la sección Temporalidad del template (si existe):
@@ -1760,7 +1865,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-blue-900">0</p>
+              <p className="text-3xl font-bold text-blue-900">{funnelDigital.leads.toLocaleString("es-MX")}</p>
             </div>
 
             {/* Citas */}
@@ -1781,7 +1886,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-green-900">0</p>
+              <p className="text-3xl font-bold text-green-900">{funnelDigital.citas.toLocaleString("es-MX")}</p>
             </div>
 
             {/* Ventas */}
@@ -1804,7 +1909,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-emerald-900">0</p>
+              <p className="text-3xl font-bold text-emerald-900">{funnelDigital.ventas.toLocaleString("es-MX")}</p>
             </div>
           </div>
         </div>
@@ -1835,7 +1940,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-purple-900">0</p>
+              <p className="text-3xl font-bold text-purple-900">{funnelEventos.asistentes.toLocaleString("es-MX")}</p>
             </div>
 
             {/* Leads */}
@@ -1856,7 +1961,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-pink-900">0</p>
+              <p className="text-3xl font-bold text-pink-900">{funnelEventos.leads.toLocaleString("es-MX")}</p>
             </div>
 
             {/* Ventas */}
@@ -1879,7 +1984,7 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-rose-900">0</p>
+              <p className="text-3xl font-bold text-rose-900">{funnelEventos.ventas.toLocaleString("es-MX")}</p>
             </div>
           </div>
         </div>
