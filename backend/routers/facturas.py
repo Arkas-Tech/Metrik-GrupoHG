@@ -270,11 +270,11 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
     for cotizacion in all_cotizaciones:
         cotizaciones_by_factura.setdefault(cotizacion.factura_id, []).append(cotizacion)
     
-    # Bulk load evento names
+    # Bulk load evento names (select only needed columns to avoid issues with schema changes)
     evento_ids = list(set(f.evento_id for f in facturas if f.evento_id))
     eventos_map = {}
     if evento_ids:
-        eventos_list = db.query(Eventos).filter(Eventos.id.in_(evento_ids)).all()
+        eventos_list = db.query(Eventos.id, Eventos.nombre).filter(Eventos.id.in_(evento_ids)).all()
         eventos_map = {e.id: e.nombre for e in eventos_list}
     
     # Bulk load campaña names
@@ -399,7 +399,7 @@ async def read_factura(user: user_dependency, db: db_dependency, factura_id: int
     # Obtener nombre del evento si existe
     evento_nombre = None
     if factura.evento_id:
-        evento = db.query(Eventos).filter(Eventos.id == factura.evento_id).first()
+        evento = db.query(Eventos.id, Eventos.nombre).filter(Eventos.id == factura.evento_id).first()
         if evento:
             evento_nombre = evento.nombre
     

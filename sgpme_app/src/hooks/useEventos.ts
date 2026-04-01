@@ -34,6 +34,10 @@ interface EventoBackend {
   responsable?: string;
   objetivo?: string;
   audiencia?: string;
+  horario?: string;
+  audiencia_esperada?: number;
+  demografia?: string;
+  nse?: string;
   observaciones?: string;
   notas?: string;
   creado_por?: string;
