@@ -230,17 +230,17 @@ function TarjetaResumen({
       {showMkt ? (
         <div className="grid grid-cols-3 gap-4 w-full text-center">
           <div>
-            <p className="text-xs text-gray-500">BDC</p>
-            <p className="text-xl font-bold text-gray-900">{bdc}</p>
-          </div>
-          <div>
             <p className="text-xs text-gray-500">MKT</p>
             <p className="text-xl font-bold text-gray-900">{mkt}</p>
           </div>
           <div>
+            <p className="text-xs text-gray-500">BDC</p>
+            <p className="text-xl font-bold text-gray-900">{bdc}</p>
+          </div>
+          <div>
             <p className="text-xs text-gray-500">Dif.</p>
             <p className="text-xl font-bold">
-              <DifSpan a={bdc} b={mkt} />
+              <DifSpan a={mkt} b={bdc} />
             </p>
           </div>
         </div>
@@ -304,8 +304,8 @@ function TablaMedios({ filas }: { filas: MedioComp[] }) {
           <thead>
             <tr className="bg-gray-100 text-gray-600">
               <th className="text-left px-3 py-2">Medio</th>
-              <th className="px-3 py-2 text-center w-20">BDC</th>
               <th className="px-3 py-2 text-center w-20">MKT</th>
+              <th className="px-3 py-2 text-center w-20">BDC</th>
               <th className="px-3 py-2 text-center w-20">Dif.</th>
               <th className="text-left px-3 py-2">Notas</th>
             </tr>
@@ -316,20 +316,20 @@ function TablaMedios({ filas }: { filas: MedioComp[] }) {
                 <td className="px-3 py-1.5 text-gray-700 font-medium">
                   {f.medio}
                 </td>
-                <td className="px-3 py-1.5 text-center">{f.bdc}</td>
                 <td className="px-3 py-1.5 text-center">{f.mkt}</td>
+                <td className="px-3 py-1.5 text-center">{f.bdc}</td>
                 <td className="px-3 py-1.5 text-center">
-                  <DifSpan a={f.bdc} b={f.mkt} />
+                  <DifSpan a={f.mkt} b={f.bdc} />
                 </td>
                 <td className="px-3 py-1.5 text-gray-500 text-xs">{f.notas}</td>
               </tr>
             ))}
             <tr className="bg-gray-200 font-bold">
               <td className="px-3 py-1.5 text-gray-800">TOTAL</td>
-              <td className="px-3 py-1.5 text-center">{totBDC}</td>
               <td className="px-3 py-1.5 text-center">{totMKT}</td>
+              <td className="px-3 py-1.5 text-center">{totBDC}</td>
               <td className="px-3 py-1.5 text-center">
-                <DifSpan a={totBDC} b={totMKT} />
+                <DifSpan a={totMKT} b={totBDC} />
               </td>
               <td />
             </tr>
@@ -756,6 +756,12 @@ export default function ConciliacionBDCSection() {
               </h3>
               <div className="space-y-3">
                 <TarjetaResumen
+                  label="Leads generados / recibidos"
+                  bdc={resComp1.medBDC}
+                  mkt={resComp1.medMKT}
+                  color="border-blue-200 bg-blue-50"
+                />
+                <TarjetaResumen
                   label="Leads Activos"
                   bdc={resComp1.actBDC}
                   mkt={resComp1.actMKT}
@@ -768,12 +774,6 @@ export default function ConciliacionBDCSection() {
                   mkt={resComp1.cerMKT}
                   color="border-orange-200 bg-orange-50"
                   showMkt={false}
-                />
-                <TarjetaResumen
-                  label="Leads generados / recibidos"
-                  bdc={resComp1.medBDC}
-                  mkt={resComp1.medMKT}
-                  color="border-blue-200 bg-blue-50"
                 />
               </div>
             </div>
@@ -789,6 +789,12 @@ export default function ConciliacionBDCSection() {
               </h3>
               <div className="space-y-3">
                 <TarjetaResumen
+                  label="Leads generados / recibidos"
+                  bdc={resComp2.medBDC}
+                  mkt={resComp2.medMKT}
+                  color="border-blue-200 bg-blue-50"
+                />
+                <TarjetaResumen
                   label="Leads Activos"
                   bdc={resComp2.actBDC}
                   mkt={resComp2.actMKT}
@@ -801,12 +807,6 @@ export default function ConciliacionBDCSection() {
                   mkt={resComp2.cerMKT}
                   color="border-orange-200 bg-orange-50"
                   showMkt={false}
-                />
-                <TarjetaResumen
-                  label="Leads generados / recibidos"
-                  bdc={resComp2.medBDC}
-                  mkt={resComp2.medMKT}
-                  color="border-blue-200 bg-blue-50"
                 />
               </div>
             </div>
@@ -904,6 +904,12 @@ export default function ConciliacionBDCSection() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <TarjetaResumen
+                  label="Leads generados / recibidos"
+                  bdc={resumen.medBDC}
+                  mkt={resumen.medMKT}
+                  color="border-blue-200 bg-blue-50"
+                />
+                <TarjetaResumen
                   label="Leads Activos"
                   bdc={resumen.actBDC}
                   mkt={resumen.actMKT}
@@ -916,12 +922,6 @@ export default function ConciliacionBDCSection() {
                   mkt={resumen.cerMKT}
                   color="border-orange-200 bg-orange-50"
                   showMkt={false}
-                />
-                <TarjetaResumen
-                  label="Leads generados / recibidos"
-                  bdc={resumen.medBDC}
-                  mkt={resumen.medMKT}
-                  color="border-blue-200 bg-blue-50"
                 />
               </div>
 
@@ -942,6 +942,36 @@ export default function ConciliacionBDCSection() {
                 </button>
                 {detalleOpen && (
                   <div className="mt-4 border rounded-xl p-4 bg-gray-50 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Medios acumulado */}
+                    <div>
+                      <h5 className="text-sm font-bold text-blue-700 mb-2">
+                        Leads gen/rec (acumulado)
+                      </h5>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-gray-500">
+                            <th className="text-left py-1">Medio</th>
+                            <th className="text-center py-1 w-14">MKT</th>
+                            <th className="text-center py-1 w-14">BDC</th>
+                            <th className="text-center py-1 w-14">Dif.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {desgMedios.map((f, i) => (
+                            <tr key={i}>
+                              <td className="py-0.5 text-gray-700">
+                                {f.medio}
+                              </td>
+                              <td className="py-0.5 text-center">{f.mkt}</td>
+                              <td className="py-0.5 text-center">{f.bdc}</td>
+                              <td className="py-0.5 text-center">
+                                <DifSpan a={f.mkt} b={f.bdc} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                     {/* Activos acumulado */}
                     <div>
                       <h5 className="text-sm font-bold text-green-700 mb-2">
@@ -997,36 +1027,6 @@ export default function ConciliacionBDCSection() {
                         </tbody>
                       </table>
                     </div>
-                    {/* Medios acumulado */}
-                    <div>
-                      <h5 className="text-sm font-bold text-blue-700 mb-2">
-                        Leads gen/rec (acumulado)
-                      </h5>
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-gray-500">
-                            <th className="text-left py-1">Medio</th>
-                            <th className="text-center py-1 w-14">BDC</th>
-                            <th className="text-center py-1 w-14">MKT</th>
-                            <th className="text-center py-1 w-14">Dif.</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {desgMedios.map((f, i) => (
-                            <tr key={i}>
-                              <td className="py-0.5 text-gray-700">
-                                {f.medio}
-                              </td>
-                              <td className="py-0.5 text-center">{f.bdc}</td>
-                              <td className="py-0.5 text-center">{f.mkt}</td>
-                              <td className="py-0.5 text-center">
-                                <DifSpan a={f.bdc} b={f.mkt} />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
                   </div>
                 )}
               </div>
@@ -1067,18 +1067,18 @@ export default function ConciliacionBDCSection() {
                           </div>
                           <div className="flex items-center gap-4 text-xs text-gray-600">
                             <span>
-                              BDC:{" "}
-                              <strong className="text-gray-800">
-                                {totBDC}
-                              </strong>
-                            </span>
-                            <span>
                               MKT:{" "}
                               <strong className="text-gray-800">
                                 {totMKT}
                               </strong>
                             </span>
-                            <DifSpan a={totBDC} b={totMKT} />
+                            <span>
+                              BDC:{" "}
+                              <strong className="text-gray-800">
+                                {totBDC}
+                              </strong>
+                            </span>
+                            <DifSpan a={totMKT} b={totBDC} />
                           </div>
                         </button>
 
@@ -1369,8 +1369,8 @@ export default function ConciliacionBDCSection() {
                     <thead>
                       <tr className="bg-blue-50 text-blue-800">
                         <th className="text-left px-3 py-2">Medio</th>
-                        <th className="px-3 py-2 text-center w-24">BDC</th>
                         <th className="px-3 py-2 text-center w-24">MKT</th>
+                        <th className="px-3 py-2 text-center w-24">BDC</th>
                         <th className="px-3 py-2 text-center w-20">Dif.</th>
                         <th className="text-left px-3 py-2">Notas</th>
                       </tr>
@@ -1388,21 +1388,6 @@ export default function ConciliacionBDCSection() {
                             <input
                               type="number"
                               min={0}
-                              value={f.bdc || ""}
-                              onChange={(e) =>
-                                updMedio(
-                                  i,
-                                  "bdc",
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full border rounded px-2 py-1 text-center text-gray-900"
-                            />
-                          </td>
-                          <td className="px-3 py-1.5">
-                            <input
-                              type="number"
-                              min={0}
                               value={f.mkt || ""}
                               onChange={(e) =>
                                 updMedio(
@@ -1414,8 +1399,23 @@ export default function ConciliacionBDCSection() {
                               className="w-full border rounded px-2 py-1 text-center text-gray-900"
                             />
                           </td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              min={0}
+                              value={f.bdc || ""}
+                              onChange={(e) =>
+                                updMedio(
+                                  i,
+                                  "bdc",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              className="w-full border rounded px-2 py-1 text-center text-gray-900"
+                            />
+                          </td>
                           <td className="px-3 py-1.5 text-center">
-                            <DifSpan a={f.bdc} b={f.mkt} />
+                            <DifSpan a={f.mkt} b={f.bdc} />
                           </td>
                           <td className="px-3 py-1.5">
                             <input
@@ -1433,15 +1433,15 @@ export default function ConciliacionBDCSection() {
                       <tr className="bg-blue-100 font-bold">
                         <td className="px-3 py-1.5">TOTAL</td>
                         <td className="px-3 py-1.5 text-center">
-                          {sumM(fMedios, "bdc")}
-                        </td>
-                        <td className="px-3 py-1.5 text-center">
                           {sumM(fMedios, "mkt")}
                         </td>
                         <td className="px-3 py-1.5 text-center">
+                          {sumM(fMedios, "bdc")}
+                        </td>
+                        <td className="px-3 py-1.5 text-center">
                           <DifSpan
-                            a={sumM(fMedios, "bdc")}
-                            b={sumM(fMedios, "mkt")}
+                            a={sumM(fMedios, "mkt")}
+                            b={sumM(fMedios, "bdc")}
                           />
                         </td>
                         <td />
