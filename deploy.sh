@@ -202,6 +202,11 @@ if [ "$FRONTEND_NEEDS_BUILD" = true ]; then
         echo 'NEXT_PUBLIC_USE_BACKEND=true' >> "$STAGING_DIR/.env.production"
         log "   📝 .env.production creado"
     fi
+    # Asegurar que la clave de Google Maps siempre esté presente
+    if ! grep -q 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY' "$STAGING_DIR/.env.production"; then
+        echo 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyDbJPgp3D8pNd_cKUIZAbBnnPfGBa39G6Q' >> "$STAGING_DIR/.env.production"
+        log "   📝 Google Maps API key agregada a .env.production"
+    fi
     
     # ── 4b. Manejar node_modules ─────────────────────
     if [ "$FRONTEND_DEPS_CHANGED" = true ] || [ ! -d "$FRONTEND_DIR/node_modules" ]; then
