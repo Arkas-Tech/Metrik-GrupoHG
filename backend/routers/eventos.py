@@ -52,6 +52,7 @@ class EventoRequest(BaseModel):
     audiencia_esperada: Optional[int] = None
     demografia: Optional[str] = None
     nse: Optional[str] = None
+    numero_autos: Optional[int] = None
     presupuesto_estimado: Optional[float] = None
     presupuesto_real: Optional[float] = None
     observaciones: Optional[str] = None
@@ -73,6 +74,7 @@ class EventoResponse(BaseModel):
     audiencia_esperada: Optional[int]
     demografia: Optional[str]
     nse: Optional[str]
+    numero_autos: Optional[int]
     presupuesto_estimado: Optional[float]
     presupuesto_real: Optional[float]
     observaciones: Optional[str]
@@ -283,6 +285,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
             "audiencia_esperada": evento.audiencia_esperada,
             "demografia": evento.demografia,
             "nse": evento.nse,
+            "numero_autos": evento.numero_autos,
             "presupuesto_estimado": evento.presupuesto_estimado,
             "presupuesto_real": evento.presupuesto_real,
             "observaciones": evento.observaciones,
@@ -349,6 +352,7 @@ async def create_evento(user: user_dependency, db: db_dependency, evento_request
         audiencia_esperada=evento_request.audiencia_esperada,
         demografia=evento_request.demografia,
         nse=evento_request.nse,
+        numero_autos=evento_request.numero_autos,
         presupuesto_estimado=evento_request.presupuesto_estimado,
         presupuesto_real=evento_request.presupuesto_real,
         observaciones=evento_request.observaciones,
@@ -387,6 +391,7 @@ async def update_evento(user: user_dependency, db: db_dependency,
     evento.audiencia_esperada = evento_request.audiencia_esperada
     evento.demografia = evento_request.demografia
     evento.nse = evento_request.nse
+    evento.numero_autos = evento_request.numero_autos
     evento.presupuesto_estimado = evento_request.presupuesto_estimado
     evento.presupuesto_real = evento_request.presupuesto_real
     evento.observaciones = evento_request.observaciones

@@ -44,6 +44,7 @@ class Eventos(Base):
     audiencia_esperada = Column(Integer, nullable=True)
     demografia = Column(Text, nullable=True)
     nse = Column(String, nullable=True)
+    numero_autos = Column(Integer, nullable=True)
     presupuesto_estimado = Column(Float)
     presupuesto_real = Column(Float)
     observaciones = Column(Text)

@@ -197,6 +197,18 @@ export default function BriefTemplate({
                   </span>
                   <p className="text-gray-600 mt-1">{evento.tipoEvento}</p>
                 </div>
+                {evento.numeroAutos != null && evento.numeroAutos > 0 && (
+                  <div>
+                    <span className="font-medium text-gray-700">
+                      Número de Autos:
+                    </span>
+                    <p className="text-gray-600 mt-1">
+                      {new Intl.NumberFormat("es-MX").format(
+                        evento.numeroAutos,
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -301,17 +313,25 @@ export default function BriefTemplate({
                             </span>
                           </div>
                         </div>
-                        {partidas[factura.id] && partidas[factura.id].length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-gray-100">
-                            <span className="text-gray-500 text-xs block mb-1">Partidas</span>
-                            {partidas[factura.id].map((p, idx) => (
-                              <div key={idx} className="flex justify-between text-xs text-gray-700 py-0.5">
-                                <span>{p.nombre}</span>
-                                <span className="font-medium">{formatearMoneda(p.precio)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {partidas[factura.id] &&
+                          partidas[factura.id].length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-100">
+                              <span className="text-gray-500 text-xs block mb-1">
+                                Partidas
+                              </span>
+                              {partidas[factura.id].map((p, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between text-xs text-gray-700 py-0.5"
+                                >
+                                  <span>{p.nombre}</span>
+                                  <span className="font-medium">
+                                    {formatearMoneda(p.precio)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                       </div>
                     ))}
                   </div>
@@ -405,7 +425,10 @@ export default function BriefTemplate({
                     Tasa de Conversión
                   </p>
                   <p className="text-3xl font-bold text-purple-700 mt-1">
-                    {((evidencia.leads / evidencia.asistentes) * 100).toFixed(1)}%
+                    {((evidencia.leads / evidencia.asistentes) * 100).toFixed(
+                      1,
+                    )}
+                    %
                   </p>
                 </div>
                 <StarIcon className="h-8 w-8 text-purple-500" />

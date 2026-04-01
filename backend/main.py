@@ -36,6 +36,7 @@ async def lifespan(app):
                 ("audiencia_esperada", "INTEGER"),
                 ("demografia", "TEXT"),
                 ("nse", "VARCHAR(50)"),
+                ("numero_autos", "INTEGER"),
             ]:
                 result = conn.execute(text(
                     f"SELECT column_name FROM information_schema.columns "

@@ -38,6 +38,7 @@ interface EventoBackend {
   audiencia_esperada?: number;
   demografia?: string;
   nse?: string;
+  numero_autos?: number;
   observaciones?: string;
   notas?: string;
   creado_por?: string;
@@ -159,6 +160,7 @@ export function useEventos() {
         audienciaEsperada: evento.audiencia_esperada || undefined,
         demografia: evento.demografia || undefined,
         nse: evento.nse || undefined,
+        numeroAutos: evento.numero_autos || undefined,
         presupuestoEstimado: evento.presupuesto_estimado || 0,
         presupuestoReal: evento.presupuesto_real,
         observaciones: evento.observaciones || "",
@@ -271,6 +273,7 @@ export function useEventos() {
           audiencia_esperada: nuevoEvento.audienciaEsperada || null,
           demografia: nuevoEvento.demografia || null,
           nse: nuevoEvento.nse || null,
+          numero_autos: nuevoEvento.numeroAutos || null,
           presupuesto_estimado: nuevoEvento.presupuestoEstimado,
           presupuesto_real: nuevoEvento.presupuestoReal,
           observaciones: nuevoEvento.observaciones,
@@ -310,6 +313,7 @@ export function useEventos() {
           audienciaEsperada: eventoCreado.audiencia_esperada || undefined,
           demografia: eventoCreado.demografia || undefined,
           nse: eventoCreado.nse || undefined,
+          numeroAutos: eventoCreado.numero_autos || undefined,
           presupuestoEstimado: eventoCreado.presupuesto_estimado || 0,
           presupuestoReal: eventoCreado.presupuesto_real,
           observaciones: eventoCreado.observaciones || "",
@@ -358,6 +362,8 @@ export function useEventos() {
             null,
           demografia: datosActualizados.demografia ?? evento.demografia ?? null,
           nse: datosActualizados.nse ?? evento.nse ?? null,
+          numero_autos:
+            datosActualizados.numeroAutos ?? evento.numeroAutos ?? null,
           presupuesto_estimado:
             datosActualizados.presupuestoEstimado || evento.presupuestoEstimado,
           presupuesto_real:
@@ -1255,6 +1261,12 @@ export function useEventos() {
         }
         addField("Demografía", evento.demografia || "");
         addField("NSE", evento.nse || "");
+        if (evento.numeroAutos) {
+          addField(
+            "Número de Autos",
+            new Intl.NumberFormat("es-MX").format(evento.numeroAutos),
+          );
+        }
         if (evento.audiencia) {
           addField("Audiencia (notas)", evento.audiencia);
         }

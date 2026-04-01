@@ -591,7 +591,9 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
-                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
+                      onDescargarEventoPDF={(eventoId) =>
+                        exportarEventoPDF(eventoId)
+                      }
                     />
                   </div>
                 )}
@@ -620,7 +622,9 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
-                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
+                      onDescargarEventoPDF={(eventoId) =>
+                        exportarEventoPDF(eventoId)
+                      }
                     />
                   </div>
                 )}
@@ -649,7 +653,9 @@ export default function EventosPage() {
                           navegarA("template");
                         }
                       }}
-                      onDescargarEventoPDF={(eventoId) => exportarEventoPDF(eventoId)}
+                      onDescargarEventoPDF={(eventoId) =>
+                        exportarEventoPDF(eventoId)
+                      }
                     />
                   </div>
                 )}
@@ -1210,6 +1216,19 @@ export default function EventosPage() {
                                           {evento.ubicacion}
                                         </span>
                                       </div>
+                                      {evento.numeroAutos != null &&
+                                        evento.numeroAutos > 0 && (
+                                          <div>
+                                            <span className="text-gray-600">
+                                              Número de Autos:
+                                            </span>{" "}
+                                            <span className="text-gray-900 font-medium">
+                                              {new Intl.NumberFormat(
+                                                "es-MX",
+                                              ).format(evento.numeroAutos)}
+                                            </span>
+                                          </div>
+                                        )}
                                       <div>
                                         <span className="text-gray-600">
                                           Presupuesto:

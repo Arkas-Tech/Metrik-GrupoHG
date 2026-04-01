@@ -349,6 +349,7 @@ export interface Evento {
   audienciaEsperada?: number;
   demografia?: string;
   nse?: string;
+  numeroAutos?: number;
   responsable: string;
   presupuestoEstimado: number;
   presupuestoReal?: number;

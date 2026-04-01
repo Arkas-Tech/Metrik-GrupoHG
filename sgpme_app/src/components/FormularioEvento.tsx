@@ -40,6 +40,7 @@ export default function FormularioEvento({
         audienciaEsperada: eventoInicial.audienciaEsperada || 0,
         demografia: eventoInicial.demografia || "",
         nse: eventoInicial.nse || "",
+        numeroAutos: eventoInicial.numeroAutos || 0,
         responsable: eventoInicial.responsable,
         presupuestoEstimado: eventoInicial.presupuestoEstimado,
         descripcion: eventoInicial.descripcion || "",
@@ -62,6 +63,7 @@ export default function FormularioEvento({
       audienciaEsperada: 0,
       demografia: "",
       nse: "",
+      numeroAutos: 0,
       responsable: "",
       presupuestoEstimado: 0,
       descripcion: "",
@@ -140,7 +142,11 @@ export default function FormularioEvento({
             ? value === ""
               ? ""
               : parseInt(value) || 0
-            : value,
+            : name === "numeroAutos"
+              ? value === ""
+                ? ""
+                : parseInt(value) || 0
+              : value,
     }));
 
     if (errores[name]) {
@@ -521,6 +527,23 @@ export default function FormularioEvento({
                 </label>
               ))}
             </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Número de Autos
+            </label>
+            <input
+              type="number"
+              name="numeroAutos"
+              value={formData.numeroAutos || ""}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="Ej: 10"
+              min={0}
+              disabled={loading}
+            />
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
