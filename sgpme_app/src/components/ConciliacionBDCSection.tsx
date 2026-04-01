@@ -130,6 +130,7 @@ interface Resumen {
   cerMKT: number;
   medBDC: number;
   medMKT: number;
+  ventasBDC: number;
   sem: number;
 }
 function calcResumen(rs: Conciliacion[]): Resumen {
@@ -138,7 +139,8 @@ function calcResumen(rs: Conciliacion[]): Resumen {
     cerBDC = 0,
     cerMKT = 0,
     medBDC = 0,
-    medMKT = 0;
+    medMKT = 0,
+    ventasBDC = 0;
   for (const r of rs) {
     actBDC += sumL(r.leads_activos, "bdc");
     actMKT += sumL(r.leads_activos, "mkt");
@@ -146,8 +148,18 @@ function calcResumen(rs: Conciliacion[]): Resumen {
     cerMKT += sumL(r.leads_cerrados, "mkt");
     medBDC += sumM(r.comparacion_medios, "bdc");
     medMKT += sumM(r.comparacion_medios, "mkt");
+    ventasBDC += r.leads_activos.find((l) => l.estado === "Ventas")?.bdc ?? 0;
   }
-  return { actBDC, actMKT, cerBDC, cerMKT, medBDC, medMKT, sem: rs.length };
+  return {
+    actBDC,
+    actMKT,
+    cerBDC,
+    cerMKT,
+    medBDC,
+    medMKT,
+    ventasBDC,
+    sem: rs.length,
+  };
 }
 
 function agregadoPorEstado(
@@ -465,10 +477,13 @@ export default function ConciliacionBDCSection() {
   const resComp2 = useMemo(() => calcResumen(datosComp2), [datosComp2]);
 
   /* ── Desglose mensual ── */
-  const desgActivos = useMemo(
-    () => agregadoPorEstado(registrosMes, "leads_activos"),
-    [registrosMes],
-  );
+  const desgActivos = useMemo(() => {
+    const rows = agregadoPorEstado(registrosMes, "leads_activos");
+    if (!rows.find((f) => f.estado === "Ventas")) {
+      rows.push({ estado: "Ventas", bdc: 0, mkt: 0 });
+    }
+    return rows;
+  }, [registrosMes]);
   const desgCerrados = useMemo(
     () => agregadoPorEstado(registrosMes, "leads_cerrados"),
     [registrosMes],
@@ -887,12 +902,19 @@ export default function ConciliacionBDCSection() {
                   {resumen.sem} semana{resumen.sem !== 1 ? "s" : ""}
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 <TarjetaResumen
                   label="Leads Activos"
                   bdc={resumen.actBDC}
                   mkt={resumen.actMKT}
                   color="border-green-200 bg-green-50"
+                  showMkt={false}
+                />
+                <TarjetaResumen
+                  label="Ventas"
+                  bdc={resumen.ventasBDC}
+                  mkt={0}
+                  color="border-emerald-300 bg-emerald-50"
                   showMkt={false}
                 />
                 <TarjetaResumen
@@ -941,7 +963,14 @@ export default function ConciliacionBDCSection() {
                         </thead>
                         <tbody>
                           {desgActivos.map((f, i) => (
-                            <tr key={i}>
+                            <tr
+                              key={i}
+                              className={
+                                f.estado === "Ventas"
+                                  ? "bg-emerald-50 font-semibold text-emerald-800"
+                                  : ""
+                              }
+                            >
                               <td className="py-0.5 text-gray-700">
                                 {f.estado}
                               </td>
@@ -1018,6 +1047,9 @@ export default function ConciliacionBDCSection() {
                   {registrosMes.map((r) => {
                     const totBDC = sumM(r.comparacion_medios, "bdc");
                     const totMKT = sumM(r.comparacion_medios, "mkt");
+                    const ventasSem =
+                      r.leads_activos.find((l) => l.estado === "Ventas")?.bdc ??
+                      0;
                     const open = expandedWeeks.has(r.id);
                     return (
                       <div
@@ -1044,6 +1076,12 @@ export default function ConciliacionBDCSection() {
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-gray-600">
+                            <span>
+                              Ventas:{" "}
+                              <strong className="text-emerald-700">
+                                {ventasSem}
+                              </strong>
+                            </span>
                             <span>
                               BDC:{" "}
                               <strong className="text-gray-800">
