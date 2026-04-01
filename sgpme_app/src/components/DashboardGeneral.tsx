@@ -1082,7 +1082,8 @@ export default function DashboardGeneral({
       }
 
       // Filtrar por año y mes
-      if (evento.estado !== "Confirmado") return false;
+      if (evento.estado !== "Confirmado" && evento.estado !== "Realizado")
+        return false;
       const fechaEvento = new Date(evento.fechaInicio);
       return (
         fechaEvento.getFullYear() === añoSeleccionado &&
@@ -1186,7 +1187,9 @@ export default function DashboardGeneral({
     const concFiltradas = conciliacionesBDC.filter((c) => {
       if (c.mes !== filtroMesGlobal) return false;
       if (agenciaSeleccionada) return c.marca === agenciaSeleccionada;
-      return marcasPermitidas.length === 0 || marcasPermitidas.includes(c.marca);
+      return (
+        marcasPermitidas.length === 0 || marcasPermitidas.includes(c.marca)
+      );
     });
 
     let citas = 0;
@@ -1228,8 +1231,19 @@ export default function DashboardGeneral({
       if (!evento.briefs || evento.briefs.length === 0) continue;
       for (const brief of evento.briefs) {
         // Filtrar por marca si es brief multi-marca
-        if (agenciaSeleccionada && brief.marca && brief.marca !== agenciaSeleccionada) continue;
-        if (!agenciaSeleccionada && marcasPermitidas.length > 0 && brief.marca && !marcasPermitidas.includes(brief.marca)) continue;
+        if (
+          agenciaSeleccionada &&
+          brief.marca &&
+          brief.marca !== agenciaSeleccionada
+        )
+          continue;
+        if (
+          !agenciaSeleccionada &&
+          marcasPermitidas.length > 0 &&
+          brief.marca &&
+          !marcasPermitidas.includes(brief.marca)
+        )
+          continue;
 
         try {
           const obs =
@@ -1865,7 +1879,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-blue-900">{funnelDigital.leads.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-blue-900">
+                {funnelDigital.leads.toLocaleString("es-MX")}
+              </p>
             </div>
 
             {/* Citas */}
@@ -1886,7 +1902,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-green-900">{funnelDigital.citas.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-green-900">
+                {funnelDigital.citas.toLocaleString("es-MX")}
+              </p>
             </div>
 
             {/* Ventas */}
@@ -1909,7 +1927,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-emerald-900">{funnelDigital.ventas.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-emerald-900">
+                {funnelDigital.ventas.toLocaleString("es-MX")}
+              </p>
             </div>
           </div>
         </div>
@@ -1940,7 +1960,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-purple-900">{funnelEventos.asistentes.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-purple-900">
+                {funnelEventos.asistentes.toLocaleString("es-MX")}
+              </p>
             </div>
 
             {/* Leads */}
@@ -1961,7 +1983,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-pink-900">{funnelEventos.leads.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-pink-900">
+                {funnelEventos.leads.toLocaleString("es-MX")}
+              </p>
             </div>
 
             {/* Ventas */}
@@ -1984,7 +2008,9 @@ export default function DashboardGeneral({
                   />
                 </svg>
               </div>
-              <p className="text-3xl font-bold text-rose-900">{funnelEventos.ventas.toLocaleString("es-MX")}</p>
+              <p className="text-3xl font-bold text-rose-900">
+                {funnelEventos.ventas.toLocaleString("es-MX")}
+              </p>
             </div>
           </div>
         </div>
