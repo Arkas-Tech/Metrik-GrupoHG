@@ -43,22 +43,25 @@ function getCachedCoords(): CachedCoords | null {
 
 function saveCoords(lat: number, lng: number) {
   try {
-    localStorage.setItem(USER_COORDS_KEY, JSON.stringify({ lat, lng, ts: Date.now() }));
+    localStorage.setItem(
+      USER_COORDS_KEY,
+      JSON.stringify({ lat, lng, ts: Date.now() }),
+    );
   } catch {}
 }
 
 function applyLocationBias(
   autocomplete: google.maps.places.Autocomplete,
   lat: number,
-  lng: number
+  lng: number,
 ) {
   // ~50km radius bias — results anywhere but local ones appear first
   const delta = 0.45;
   autocomplete.setBounds(
     new google.maps.LatLngBounds(
       { lat: lat - delta, lng: lng - delta },
-      { lat: lat + delta, lng: lng + delta }
-    )
+      { lat: lat + delta, lng: lng + delta },
+    ),
   );
 }
 
@@ -124,7 +127,7 @@ export default function UbicacionInput({
         }
       },
       () => {}, // silently ignore errors/denial
-      { maximumAge: 3600000, timeout: 5000, enableHighAccuracy: false }
+      { maximumAge: 3600000, timeout: 5000, enableHighAccuracy: false },
     );
   }, []);
 

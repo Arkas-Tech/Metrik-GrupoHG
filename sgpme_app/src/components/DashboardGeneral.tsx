@@ -89,19 +89,26 @@ import {
   Cell,
 } from "recharts";
 import {
+  Banknote,
+  Calendar,
+  Monitor,
+  Users,
+  Tag,
+  User,
+  CopyPlus,
+  MapPin,
+  Eye,
+} from "lucide-react";
+import {
   CreditCardIcon,
   BanknotesIcon,
   ExclamationTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PlusIcon,
-  PencilIcon,
   EyeIcon,
   XMarkIcon,
   ArrowDownTrayIcon,
-  ArrowPathIcon,
   CloudArrowUpIcon,
-  XCircleIcon,
 } from "@heroicons/react/24/outline";
 
 interface DashboardGeneralProps {
@@ -119,29 +126,6 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayload[];
   label?: string;
-}
-
-function buildProfileUrl(plataforma: string, usuario: string): string | null {
-  const u = usuario.replace(/^@/, "").trim();
-  if (!u) return null;
-  switch (plataforma) {
-    case "Instagram":
-      return `https://www.instagram.com/${u}`;
-    case "TikTok":
-      return `https://www.tiktok.com/@${u}`;
-    case "YouTube":
-      return `https://www.youtube.com/@${u}`;
-    case "Facebook":
-      return `https://www.facebook.com/${u}`;
-    case "X (Twitter)":
-      return `https://x.com/${u}`;
-    case "Twitch":
-      return `https://www.twitch.tv/${u}`;
-    case "LinkedIn":
-      return `https://www.linkedin.com/in/${u}`;
-    default:
-      return null;
-  }
 }
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
@@ -177,6 +161,79 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     );
   }
   return null;
+};
+
+// Componente de barra personalizada para gráfica de gastos
+const CustomBarShape = (props: any) => {
+  const { x, y, width, height, payload, index } = props;
+
+  const coloresPastel = [
+    "#ffc9c9", // rosa pastel
+    "#b2f5ea", // verde menta pastel
+    "#bfdbfe", // azul pastel
+    "#fde68a", // amarillo pastel
+    "#ddd6fe", // violeta pastel
+    "#fecaca", // rojo pastel
+    "#a7f3d0", // verde pastel
+    "#bae6fd", // celeste pastel
+    "#fcd34d", // dorado pastel
+    "#e9d5ff", // lavanda pastel
+    "#fbcfe8", // rosa claro pastel
+    "#86efac", // verde lima pastel
+  ];
+
+  const color = coloresPastel[index % coloresPastel.length];
+
+  // Hacer barras 60% más angostas
+  const newWidth = width * 0.4;
+  const offsetX = x + (width - newWidth) / 2; // Centrar la barra
+  const borderRadius = 24; // Más redondeado
+
+  // Calcular altura del relleno basado en el porcentaje gasto/proyección
+  const { gasto, proyeccion } = payload;
+  const porcentaje =
+    proyeccion > 0 ? Math.min((gasto / proyeccion) * 100, 100) : 0;
+  const fillHeight = (height * porcentaje) / 100;
+  const fillY = y + height - fillHeight;
+
+  return (
+    <g>
+      {/* Contorno (borde) que representa el 100% (proyección) */}
+      <rect
+        x={offsetX}
+        y={y}
+        width={newWidth}
+        height={height}
+        fill="white"
+        stroke="#d1d5db"
+        strokeWidth={2}
+        rx={borderRadius}
+        ry={borderRadius}
+      />
+
+      {/* Relleno parcial que representa el gasto */}
+      <defs>
+        <clipPath id={`roundedClip-${index}`}>
+          <rect
+            x={offsetX}
+            y={y}
+            width={newWidth}
+            height={height}
+            rx={borderRadius}
+            ry={borderRadius}
+          />
+        </clipPath>
+      </defs>
+      <rect
+        x={offsetX}
+        y={fillY}
+        width={newWidth}
+        height={fillHeight}
+        fill={color}
+        clipPath={`url(#roundedClip-${index})`}
+      />
+    </g>
+  );
 };
 
 export default function DashboardGeneral({
@@ -217,6 +274,8 @@ export default function DashboardGeneral({
     subcategoriasMediosTradicionales,
     setSubcategoriasMediosTradicionales,
   ] = useState<string[]>([]);
+  const [subcategoriaPresenciaFiltro, setSubcategoriaPresenciaFiltro] =
+    useState<string>("all");
   const [cargandoSubcategorias, setCargandoSubcategorias] = useState(true);
   const [marcaActual, setMarcaActual] = useState(agenciaSeleccionada);
   const [modalFormularioPresencia, setModalFormularioPresencia] =
@@ -248,6 +307,14 @@ export default function DashboardGeneral({
   const [filtroMesGlobal, setFiltroMesGlobal] = useState<number>(
     new Date().getMonth() + 1,
   );
+
+  // Estados para gráfica de gastos
+  const [periodoGraficaGastos, setPeriodoGraficaGastos] = useState<
+    "Trimestral" | "Anual"
+  >("Trimestral");
+  const [quarterGraficaGastos, setQuarterGraficaGastos] = useState<
+    1 | 2 | 3 | 4
+  >(1);
   // Caché de templates de presencias para filtrado por sección Temporalidad
   const [templatesCache, setTemplatesCache] = useState<
     Record<
@@ -1189,6 +1256,78 @@ export default function DashboardGeneral({
       .sort((a, b) => b.valor - a.valor);
   }, [proyeccionesFiltradas]);
 
+  // Calcular datos para gráfica de gastos mensual
+  const datosGraficaGastosMensual = useMemo(() => {
+    const mesesAMostrar =
+      periodoGraficaGastos === "Trimestral"
+        ? [
+            (quarterGraficaGastos - 1) * 3 + 1,
+            (quarterGraficaGastos - 1) * 3 + 2,
+            (quarterGraficaGastos - 1) * 3 + 3,
+          ]
+        : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+    return mesesAMostrar.map((mes) => {
+      const nombreMes = MESES_ORDEN[mes - 1];
+
+      // Calcular proyección del mes
+      const proyeccionMes = proyecciones
+        .filter((p) => {
+          return (
+            p.año === añoSeleccionado &&
+            p.mes === mes &&
+            filtraPorMarca(p.marca)
+          );
+        })
+        .reduce((sum, proy) => {
+          let partidas = proy.partidas;
+          if (!partidas && proy.partidas_json) {
+            try {
+              partidas = JSON.parse(proy.partidas_json);
+            } catch (error) {
+              console.error("Error parseando partidas_json:", error);
+            }
+          }
+          if (partidas) {
+            return (
+              sum +
+              partidas
+                .filter((p: Partida) => !p.esReembolso)
+                .reduce((s: number, p: Partida) => s + (p.monto || 0), 0)
+            );
+          }
+          return sum;
+        }, 0);
+
+      // Calcular gasto del mes
+      const gastoMes = facturas
+        .filter((f) => {
+          const fechaEmision = new Date(f.fechaEmision);
+          return (
+            fechaEmision.getFullYear() === añoSeleccionado &&
+            fechaEmision.getMonth() + 1 === mes &&
+            (f.estado === "Pagada" || f.estado === "Ingresada") &&
+            filtraPorMarca(f.marca)
+          );
+        })
+        .reduce((sum, f) => sum + f.total, 0);
+
+      return {
+        mes: nombreMes,
+        proyeccion: proyeccionMes,
+        gasto: gastoMes,
+        altura: 100, // Todas las barras tendrán la misma altura visual
+      };
+    });
+  }, [
+    periodoGraficaGastos,
+    quarterGraficaGastos,
+    añoSeleccionado,
+    proyecciones,
+    facturas,
+    filtraPorMarca,
+  ]);
+
   // Colores para la gráfica de pie
   const COLORES_PIE = [
     "#6366f1", // indigo
@@ -1503,7 +1642,7 @@ export default function DashboardGeneral({
   const navegarPresencia = (tipo: string, direccion: "prev" | "next") => {
     const total = presenciasPorSubcategoria(tipo).length;
     const current = presenciaIndices[tipo] ?? 0;
-    if (direccion === "next" && current + 3 < total) {
+    if (direccion === "next" && current + 4 < total) {
       setPresenciaIndices((prev) => ({ ...prev, [tipo]: current + 1 }));
     } else if (direccion === "prev" && current > 0) {
       setPresenciaIndices((prev) => ({ ...prev, [tipo]: current - 1 }));
@@ -1511,407 +1650,360 @@ export default function DashboardGeneral({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Dashboard General
-          </h2>
-          <p className="text-gray-600">
-            Resumen financiero y presupuestal -{" "}
-            {agenciaSeleccionada || "Todas las agencias"}
-          </p>
-        </div>
-
-        <div className="mt-4 sm:mt-0 flex gap-3">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <label
-              htmlFor="año-selector"
-              className="block text-sm font-medium text-gray-900 mb-2"
-            >
-              Año:
-            </label>
-            <select
-              id="año-selector"
-              value={añoSeleccionado}
-              onChange={(e) => setAñoSeleccionado(parseInt(e.target.value))}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-            >
-              {AÑOS.map((año) => (
-                <option key={año} value={año}>
-                  {año}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-      {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
-      {false && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Métricas a la izquierda */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <BanknotesIcon className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-700 truncate">
-                      Presupuesto Anual {añoSeleccionado}
-                    </dt>
-                    <dd className="text-3xl font-bold text-gray-900">
-                      {formatearMiles(metricas.presupuestoAnual)}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <CreditCardIcon className="h-6 w-6 text-red-600" />
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-700 truncate">
-                      Total Gastado
-                    </dt>
-                    <dd className="text-3xl font-bold text-gray-900">
-                      {formatearMiles(metricas.totalGastado)}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-700 truncate">
-                      Total por Pagar
-                    </dt>
-                    <dd className="text-3xl font-bold text-gray-900">
-                      {formatearMiles(metricas.totalPorPagar)}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
+            <h2 className="text-3xl font-bold text-gray-900">
+              Dashboard General
+            </h2>
           </div>
 
-          {/* Gráfica a la derecha */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Presupuesto vs. Gasto Real — {añoSeleccionado}
-            </h3>
-            <div className="h-70">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={datosGrafica}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="mes"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value: number) => `$${value}K`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar
-                    dataKey="presupuesto"
-                    name="Presupuesto"
-                    fill="#6366f1"
-                    radius={[2, 2, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="gastoReal"
-                    name="Gasto Real"
-                    fill="#10b981"
-                    radius={[2, 2, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Nueva sección: Filtro de período + Barras de progreso y gráfica de pie */}
-      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-900">
-            Análisis Detallado de Proyecciones
-          </h3>
-          <div className="flex gap-3">
-            <div>
-              <label
-                htmlFor="periodo-selector"
-                className="block text-sm font-medium text-gray-900 mb-2"
+          <div className="mt-4 sm:mt-0 flex gap-3 items-center">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300">
+              <Calendar className="h-4 w-4 text-red-500 shrink-0" />
+              <select
+                id="año-selector"
+                value={añoSeleccionado}
+                onChange={(e) => setAñoSeleccionado(parseInt(e.target.value))}
+                className="appearance-none bg-transparent text-sm font-medium text-gray-700 cursor-pointer focus:outline-none"
               >
-                Período:
-              </label>
+                {AÑOS.map((año) => (
+                  <option key={año} value={año}>
+                    {año}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300">
+              <Calendar className="h-4 w-4 text-red-500 shrink-0" />
               <select
                 id="periodo-selector"
                 value={periodoSeleccionado}
                 onChange={(e) =>
                   setPeriodoSeleccionado(e.target.value as "YTD" | "Mes" | "Q")
                 }
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                className="appearance-none bg-transparent text-sm font-medium text-gray-700 cursor-pointer focus:outline-none"
               >
-                <option value="YTD">YTD (Year to Date)</option>
-                <option value="Q">Trimestre (Q)</option>
+                <option value="YTD">YTD</option>
+                <option value="Q">Trimestre</option>
                 <option value="Mes">Mes</option>
               </select>
             </div>
             {periodoSeleccionado === "Q" && (
-              <div>
-                <label
-                  htmlFor="quarter-selector"
-                  className="block text-sm font-medium text-gray-900 mb-2"
-                >
-                  Trimestre:
-                </label>
-                <select
-                  id="quarter-selector"
-                  value={quarterSeleccionado}
-                  onChange={(e) =>
-                    setQuarterSeleccionado(
-                      parseInt(e.target.value) as 1 | 2 | 3 | 4,
-                    )
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                >
-                  <option value={1}>Q1 (Ene – Mar)</option>
-                  <option value={2}>Q2 (Abr – Jun)</option>
-                  <option value={3}>Q3 (Jul – Sep)</option>
-                  <option value={4}>Q4 (Oct – Dic)</option>
-                </select>
-              </div>
+              <select
+                id="quarter-selector"
+                value={quarterSeleccionado}
+                onChange={(e) =>
+                  setQuarterSeleccionado(
+                    parseInt(e.target.value) as 1 | 2 | 3 | 4,
+                  )
+                }
+                className="px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
+              >
+                <option value={1}>Q1 (Ene – Mar)</option>
+                <option value={2}>Q2 (Abr – Jun)</option>
+                <option value={3}>Q3 (Jul – Sep)</option>
+                <option value={4}>Q4 (Oct – Dic)</option>
+              </select>
             )}
             {periodoSeleccionado === "Mes" && (
-              <div>
-                <label
-                  htmlFor="mes-selector"
-                  className="block text-sm font-medium text-gray-900 mb-2"
-                >
-                  Mes:
-                </label>
-                <select
-                  id="mes-selector"
-                  value={mesSeleccionado}
-                  onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                >
-                  {MESES_ORDEN.map((mes, idx) => (
-                    <option key={idx} value={idx + 1}>
-                      {mes}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                id="mes-selector"
+                value={mesSeleccionado}
+                onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
+                className="px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
+              >
+                {MESES_ORDEN.map((mes, idx) => (
+                  <option key={idx} value={idx + 1}>
+                    {mes}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Lado izquierdo: Barra de progreso y reembolsos */}
-          <div className="space-y-6">
-            {/* Barra de progreso */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Proyección vs Gasto
-              </h4>
-
-              <div className="space-y-6">
-                {/* Valores */}
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium mb-1">
-                      GASTO
-                    </p>
-                    <p className="text-lg font-bold text-green-600">
-                      {formatearMiles(datosBarraProgreso.gasto)}
-                    </p>
+        {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
+        {false && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Métricas a la izquierda */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="shrink-0">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                      <BanknotesIcon className="h-6 w-6 text-purple-600" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium mb-1">
-                      PROYECCIÓN
-                    </p>
-                    <p className="text-lg font-bold text-blue-600">
-                      {formatearMiles(datosBarraProgreso.proyeccion)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium mb-1">
-                      PRESUPUESTO
-                    </p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {formatearMiles(datosBarraProgreso.presupuesto)}
-                    </p>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-700 truncate">
+                        Presupuesto Anual {añoSeleccionado}
+                      </dt>
+                      <dd className="text-3xl font-bold text-gray-900">
+                        {formatearMiles(metricas.presupuestoAnual)}
+                      </dd>
+                    </dl>
                   </div>
                 </div>
+              </div>
 
-                {/* Barra de progreso */}
-                <div className="relative">
-                  <div className="h-8 bg-gray-200 rounded-lg relative overflow-hidden">
-                    {(() => {
-                      const { proyeccion, presupuesto, gasto } =
-                        datosBarraProgreso;
-                      const gastoSobrepasaPresupuesto =
-                        gasto > presupuesto && presupuesto > 0;
-                      const base100 = gastoSobrepasaPresupuesto
-                        ? proyeccion
-                        : presupuesto;
-
-                      const porcentajeProyeccion =
-                        base100 > 0 ? (proyeccion / base100) * 100 : 0;
-                      const porcentajePresupuesto =
-                        base100 > 0 ? (presupuesto / base100) * 100 : 0;
-                      const gastoHastaPresupuesto = Math.min(
-                        gasto,
-                        presupuesto,
-                      );
-                      const gastoSobrante = Math.max(0, gasto - presupuesto);
-                      const porcentajeGastoVerde =
-                        base100 > 0
-                          ? (gastoHastaPresupuesto / base100) * 100
-                          : 0;
-                      const porcentajeGastoRojo =
-                        base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
-
-                      return (
-                        <>
-                          {/* Gasto verde (dentro del presupuesto) */}
-                          <div
-                            className="h-full bg-green-500 transition-all duration-500"
-                            style={{
-                              width: `${Math.min(porcentajeGastoVerde, 100)}%`,
-                            }}
-                          ></div>
-                          {/* Gasto rojo (sobrepasa presupuesto) */}
-                          {gastoSobrepasaPresupuesto && (
-                            <div
-                              className="absolute top-0 h-full bg-red-500 transition-all duration-500"
-                              style={{
-                                left: `${porcentajeGastoVerde}%`,
-                                width: `${Math.min(porcentajeGastoRojo, 100 - porcentajeGastoVerde)}%`,
-                              }}
-                            ></div>
-                          )}
-                          {/* Línea azul (proyección) */}
-                          {proyeccion > 0 && (
-                            <div
-                              className="absolute top-0 bottom-0 w-1 bg-blue-600 transition-all duration-500 z-10"
-                              style={{
-                                left: `${Math.min(porcentajeProyeccion, 100)}%`,
-                              }}
-                            ></div>
-                          )}
-                          {/* Línea negra (presupuesto) solo si gasto sobrepasa */}
-                          {gastoSobrepasaPresupuesto && (
-                            <div
-                              className="absolute top-0 bottom-0 w-1 bg-black transition-all duration-500 z-10"
-                              style={{
-                                left: `${Math.min(porcentajePresupuesto, 100)}%`,
-                              }}
-                            ></div>
-                          )}
-                        </>
-                      );
-                    })()}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="shrink-0">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <CreditCardIcon className="h-6 w-6 text-red-600" />
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-700 truncate">
+                        Total Gastado
+                      </dt>
+                      <dd className="text-3xl font-bold text-gray-900">
+                        {formatearMiles(metricas.totalGastado)}
+                      </dd>
+                    </dl>
                   </div>
                 </div>
+              </div>
 
-                {/* Porcentaje de gasto */}
-                <div className="text-right">
-                  <span
-                    className={`text-sm font-medium ${
-                      datosBarraProgreso.gasto > datosBarraProgreso.proyeccion
-                        ? "text-red-600"
-                        : "text-green-600"
-                    }`}
-                  >
-                    Gasto:{" "}
-                    {datosBarraProgreso.proyeccion > 0
-                      ? (
-                          (datosBarraProgreso.gasto /
-                            datosBarraProgreso.proyeccion) *
-                          100
-                        ).toFixed(1)
-                      : "0.0"}
-                    % de proyección
-                  </span>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="shrink-0">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-700 truncate">
+                        Total por Pagar
+                      </dt>
+                      <dd className="text-3xl font-bold text-gray-900">
+                        {formatearMiles(metricas.totalPorPagar)}
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Recuadro de reembolsos */}
+            {/* Gráfica a la derecha */}
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                    💰 Reembolsos
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    Total a reembolsar en el período
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-amber-600">
-                    {formatearMiles(reembolsosData)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {
-                      proyeccionesFiltradas.filter((p) => {
-                        let partidas = p.partidas;
-                        if (!partidas && p.partidas_json) {
-                          try {
-                            partidas = JSON.parse(p.partidas_json) as Partida[];
-                          } catch {
-                            return false;
-                          }
-                        }
-                        return (
-                          partidas &&
-                          partidas.some((p: Partida) => p.esReembolso)
-                        );
-                      }).length
-                    }{" "}
-                    proyección(es) con reembolsos
-                  </p>
-                </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Presupuesto vs. Gasto Real — {añoSeleccionado}
+              </h3>
+              <div className="h-70">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={datosGrafica}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="mes"
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value: number) => `$${value}K`}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar
+                      dataKey="presupuesto"
+                      name="Presupuesto"
+                      fill="#6366f1"
+                      radius={[2, 2, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="gastoReal"
+                      name="Gasto Real"
+                      fill="#10b981"
+                      radius={[2, 2, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Lado derecho: Gráfica de pie */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">
-              Proyección por Categoría
+        {/* Resumen financiero — full-bleed */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          {/* ── Sección 1: Análisis — fondo blanco (se funde con el bg de página) ── */}
+          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header: título + subtítulo */}
+            <div className="inline-block mb-0">
+              <h3 className="text-xl font-bold text-gray-900">
+                Resumen financiero y presupuestal
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Análisis detallado de proyecciones
+              </p>
+            </div>
+
+            {/* Barra izquierda + 3 cifras a la derecha */}
+            <div className="flex flex-col sm:flex-row gap-8 items-end mb-6 mt-2">
+              {/* IZQUIERDA: label + barra */}
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
+                <p className="text-base font-bold text-gray-900">
+                  Proyección vs. Gasto
+                </p>
+                <div className="h-7 bg-gray-200 rounded-full relative overflow-hidden">
+                  {(() => {
+                    const { proyeccion, presupuesto, gasto } =
+                      datosBarraProgreso;
+                    const gastoSobrepasaPresupuesto =
+                      gasto > presupuesto && presupuesto > 0;
+                    const base100 = gastoSobrepasaPresupuesto
+                      ? proyeccion
+                      : presupuesto;
+                    const porcentajeProyeccion =
+                      base100 > 0 ? (proyeccion / base100) * 100 : 0;
+                    const porcentajePresupuesto =
+                      base100 > 0 ? (presupuesto / base100) * 100 : 0;
+                    const gastoHastaPresupuesto = Math.min(gasto, presupuesto);
+                    const gastoSobrante = Math.max(0, gasto - presupuesto);
+                    const porcentajeGastoVerde =
+                      base100 > 0 ? (gastoHastaPresupuesto / base100) * 100 : 0;
+                    const porcentajeGastoRojo =
+                      base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
+
+                    return (
+                      <>
+                        <div
+                          className="h-full bg-green-300 transition-all duration-500"
+                          style={{
+                            width: `${Math.min(porcentajeGastoVerde, 100)}%`,
+                          }}
+                        />
+                        {gastoSobrepasaPresupuesto && (
+                          <div
+                            className="absolute top-0 h-full bg-red-400 transition-all duration-500"
+                            style={{
+                              left: `${porcentajeGastoVerde}%`,
+                              width: `${Math.min(porcentajeGastoRojo, 100 - porcentajeGastoVerde)}%`,
+                            }}
+                          />
+                        )}
+                        {proyeccion > 0 && (
+                          <div
+                            className="absolute top-0 bottom-0 w-1.5 bg-blue-300 transition-all duration-500 z-10"
+                            style={{
+                              left: `${Math.min(porcentajeProyeccion, 100)}%`,
+                            }}
+                          />
+                        )}
+                        {gastoSobrepasaPresupuesto && (
+                          <div
+                            className="absolute top-0 bottom-0 w-1 bg-gray-500 transition-all duration-500 z-10"
+                            style={{
+                              left: `${Math.min(porcentajePresupuesto, 100)}%`,
+                            }}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* DERECHA: Total + 3 cifras alineadas con la barra */}
+              <div className="shrink-0 flex flex-col gap-2">
+                {/* Total de proyecciones centrado */}
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-orange-500">
+                    {formatearMiles(datosBarraProgreso.proyeccion)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Total {proyeccionesFiltradas.length} proyección(es)
+                  </p>
+                </div>
+
+                {/* 3 cifras alineadas horizontalmente */}
+                <div className="flex gap-6">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-600">
+                      {formatearMiles(datosBarraProgreso.gasto)}
+                    </p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                      Gasto
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-600">
+                      {formatearMiles(datosBarraProgreso.proyeccion)}
+                    </p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                      Proyección
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-orange-500">
+                      {formatearMiles(datosBarraProgreso.presupuesto)}
+                    </p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                      Presupuesto
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reembolso */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Banknote className="h-4 w-4 text-green-700 shrink-0" />
+                <span className="text-sm font-semibold text-green-700">
+                  Reembolso
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Total a reembolsar en el período
+              </p>
+              <span className="inline-block bg-green-100 text-green-700 text-xl font-bold px-6 py-2 rounded-full">
+                {formatearMiles(reembolsosData)}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Sección 2: Gráfica — fondo gris ── */}
+          <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+            <h4 className="text-base font-semibold text-gray-900 mb-4">
+              Proyección por categoría
             </h4>
             {datosGraficaPie.length > 0 ? (
-              <>
-                <div className="h-64">
+              <div className="flex flex-col sm:flex-row gap-6 items-center">
+                {/* Leyenda en recuadro */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm shrink-0 w-full sm:w-auto">
+                  <div className="space-y-2.5">
+                    {datosGraficaPie.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2.5">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{
+                            backgroundColor:
+                              COLORES_PIE[idx % COLORES_PIE.length],
+                          }}
+                        />
+                        <span className="text-xs text-gray-700">
+                          {item.nombre}:{" "}
+                          <span className="font-semibold">
+                            {formatearMiles(item.valor)}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pie chart */}
+                <div className="flex-1 h-64 min-w-0 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -1944,2084 +2036,2308 @@ export default function DashboardGeneral({
                           fontWeight: "600",
                           fontSize: "14px",
                         }}
-                        itemStyle={{
-                          color: "#374151",
-                          fontSize: "13px",
-                        }}
+                        itemStyle={{ color: "#374151", fontSize: "13px" }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Leyenda */}
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {datosGraficaPie.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                          backgroundColor:
-                            COLORES_PIE[idx % COLORES_PIE.length],
-                        }}
-                      ></div>
-                      <span className="text-xs text-gray-700">
-                        {item.nombre}:{" "}
-                        <span className="font-medium">
-                          {formatearMiles(item.valor)}
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-gray-500">
+              <div className="h-48 flex items-center justify-center text-gray-500">
                 <p>No hay datos de proyecciones para el período seleccionado</p>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Filtro global de mes */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-bold text-gray-600 uppercase tracking-wide shrink-0">
-            📅 Mes:
-          </span>
-          <div className="flex gap-2 flex-wrap">
-            {MESES_ORDEN.map((mes, idx) => (
-              <button
-                key={idx}
-                onClick={() => setFiltroMesGlobal(idx + 1)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  filtroMesGlobal === idx + 1
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {mes.substring(0, 3)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+        {/* Gráfica de gastos mensual */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8 mt-8">
+          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                Gráfica de gastos
+                <span className="text-base">📊</span>
+              </h4>
 
-      {/* Sección Funnel */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Funnel</h2>
-
-        {/* Digital */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            📱 Digital
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Leads */}
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Leads</span>
-                <svg
-                  className="w-5 h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPeriodoGraficaGastos("Trimestral")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    periodoGraficaGastos === "Trimestral"
+                      ? "bg-gray-800 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                  Trimestral
+                </button>
+                <button
+                  onClick={() => setPeriodoGraficaGastos("Anual")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    periodoGraficaGastos === "Anual"
+                      ? "bg-gray-800 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  Anual
+                </button>
               </div>
-              <p className="text-3xl font-bold text-blue-900">
-                {funnelDigital.leads.toLocaleString("es-MX")}
-              </p>
             </div>
 
-            {/* Citas */}
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Citas</span>
-                <svg
-                  className="w-5 h-5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-green-900">
-                {funnelDigital.citas.toLocaleString("es-MX")}
-              </p>
-            </div>
-
-            {/* Ventas */}
-            <div className="bg-emerald-50 rounded-lg p-6 border border-emerald-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Ventas
-                </span>
-                <svg
-                  className="w-5 h-5 text-emerald-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-emerald-900">
-                {funnelDigital.ventas.toLocaleString("es-MX")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Eventos */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            🎉 Eventos
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Asistentes */}
-            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Asistentes
-                </span>
-                <svg
-                  className="w-5 h-5 text-purple-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-purple-900">
-                {funnelEventos.asistentes.toLocaleString("es-MX")}
-              </p>
-            </div>
-
-            {/* Leads */}
-            <div className="bg-pink-50 rounded-lg p-6 border border-pink-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Leads</span>
-                <svg
-                  className="w-5 h-5 text-pink-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-pink-900">
-                {funnelEventos.leads.toLocaleString("es-MX")}
-              </p>
-            </div>
-
-            {/* Ventas */}
-            <div className="bg-rose-50 rounded-lg p-6 border border-rose-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Ventas
-                </span>
-                <svg
-                  className="w-5 h-5 text-rose-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-rose-900">
-                {funnelEventos.ventas.toLocaleString("es-MX")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pisos */}
-        <div className="mt-8">
-          <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">🏢 Pisos</h3>
-            <button
-              onClick={() => {
-                setFpMarca("");
-                setFpMes(filtroMesGlobal);
-                setFpAnio(añoSeleccionado);
-                setFpPisos(0);
-                setFpCotizaciones(0);
-                setFpSolicitudes(0);
-                setFpVentas(0);
-                setFpEditadoPor(null);
-                setFpFechaEdicion(null);
-                setModalPisosOpen(true);
-              }}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-lg font-bold leading-none"
-              title="Editar métricas de pisos"
-            >
-              +
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-amber-50 rounded-lg p-6 border border-amber-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Pisos</span>
-                <svg
-                  className="w-5 h-5 text-amber-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-amber-900">
-                {funnelPisos.pisos.toLocaleString("es-MX")}
-              </p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Cotizaciones
-                </span>
-                <svg
-                  className="w-5 h-5 text-yellow-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-yellow-900">
-                {funnelPisos.cotizaciones.toLocaleString("es-MX")}
-              </p>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Solicitudes de crédito
-                </span>
-                <svg
-                  className="w-5 h-5 text-orange-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-orange-900">
-                {funnelPisos.solicitudes.toLocaleString("es-MX")}
-              </p>
-            </div>
-            <div className="bg-emerald-50 rounded-lg p-6 border border-emerald-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">
-                  Ventas
-                </span>
-                <svg
-                  className="w-5 h-5 text-emerald-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-3xl font-bold text-emerald-900">
-                {funnelPisos.ventas.toLocaleString("es-MX")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modal Funnel Pisos */}
-      {modalPisosOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-bold text-gray-900">
-                Métricas de Pisos
-              </h3>
-              <button
-                onClick={() => setModalPisosOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              {/* Agencia */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Agencia
-                </label>
+            {periodoGraficaGastos === "Trimestral" && (
+              <div className="mb-4">
                 <select
-                  value={fpMarca}
-                  onChange={(e) => {
-                    const m = e.target.value;
-                    setFpMarca(m);
-                    if (m) cargarDetallePisos(m, fpMes, fpAnio);
-                  }}
-                  className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                  value={quarterGraficaGastos}
+                  onChange={(e) =>
+                    setQuarterGraficaGastos(
+                      parseInt(e.target.value) as 1 | 2 | 3 | 4,
+                    )
+                  }
+                  className="px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
                 >
-                  <option value="">Selecciona agencia...</option>
-                  {(marcasPermitidas.length > 0
-                    ? marcasPermitidas
-                    : MARCAS
-                  ).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
+                  <option value={1}>Q1 (Ene – Mar)</option>
+                  <option value={2}>Q2 (Abr – Jun)</option>
+                  <option value={3}>Q3 (Jul – Sep)</option>
+                  <option value={4}>Q4 (Oct – Dic)</option>
                 </select>
               </div>
-              {/* Periodo */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mes
-                  </label>
-                  <select
-                    value={fpMes}
-                    onChange={(e) => {
-                      const mes = parseInt(e.target.value);
-                      setFpMes(mes);
-                      if (fpMarca) cargarDetallePisos(fpMarca, mes, fpAnio);
-                    }}
-                    className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                  >
-                    {MESES_ORDEN.map((n, i) => (
-                      <option key={i} value={i + 1}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Año
-                  </label>
-                  <select
-                    value={fpAnio}
-                    onChange={(e) => {
-                      const anio = parseInt(e.target.value);
-                      setFpAnio(anio);
-                      if (fpMarca) cargarDetallePisos(fpMarca, fpMes, anio);
-                    }}
-                    className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                  >
-                    {AÑOS.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
+            )}
+
+            <div className="flex flex-col lg:flex-row gap-8 items-center">
+              {/* Barras verticales */}
+              <div className="flex-1 w-full">
+                <div className="h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={datosGraficaGastosMensual}
+                      margin={{ top: 30, right: 40, left: 40, bottom: 30 }}
+                    >
+                      <XAxis
+                        dataKey="mes"
+                        tick={{ fontSize: 14, fill: "#6b7280" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white px-3 py-2 rounded-lg shadow-lg border border-gray-200">
+                                <p className="text-xs font-semibold text-gray-700 mb-1">
+                                  {data.mes}
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  Gasto: {formatearMiles(data.gasto)}
+                                </p>
+                                <p className="text-xs text-blue-600">
+                                  Proyección: {formatearMiles(data.proyeccion)}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey="altura"
+                        name="Barra"
+                        shape={<CustomBarShape />}
+                        animationDuration={800}
+                        animationEasing="ease-out"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              {/* Métricas */}
-              <fieldset
-                disabled={!fpMarca}
-                className={!fpMarca ? "opacity-50" : ""}
-              >
+
+              {/* Leyenda a la derecha */}
+              <div className="shrink-0">
+                <div className="space-y-3 flex flex-col items-center">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatearMiles(
+                        datosGraficaGastosMensual.reduce(
+                          (sum, d) => sum + d.gasto,
+                          0,
+                        ),
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mt-0.5">
+                      Gasto
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {formatearMiles(
+                        datosGraficaGastosMensual.reduce(
+                          (sum, d) => sum + d.proyeccion,
+                          0,
+                        ),
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mt-0.5">
+                      Proyección
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-orange-500">
+                      {formatearMiles(
+                        presupuestos
+                          .filter((p) => {
+                            const mesesGrafica =
+                              periodoGraficaGastos === "Trimestral"
+                                ? [
+                                    (quarterGraficaGastos - 1) * 3 + 1,
+                                    (quarterGraficaGastos - 1) * 3 + 2,
+                                    (quarterGraficaGastos - 1) * 3 + 3,
+                                  ]
+                                : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                            return (
+                              p.anio === añoSeleccionado &&
+                              mesesGrafica.includes(p.mes) &&
+                              filtraPorMarca(p.marca_nombre)
+                            );
+                          })
+                          .reduce((sum, p) => sum + p.monto, 0),
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mt-0.5">
+                      Presupuesto
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtro global de mes */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex justify-center">
+              <div className="bg-gray-100 rounded-full border border-gray-300 px-2 py-3">
+                <div className="flex justify-center items-center gap-4 flex-wrap">
+                  {MESES_ORDEN.map((mes, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setFiltroMesGlobal(idx + 1)}
+                      className={`px-1 py-1 text-base font-medium transition-colors ${
+                        filtroMesGlobal === idx + 1
+                          ? "text-red-500"
+                          : "text-gray-700 hover:text-gray-900"
+                      }`}
+                    >
+                      {mes.substring(0, 3)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sección Funnel */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Funnel</h2>
+
+            {/* Digital */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Monitor className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-600">Digital</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Leads */}
+                <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Leads
+                    </span>
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <p className="text-3xl font-light text-blue-900 text-center">
+                    {funnelDigital.leads.toLocaleString("es-MX")}
+                  </p>
+                </div>
+
+                {/* Citas */}
+                <div className="bg-purple-50 rounded-xl p-6 border border-purple-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Citas
+                    </span>
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-3xl font-light text-purple-900 text-center">
+                    {funnelDigital.citas.toLocaleString("es-MX")}
+                  </p>
+                </div>
+
+                {/* Ventas */}
+                <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Ventas
+                    </span>
+                    <Tag className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-3xl font-light text-green-900 text-center">
+                    {funnelDigital.ventas.toLocaleString("es-MX")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Eventos */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-600">Eventos</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Asistentes */}
+                <div className="bg-orange-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Asistentes
+                    </span>
+                    <Users className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <p className="text-3xl font-light text-orange-900 text-center">
+                    {funnelEventos.asistentes.toLocaleString("es-MX")}
+                  </p>
+                </div>
+
+                {/* Leads */}
+                <div className="bg-blue-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Leads
+                    </span>
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <p className="text-3xl font-light text-blue-900 text-center">
+                    {funnelEventos.leads.toLocaleString("es-MX")}
+                  </p>
+                </div>
+
+                {/* Ventas */}
+                <div className="bg-green-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Ventas
+                    </span>
+                    <Tag className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-3xl font-light text-green-900 text-center">
+                    {funnelEventos.ventas.toLocaleString("es-MX")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Pisos */}
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <User className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-600">Pisos</h3>
+                <button
+                  onClick={() => {
+                    setFpMarca("");
+                    setFpMes(filtroMesGlobal);
+                    setFpAnio(añoSeleccionado);
+                    setFpPisos(0);
+                    setFpCotizaciones(0);
+                    setFpSolicitudes(0);
+                    setFpVentas(0);
+                    setFpEditadoPor(null);
+                    setFpFechaEdicion(null);
+                    setModalPisosOpen(true);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors text-lg font-bold leading-none"
+                  title="Editar métricas de pisos"
+                >
+                  +
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-amber-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Pisos
+                    </span>
+                    <svg
+                      className="w-5 h-5 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-3xl font-light text-amber-900 text-center">
+                    {funnelPisos.pisos.toLocaleString("es-MX")}
+                  </p>
+                </div>
+                <div className="bg-yellow-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Cotizaciones
+                    </span>
+                    <svg
+                      className="w-5 h-5 text-yellow-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-3xl font-light text-yellow-900 text-center">
+                    {funnelPisos.cotizaciones.toLocaleString("es-MX")}
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Solicitudes de crédito
+                    </span>
+                    <svg
+                      className="w-5 h-5 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-3xl font-light text-orange-900 text-center">
+                    {funnelPisos.solicitudes.toLocaleString("es-MX")}
+                  </p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Ventas
+                    </span>
+                    <Tag className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-3xl font-light text-green-900 text-center">
+                    {funnelPisos.ventas.toLocaleString("es-MX")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Funnel Pisos */}
+        {modalPisosOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Métricas de Pisos
+                </h3>
+                <button
+                  onClick={() => setModalPisosOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                {/* Agencia */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Agencia
+                  </label>
+                  <select
+                    value={fpMarca}
+                    onChange={(e) => {
+                      const m = e.target.value;
+                      setFpMarca(m);
+                      if (m) cargarDetallePisos(m, fpMes, fpAnio);
+                    }}
+                    className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                  >
+                    <option value="">Selecciona agencia...</option>
+                    {(marcasPermitidas.length > 0
+                      ? marcasPermitidas
+                      : MARCAS
+                    ).map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Periodo */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Pisos
+                      Mes
                     </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fpPisos || ""}
-                      onChange={(e) =>
-                        setFpPisos(parseInt(e.target.value) || 0)
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
-                      placeholder="0"
-                    />
+                    <select
+                      value={fpMes}
+                      onChange={(e) => {
+                        const mes = parseInt(e.target.value);
+                        setFpMes(mes);
+                        if (fpMarca) cargarDetallePisos(fpMarca, mes, fpAnio);
+                      }}
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                    >
+                      {MESES_ORDEN.map((n, i) => (
+                        <option key={i} value={i + 1}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cotizaciones
+                      Año
                     </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fpCotizaciones || ""}
-                      onChange={(e) =>
-                        setFpCotizaciones(parseInt(e.target.value) || 0)
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Solicitudes de crédito
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fpSolicitudes || ""}
-                      onChange={(e) =>
-                        setFpSolicitudes(parseInt(e.target.value) || 0)
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ventas
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={fpVentas || ""}
-                      onChange={(e) =>
-                        setFpVentas(parseInt(e.target.value) || 0)
-                      }
-                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
-                      placeholder="0"
-                    />
+                    <select
+                      value={fpAnio}
+                      onChange={(e) => {
+                        const anio = parseInt(e.target.value);
+                        setFpAnio(anio);
+                        if (fpMarca) cargarDetallePisos(fpMarca, fpMes, anio);
+                      }}
+                      className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                    >
+                      {AÑOS.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </fieldset>
-              {/* Info última edición */}
-              {fpEditadoPor && (
-                <p className="text-xs text-gray-500 italic">
-                  Última edición por <strong>{fpEditadoPor}</strong>
-                  {fpFechaEdicion
-                    ? ` el ${new Date(fpFechaEdicion).toLocaleString("es-MX")}`
-                    : ""}
-                </p>
-              )}
-              {fpCargando && (
-                <p className="text-xs text-blue-500 text-center">Cargando...</p>
-              )}
-            </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => setModalPisosOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={guardarFunnelPisos}
-                disabled={fpGuardando || !fpMarca}
-                className="px-6 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {fpGuardando ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sección Desplazamiento */}
-      <div className="bg-linear-to-br from-slate-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">
-              📊 Desplazamiento
-            </h2>
-            <p className="text-sm text-gray-600">
-              Gestiona información por mes
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {mensajeGuardar === "ok" && (
-              <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
-                ✅ Guardado
-              </span>
-            )}
-            {mensajeGuardar === "error" && (
-              <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg">
-                ❌ Error al guardar
-              </span>
-            )}
-            {agenciaSeleccionada && (
-              <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
-                🏢 {agenciaSeleccionada}
-              </span>
-            )}
-            {!agenciaSeleccionada && (
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                Selecciona una agencia en el filtro del header para editar
-              </span>
-            )}
-            <button
-              disabled={!agenciaSeleccionada || guardandoDesplazamiento}
-              onClick={async () => {
-                if (modoEdicionDesplazamiento) {
-                  setGuardandoDesplazamiento(true);
-                  setMensajeGuardar(null);
-                  try {
-                    await guardarDesplazamientoEnDB(datosDesplazamientoActual);
-                    setMensajeGuardar("ok");
-                    setModoEdicionDesplazamiento(false);
-                    setTimeout(() => setMensajeGuardar(null), 3000);
-                  } catch {
-                    setMensajeGuardar("error");
-                  } finally {
-                    setGuardandoDesplazamiento(false);
-                  }
-                } else {
-                  setMensajeGuardar(null);
-                  setModoEdicionDesplazamiento(true);
-                }
-              }}
-              className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-md hover:shadow-lg ${
-                !agenciaSeleccionada || guardandoDesplazamiento
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : modoEdicionDesplazamiento
-                    ? "bg-linear-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
-                    : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
-              }`}
-            >
-              {guardandoDesplazamiento
-                ? "⏳ Guardando..."
-                : modoEdicionDesplazamiento
-                  ? "💾 Guardar Cambios"
-                  : "✏️ Editar"}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Mayor Existencia */}
-          <div className="bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-blue-900 flex items-center gap-2">
-                <span className="text-xl">📦</span> Mayor Existencia
-              </h3>
-              {modoEdicionDesplazamiento && (
-                <button
-                  onClick={() =>
-                    actualizarDatosDesplazamiento("mayorExistencia", [
-                      ...datosDesplazamientoActual.mayorExistencia,
-                      { unidad: "", porcentaje: "", oc: "" },
-                    ])
-                  }
-                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                {/* Métricas */}
+                <fieldset
+                  disabled={!fpMarca}
+                  className={!fpMarca ? "opacity-50" : ""}
                 >
-                  + Agregar
-                </button>
-              )}
-            </div>
-            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      Unidad
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      %
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      OC
-                    </th>
-                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
-                      PDF
-                    </th>
-                    {modoEdicionDesplazamiento && (
-                      <th className="px-2 py-2 w-8"></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosDesplazamientoActual.mayorExistencia.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
-                        className="px-2 py-4 text-center text-gray-500 text-xs"
-                      >
-                        Sin datos
-                      </td>
-                    </tr>
-                  ) : (
-                    datosDesplazamientoActual.mayorExistencia.map(
-                      (item, idx) => (
-                        <tr
-                          key={idx}
-                          className="border-t border-blue-100 hover:bg-blue-50 transition-colors"
-                        >
-                          <td className="px-2 py-2">
-                            {modoEdicionDesplazamiento ? (
-                              <input
-                                type="text"
-                                value={item.unidad}
-                                onChange={(e) => {
-                                  const updated = [
-                                    ...datosDesplazamientoActual.mayorExistencia,
-                                  ];
-                                  updated[idx].unidad = e.target.value;
-                                  actualizarDatosDesplazamiento(
-                                    "mayorExistencia",
-                                    updated,
-                                  );
-                                }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            ) : (
-                              <span className="text-gray-900 font-medium">
-                                {item.unidad}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2">
-                            {modoEdicionDesplazamiento ? (
-                              <input
-                                type="text"
-                                value={item.porcentaje}
-                                onChange={(e) => {
-                                  const updated = [
-                                    ...datosDesplazamientoActual.mayorExistencia,
-                                  ];
-                                  updated[idx].porcentaje = e.target.value;
-                                  actualizarDatosDesplazamiento(
-                                    "mayorExistencia",
-                                    updated,
-                                  );
-                                }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            ) : (
-                              <span className="text-gray-900 font-medium">
-                                {item.porcentaje}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2">
-                            {modoEdicionDesplazamiento ? (
-                              <input
-                                type="text"
-                                value={item.oc}
-                                onChange={(e) => {
-                                  const updated = [
-                                    ...datosDesplazamientoActual.mayorExistencia,
-                                  ];
-                                  updated[idx].oc = e.target.value;
-                                  actualizarDatosDesplazamiento(
-                                    "mayorExistencia",
-                                    updated,
-                                  );
-                                }}
-                                className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            ) : (
-                              <span className="text-gray-900 font-medium">
-                                {item.oc}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2">
-                            <div className="flex items-center justify-center gap-1">
-                              {modoEdicionDesplazamiento && !item.pdf && (
-                                <label className="cursor-pointer">
-                                  <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        handlePdfUpload(
-                                          file,
-                                          "mayorExistencia",
-                                          idx,
-                                        );
-                                      }
-                                    }}
-                                    className="hidden"
-                                  />
-                                  <span
-                                    className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
-                                    title="Cargar PDF"
-                                  >
-                                    <CloudArrowUpIcon className="h-4 w-4" />
-                                    Cargar PDF
-                                  </span>
-                                </label>
-                              )}
-                              {item.pdf && (
-                                <>
-                                  <button
-                                    onClick={() =>
-                                      verPDF(
-                                        item.pdf!,
-                                        item.pdfNombre || "documento.pdf",
-                                      )
-                                    }
-                                    className="text-blue-600 hover:text-blue-800 p-1"
-                                    title="Ver PDF"
-                                  >
-                                    <EyeIcon className="h-5 w-5" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handlePdfDownload(
-                                        item.pdf!,
-                                        item.pdfNombre || "documento.pdf",
-                                      )
-                                    }
-                                    className="text-green-600 hover:text-green-800 p-1"
-                                    title="Descargar PDF"
-                                  >
-                                    <ArrowDownTrayIcon className="h-5 w-5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          {modoEdicionDesplazamiento && (
-                            <td className="px-2 py-2">
-                              <button
-                                onClick={() => {
-                                  const updated =
-                                    datosDesplazamientoActual.mayorExistencia.filter(
-                                      (_, i) => i !== idx,
-                                    );
-                                  actualizarDatosDesplazamiento(
-                                    "mayorExistencia",
-                                    updated,
-                                  );
-                                }}
-                                className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
-                              >
-                                ✕
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      ),
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Más de 90 días */}
-          <div className="bg-linear-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-amber-900 flex items-center gap-2">
-                <span className="text-xl">⏰</span> Más de 90 días
-              </h3>
-              {modoEdicionDesplazamiento && (
-                <button
-                  onClick={() =>
-                    actualizarDatosDesplazamiento("mas90Dias", [
-                      ...datosDesplazamientoActual.mas90Dias,
-                      { unidad: "", porcentaje: "", oc: "" },
-                    ])
-                  }
-                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
-                >
-                  + Agregar
-                </button>
-              )}
-            </div>
-            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      Unidad
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      %
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      OC
-                    </th>
-                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
-                      PDF
-                    </th>
-                    {modoEdicionDesplazamiento && (
-                      <th className="px-2 py-2 w-8"></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosDesplazamientoActual.mas90Dias.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
-                        className="px-2 py-4 text-center text-gray-500 text-xs"
-                      >
-                        Sin datos
-                      </td>
-                    </tr>
-                  ) : (
-                    datosDesplazamientoActual.mas90Dias.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-t border-amber-100 hover:bg-amber-50 transition-colors"
-                      >
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.unidad}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.mas90Dias,
-                                ];
-                                updated[idx].unidad = e.target.value;
-                                actualizarDatosDesplazamiento(
-                                  "mas90Dias",
-                                  updated,
-                                );
-                              }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.unidad}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.porcentaje}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.mas90Dias,
-                                ];
-                                updated[idx].porcentaje = e.target.value;
-                                actualizarDatosDesplazamiento(
-                                  "mas90Dias",
-                                  updated,
-                                );
-                              }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.porcentaje}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.oc}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.mas90Dias,
-                                ];
-                                updated[idx].oc = e.target.value;
-                                actualizarDatosDesplazamiento(
-                                  "mas90Dias",
-                                  updated,
-                                );
-                              }}
-                              className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.oc}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && !item.pdf && (
-                              <label className="cursor-pointer">
-                                <input
-                                  type="file"
-                                  accept="application/pdf"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      handlePdfUpload(file, "mas90Dias", idx);
-                                    }
-                                  }}
-                                />
-                                <span
-                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
-                                  title="Cargar PDF"
-                                >
-                                  <CloudArrowUpIcon className="h-4 w-4" />
-                                  Cargar PDF
-                                </span>
-                              </label>
-                            )}
-                            {item.pdf && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    verPDF(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-blue-600 hover:text-blue-800 p-1"
-                                  title="Ver PDF"
-                                >
-                                  <EyeIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handlePdfDownload(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-green-600 hover:text-green-800 p-1"
-                                  title="Descargar PDF"
-                                >
-                                  <ArrowDownTrayIcon className="h-5 w-5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        {modoEdicionDesplazamiento && (
-                          <td className="px-2 py-2">
-                            <button
-                              onClick={() => {
-                                const updated =
-                                  datosDesplazamientoActual.mas90Dias.filter(
-                                    (_, i) => i !== idx,
-                                  );
-                                actualizarDatosDesplazamiento(
-                                  "mas90Dias",
-                                  updated,
-                                );
-                              }}
-                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Demos */}
-          <div className="bg-linear-to-br from-purple-50 to-violet-50 border-2 border-purple-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                <span className="text-xl">🎮</span> Demos
-              </h3>
-              {modoEdicionDesplazamiento && (
-                <button
-                  onClick={() =>
-                    actualizarDatosDesplazamiento("demos", [
-                      ...datosDesplazamientoActual.demos,
-                      { unidad: "", porcentaje: "", oc: "" },
-                    ])
-                  }
-                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
-                >
-                  + Agregar
-                </button>
-              )}
-            </div>
-            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      Unidad
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      %
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      OC
-                    </th>
-                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
-                      PDF
-                    </th>
-                    {modoEdicionDesplazamiento && (
-                      <th className="px-2 py-2 w-8"></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosDesplazamientoActual.demos.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
-                        className="px-2 py-4 text-center text-gray-500 text-xs"
-                      >
-                        Sin datos
-                      </td>
-                    </tr>
-                  ) : (
-                    datosDesplazamientoActual.demos.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-t border-purple-100 hover:bg-purple-50 transition-colors"
-                      >
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.unidad}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.demos,
-                                ];
-                                updated[idx].unidad = e.target.value;
-                                actualizarDatosDesplazamiento("demos", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.unidad}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.porcentaje}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.demos,
-                                ];
-                                updated[idx].porcentaje = e.target.value;
-                                actualizarDatosDesplazamiento("demos", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.porcentaje}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.oc}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.demos,
-                                ];
-                                updated[idx].oc = e.target.value;
-                                actualizarDatosDesplazamiento("demos", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.oc}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && !item.pdf && (
-                              <label className="cursor-pointer">
-                                <input
-                                  type="file"
-                                  accept="application/pdf"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      handlePdfUpload(file, "demos", idx);
-                                    }
-                                  }}
-                                />
-                                <span
-                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
-                                  title="Cargar PDF"
-                                >
-                                  <CloudArrowUpIcon className="h-4 w-4" />
-                                  Cargar PDF
-                                </span>
-                              </label>
-                            )}
-                            {item.pdf && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    verPDF(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-blue-600 hover:text-blue-800 p-1"
-                                  title="Ver PDF"
-                                >
-                                  <EyeIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handlePdfDownload(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-green-600 hover:text-green-800 p-1"
-                                  title="Descargar PDF"
-                                >
-                                  <ArrowDownTrayIcon className="h-5 w-5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        {modoEdicionDesplazamiento && (
-                          <td className="px-2 py-2">
-                            <button
-                              onClick={() => {
-                                const updated =
-                                  datosDesplazamientoActual.demos.filter(
-                                    (_, i) => i !== idx,
-                                  );
-                                actualizarDatosDesplazamiento("demos", updated);
-                              }}
-                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Otros */}
-          <div className="bg-linear-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-emerald-900 flex items-center gap-2">
-                <span className="text-xl">📋</span> Otros
-              </h3>
-              {modoEdicionDesplazamiento && (
-                <button
-                  onClick={() =>
-                    actualizarDatosDesplazamiento("otros", [
-                      ...datosDesplazamientoActual.otros,
-                      { unidad: "", porcentaje: "", oc: "" },
-                    ])
-                  }
-                  className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
-                >
-                  + Agregar
-                </button>
-              )}
-            </div>
-            <div className="overflow-auto" style={{ maxHeight: "300px" }}>
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      Unidad
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      %
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-700">
-                      OC
-                    </th>
-                    <th className="px-2 py-2 text-center font-medium text-gray-700 w-32">
-                      PDF
-                    </th>
-                    {modoEdicionDesplazamiento && (
-                      <th className="px-2 py-2 w-8"></th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosDesplazamientoActual.otros.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={modoEdicionDesplazamiento ? 5 : 4}
-                        className="px-2 py-4 text-center text-gray-500 text-xs"
-                      >
-                        Sin datos
-                      </td>
-                    </tr>
-                  ) : (
-                    datosDesplazamientoActual.otros.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-t border-emerald-100 hover:bg-emerald-50 transition-colors"
-                      >
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.unidad}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.otros,
-                                ];
-                                updated[idx].unidad = e.target.value;
-                                actualizarDatosDesplazamiento("otros", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.unidad}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.porcentaje}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.otros,
-                                ];
-                                updated[idx].porcentaje = e.target.value;
-                                actualizarDatosDesplazamiento("otros", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.porcentaje}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          {modoEdicionDesplazamiento ? (
-                            <input
-                              type="text"
-                              value={item.oc}
-                              onChange={(e) => {
-                                const updated = [
-                                  ...datosDesplazamientoActual.otros,
-                                ];
-                                updated[idx].oc = e.target.value;
-                                actualizarDatosDesplazamiento("otros", updated);
-                              }}
-                              className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                          ) : (
-                            <span className="text-gray-900 font-medium">
-                              {item.oc}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-center gap-1">
-                            {modoEdicionDesplazamiento && !item.pdf && (
-                              <label className="cursor-pointer">
-                                <input
-                                  type="file"
-                                  accept="application/pdf"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      handlePdfUpload(file, "otros", idx);
-                                    }
-                                  }}
-                                />
-                                <span
-                                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
-                                  title="Cargar PDF"
-                                >
-                                  <CloudArrowUpIcon className="h-4 w-4" />
-                                  Cargar PDF
-                                </span>
-                              </label>
-                            )}
-                            {item.pdf && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    verPDF(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-blue-600 hover:text-blue-800 p-1"
-                                  title="Ver PDF"
-                                >
-                                  <EyeIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handlePdfDownload(
-                                      item.pdf!,
-                                      item.pdfNombre || "documento.pdf",
-                                    )
-                                  }
-                                  className="text-green-600 hover:text-green-800 p-1"
-                                  title="Descargar PDF"
-                                >
-                                  <ArrowDownTrayIcon className="h-5 w-5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        {modoEdicionDesplazamiento && (
-                          <td className="px-2 py-2">
-                            <button
-                              onClick={() => {
-                                const updated =
-                                  datosDesplazamientoActual.otros.filter(
-                                    (_, i) => i !== idx,
-                                  );
-                                actualizarDatosDesplazamiento("otros", updated);
-                              }}
-                              className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección Listado de Eventos */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            📅 Eventos — {MESES_ORDEN[filtroMesGlobal - 1]}
-          </h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          {eventosFiltrados.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">
-                No hay eventos para este mes
-                {agenciaSeleccionada && ` en ${agenciaSeleccionada}`}
-              </p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nombre
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Agencia
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {eventosFiltrados.map((evento) => {
-                  const getEstadoColor = (estado: string) => {
-                    const colors: Record<string, string> = {
-                      Realizado: "bg-green-100 text-green-800",
-                      Confirmado: "bg-blue-100 text-blue-800",
-                      Prospectado: "bg-purple-100 text-purple-800",
-                      Cancelado: "bg-red-100 text-red-800",
-                    };
-                    return colors[estado] || "bg-gray-100 text-gray-800";
-                  };
-
-                  return (
-                    <tr key={evento.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {evento.nombre}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {evento.tipoEvento}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatearMarca(evento.marca)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(evento.fechaInicio).toLocaleDateString(
-                          "es-MX",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          },
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoColor(evento.estado)}`}
-                        >
-                          {evento.estado}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {/* Sección Campañas Digitales */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
-          Campañas Digitales
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Meta */}
-          <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-blue-900">Meta</h3>
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-7 h-7 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </div>
-            </div>
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Leads totales:
-                </span>
-                <span className="text-lg font-bold text-blue-900">
-                  {new Intl.NumberFormat("es-MX").format(metricasMeta.leads)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Inversión:
-                </span>
-                <span className="text-lg font-bold text-blue-900">
-                  $
-                  {new Intl.NumberFormat("es-MX").format(
-                    metricasMeta.inversion,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">CxC:</span>
-                <span className="text-lg font-bold text-blue-900">
-                  {metricasMeta.cxc.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                router.push("/campanas?plataforma=meta&from=dashboard")
-              }
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Ver campañas
-            </button>
-          </div>
-
-          {/* Google */}
-          <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-red-900">Google</h3>
-              <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-7 h-7 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-              </div>
-            </div>
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Leads totales:
-                </span>
-                <span className="text-lg font-bold text-red-900">
-                  {new Intl.NumberFormat("es-MX").format(metricasGoogle.leads)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Inversión:
-                </span>
-                <span className="text-lg font-bold text-red-900">
-                  $
-                  {new Intl.NumberFormat("es-MX").format(
-                    metricasGoogle.inversion,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">CxC:</span>
-                <span className="text-lg font-bold text-red-900">
-                  {metricasGoogle.cxc.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                router.push("/campanas?plataforma=google&from=dashboard")
-              }
-              className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Ver campañas
-            </button>
-          </div>
-
-          {/* TikTok */}
-          <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
-              <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-7 h-7 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-                </svg>
-              </div>
-            </div>
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Leads totales:
-                </span>
-                <span className="text-lg font-bold text-gray-900">
-                  {new Intl.NumberFormat("es-MX").format(metricasTikTok.leads)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Inversión:
-                </span>
-                <span className="text-lg font-bold text-gray-900">
-                  $
-                  {new Intl.NumberFormat("es-MX").format(
-                    metricasTikTok.inversion,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">CxC:</span>
-                <span className="text-lg font-bold text-gray-900">
-                  {metricasTikTok.cxc.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                router.push("/campanas?plataforma=tiktok&from=dashboard")
-              }
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Ver campañas
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Sección Embajadores */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Embajadores</h2>
-          <button
-            onClick={() => router.push("/embajadores?from=dashboard")}
-            className="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
-          >
-            Ver embajadores
-          </button>
-        </div>
-
-        {(() => {
-          const embFiltrados = embajadoresDash.filter((e) =>
-            filtraPorMarca(e.marca || ""),
-          );
-          if (embFiltrados.length === 0) {
-            return (
-              <div className="text-center py-10 text-gray-400">
-                <p className="text-sm">No hay embajadores registrados.</p>
-                <button
-                  onClick={() => router.push("/embajadores?from=dashboard")}
-                  className="mt-3 text-purple-600 hover:underline text-sm font-medium"
-                >
-                  Administrar embajadores →
-                </button>
-              </div>
-            );
-          }
-          const paletas = [
-            {
-              bg: "from-purple-50 to-purple-100",
-              border: "border-purple-200",
-              avatar: "bg-purple-600",
-              text: "text-purple-900",
-            },
-            {
-              bg: "from-pink-50 to-pink-100",
-              border: "border-pink-200",
-              avatar: "bg-pink-600",
-              text: "text-pink-900",
-            },
-            {
-              bg: "from-indigo-50 to-indigo-100",
-              border: "border-indigo-200",
-              avatar: "bg-indigo-600",
-              text: "text-indigo-900",
-            },
-          ];
-          const formatAud = (n: number) => {
-            if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-            if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-            return String(n);
-          };
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {embFiltrados.slice(0, 6).map((emb, idx) => {
-                const p = paletas[idx % paletas.length];
-                let plataformas: Array<{
-                  plataforma: string;
-                  usuario: string;
-                }> = [];
-                try {
-                  if (emb.plataformas_json)
-                    plataformas = JSON.parse(emb.plataformas_json);
-                } catch {
-                  /* ignore */
-                }
-                return (
-                  <div
-                    key={emb.id}
-                    className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3
-                          className={`text-lg font-bold ${p.text} leading-tight`}
-                        >
-                          {emb.nombre}
-                        </h3>
-                        {emb.marca && (
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {emb.marca}
-                          </p>
-                        )}
-                      </div>
-                      <div
-                        className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}
-                      >
-                        <svg
-                          className="w-7 h-7 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                      </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Pisos
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={fpPisos || ""}
+                        onChange={(e) =>
+                          setFpPisos(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                        placeholder="0"
+                      />
                     </div>
-                    {plataformas.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {plataformas.map((pl, i) => {
-                          const profileUrl = pl.usuario
-                            ? buildProfileUrl(pl.plataforma, pl.usuario)
-                            : null;
-                          const label = `${pl.plataforma}${pl.usuario ? ` · ${pl.usuario}` : ""}`;
-                          return profileUrl ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cotizaciones
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={fpCotizaciones || ""}
+                        onChange={(e) =>
+                          setFpCotizaciones(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Solicitudes de crédito
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={fpSolicitudes || ""}
+                        onChange={(e) =>
+                          setFpSolicitudes(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Ventas
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={fpVentas || ""}
+                        onChange={(e) =>
+                          setFpVentas(parseInt(e.target.value) || 0)
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900 text-center"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </fieldset>
+                {/* Info última edición */}
+                {fpEditadoPor && (
+                  <p className="text-xs text-gray-500 italic">
+                    Última edición por <strong>{fpEditadoPor}</strong>
+                    {fpFechaEdicion
+                      ? ` el ${new Date(fpFechaEdicion).toLocaleString("es-MX")}`
+                      : ""}
+                  </p>
+                )}
+                {fpCargando && (
+                  <p className="text-xs text-blue-500 text-center">
+                    Cargando...
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+                <button
+                  onClick={() => setModalPisosOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={guardarFunnelPisos}
+                  disabled={fpGuardando || !fpMarca}
+                  className="px-6 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {fpGuardando ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sección Desplazamiento */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  Desplazamiento
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Gestiona información por mes
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {mensajeGuardar === "ok" && (
+                  <span className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+                    ✅ Guardado
+                  </span>
+                )}
+                {mensajeGuardar === "error" && (
+                  <span className="text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg">
+                    ❌ Error al guardar
+                  </span>
+                )}
+                {!agenciaSeleccionada && (
+                  <span className="text-xs text-gray-600">
+                    Selecciona una agencia
+                  </span>
+                )}
+                <button
+                  disabled={!agenciaSeleccionada || guardandoDesplazamiento}
+                  onClick={async () => {
+                    if (modoEdicionDesplazamiento) {
+                      setGuardandoDesplazamiento(true);
+                      setMensajeGuardar(null);
+                      try {
+                        await guardarDesplazamientoEnDB(
+                          datosDesplazamientoActual,
+                        );
+                        setMensajeGuardar("ok");
+                        setModoEdicionDesplazamiento(false);
+                        setTimeout(() => setMensajeGuardar(null), 3000);
+                      } catch {
+                        setMensajeGuardar("error");
+                      } finally {
+                        setGuardandoDesplazamiento(false);
+                      }
+                    } else {
+                      setMensajeGuardar(null);
+                      setModoEdicionDesplazamiento(true);
+                    }
+                  }}
+                  className="p-2 rounded-full hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={modoEdicionDesplazamiento ? "Guardar" : "Editar"}
+                >
+                  <CopyPlus className="h-5 w-5 text-red-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Mayor Existencia */}
+              <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-blue-900">Mayor Existencia</h3>
+                  {modoEdicionDesplazamiento && (
+                    <button
+                      onClick={() =>
+                        actualizarDatosDesplazamiento("mayorExistencia", [
+                          ...datosDesplazamientoActual.mayorExistencia,
+                          { unidad: "", porcentaje: "", oc: "" },
+                        ])
+                      }
+                      className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                    >
+                      + Agregar
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 rounded-tl-lg">
+                          Unidad
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          %
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          OC
+                        </th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 w-32 rounded-tr-lg">
+                          PDF
+                        </th>
+                        {modoEdicionDesplazamiento && (
+                          <th className="px-2 py-2 w-8"></th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datosDesplazamientoActual.mayorExistencia.length ===
+                      0 ? (
+                        <tr>
+                          <td
+                            colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                            className="px-2 py-4 text-center text-gray-500 text-xs"
+                          >
+                            Sin datos
+                          </td>
+                        </tr>
+                      ) : (
+                        datosDesplazamientoActual.mayorExistencia.map(
+                          (item, idx) => (
+                            <tr
+                              key={idx}
+                              className="border-t border-blue-100 hover:bg-blue-50 transition-colors"
+                            >
+                              <td className="px-2 py-2">
+                                {modoEdicionDesplazamiento ? (
+                                  <input
+                                    type="text"
+                                    value={item.unidad}
+                                    onChange={(e) => {
+                                      const updated = [
+                                        ...datosDesplazamientoActual.mayorExistencia,
+                                      ];
+                                      updated[idx].unidad = e.target.value;
+                                      actualizarDatosDesplazamiento(
+                                        "mayorExistencia",
+                                        updated,
+                                      );
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                ) : (
+                                  <span className="text-gray-900 font-medium">
+                                    {item.unidad}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2">
+                                {modoEdicionDesplazamiento ? (
+                                  <input
+                                    type="text"
+                                    value={item.porcentaje}
+                                    onChange={(e) => {
+                                      const updated = [
+                                        ...datosDesplazamientoActual.mayorExistencia,
+                                      ];
+                                      updated[idx].porcentaje = e.target.value;
+                                      actualizarDatosDesplazamiento(
+                                        "mayorExistencia",
+                                        updated,
+                                      );
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                ) : (
+                                  <span className="text-gray-900 font-medium">
+                                    {item.porcentaje}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2">
+                                {modoEdicionDesplazamiento ? (
+                                  <input
+                                    type="text"
+                                    value={item.oc}
+                                    onChange={(e) => {
+                                      const updated = [
+                                        ...datosDesplazamientoActual.mayorExistencia,
+                                      ];
+                                      updated[idx].oc = e.target.value;
+                                      actualizarDatosDesplazamiento(
+                                        "mayorExistencia",
+                                        updated,
+                                      );
+                                    }}
+                                    className="w-full px-2 py-1.5 border border-blue-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                ) : (
+                                  <span className="text-gray-900 font-medium">
+                                    {item.oc}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2">
+                                <div className="flex items-center justify-center gap-1">
+                                  {modoEdicionDesplazamiento && !item.pdf && (
+                                    <label className="cursor-pointer">
+                                      <input
+                                        type="file"
+                                        accept="application/pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            handlePdfUpload(
+                                              file,
+                                              "mayorExistencia",
+                                              idx,
+                                            );
+                                          }
+                                        }}
+                                        className="hidden"
+                                      />
+                                      <span
+                                        className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                        title="Cargar PDF"
+                                      >
+                                        <CloudArrowUpIcon className="h-4 w-4" />
+                                        Cargar PDF
+                                      </span>
+                                    </label>
+                                  )}
+                                  {item.pdf && (
+                                    <>
+                                      <button
+                                        onClick={() =>
+                                          verPDF(
+                                            item.pdf!,
+                                            item.pdfNombre || "documento.pdf",
+                                          )
+                                        }
+                                        className="text-blue-600 hover:text-blue-800 p-1"
+                                        title="Ver PDF"
+                                      >
+                                        <EyeIcon className="h-5 w-5" />
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handlePdfDownload(
+                                            item.pdf!,
+                                            item.pdfNombre || "documento.pdf",
+                                          )
+                                        }
+                                        className="text-green-600 hover:text-green-800 p-1"
+                                        title="Descargar PDF"
+                                      >
+                                        <ArrowDownTrayIcon className="h-5 w-5" />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                              {modoEdicionDesplazamiento && (
+                                <td className="px-2 py-2">
+                                  <button
+                                    onClick={() => {
+                                      const updated =
+                                        datosDesplazamientoActual.mayorExistencia.filter(
+                                          (_, i) => i !== idx,
+                                        );
+                                      actualizarDatosDesplazamiento(
+                                        "mayorExistencia",
+                                        updated,
+                                      );
+                                    }}
+                                    className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                                  >
+                                    ✕
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ),
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Más de 90 días */}
+              <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-amber-900">Más de 90 días</h3>
+                  {modoEdicionDesplazamiento && (
+                    <button
+                      onClick={() =>
+                        actualizarDatosDesplazamiento("mas90Dias", [
+                          ...datosDesplazamientoActual.mas90Dias,
+                          { unidad: "", porcentaje: "", oc: "" },
+                        ])
+                      }
+                      className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                    >
+                      + Agregar
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 rounded-tl-lg">
+                          Unidad
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          %
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          OC
+                        </th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 w-32 rounded-tr-lg">
+                          PDF
+                        </th>
+                        {modoEdicionDesplazamiento && (
+                          <th className="px-2 py-2 w-8"></th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datosDesplazamientoActual.mas90Dias.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                            className="px-2 py-4 text-center text-gray-500 text-xs"
+                          >
+                            Sin datos
+                          </td>
+                        </tr>
+                      ) : (
+                        datosDesplazamientoActual.mas90Dias.map((item, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-t border-amber-100 hover:bg-amber-50 transition-colors"
+                          >
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.unidad}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.mas90Dias,
+                                    ];
+                                    updated[idx].unidad = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "mas90Dias",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.unidad}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.porcentaje}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.mas90Dias,
+                                    ];
+                                    updated[idx].porcentaje = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "mas90Dias",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.porcentaje}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.oc}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.mas90Dias,
+                                    ];
+                                    updated[idx].oc = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "mas90Dias",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-amber-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.oc}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                {modoEdicionDesplazamiento && !item.pdf && (
+                                  <label className="cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handlePdfUpload(
+                                            file,
+                                            "mas90Dias",
+                                            idx,
+                                          );
+                                        }
+                                      }}
+                                    />
+                                    <span
+                                      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                      title="Cargar PDF"
+                                    >
+                                      <CloudArrowUpIcon className="h-4 w-4" />
+                                      Cargar PDF
+                                    </span>
+                                  </label>
+                                )}
+                                {item.pdf && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        verPDF(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-blue-600 hover:text-blue-800 p-1"
+                                      title="Ver PDF"
+                                    >
+                                      <EyeIcon className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handlePdfDownload(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-green-600 hover:text-green-800 p-1"
+                                      title="Descargar PDF"
+                                    >
+                                      <ArrowDownTrayIcon className="h-5 w-5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            {modoEdicionDesplazamiento && (
+                              <td className="px-2 py-2">
+                                <button
+                                  onClick={() => {
+                                    const updated =
+                                      datosDesplazamientoActual.mas90Dias.filter(
+                                        (_, i) => i !== idx,
+                                      );
+                                    actualizarDatosDesplazamiento(
+                                      "mas90Dias",
+                                      updated,
+                                    );
+                                  }}
+                                  className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Demos */}
+              <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-purple-900">Demos</h3>
+                  {modoEdicionDesplazamiento && (
+                    <button
+                      onClick={() =>
+                        actualizarDatosDesplazamiento("demos", [
+                          ...datosDesplazamientoActual.demos,
+                          { unidad: "", porcentaje: "", oc: "" },
+                        ])
+                      }
+                      className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                    >
+                      + Agregar
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 rounded-tl-lg">
+                          Unidad
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          %
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          OC
+                        </th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 w-32 rounded-tr-lg">
+                          PDF
+                        </th>
+                        {modoEdicionDesplazamiento && (
+                          <th className="px-2 py-2 w-8"></th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datosDesplazamientoActual.demos.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                            className="px-2 py-4 text-center text-gray-500 text-xs"
+                          >
+                            Sin datos
+                          </td>
+                        </tr>
+                      ) : (
+                        datosDesplazamientoActual.demos.map((item, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-t border-purple-100 hover:bg-purple-50 transition-colors"
+                          >
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.unidad}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.demos,
+                                    ];
+                                    updated[idx].unidad = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "demos",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.unidad}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.porcentaje}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.demos,
+                                    ];
+                                    updated[idx].porcentaje = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "demos",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.porcentaje}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.oc}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.demos,
+                                    ];
+                                    updated[idx].oc = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "demos",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-purple-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.oc}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                {modoEdicionDesplazamiento && !item.pdf && (
+                                  <label className="cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handlePdfUpload(file, "demos", idx);
+                                        }
+                                      }}
+                                    />
+                                    <span
+                                      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                      title="Cargar PDF"
+                                    >
+                                      <CloudArrowUpIcon className="h-4 w-4" />
+                                      Cargar PDF
+                                    </span>
+                                  </label>
+                                )}
+                                {item.pdf && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        verPDF(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-blue-600 hover:text-blue-800 p-1"
+                                      title="Ver PDF"
+                                    >
+                                      <EyeIcon className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handlePdfDownload(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-green-600 hover:text-green-800 p-1"
+                                      title="Descargar PDF"
+                                    >
+                                      <ArrowDownTrayIcon className="h-5 w-5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            {modoEdicionDesplazamiento && (
+                              <td className="px-2 py-2">
+                                <button
+                                  onClick={() => {
+                                    const updated =
+                                      datosDesplazamientoActual.demos.filter(
+                                        (_, i) => i !== idx,
+                                      );
+                                    actualizarDatosDesplazamiento(
+                                      "demos",
+                                      updated,
+                                    );
+                                  }}
+                                  className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Otros */}
+              <div className="bg-linear-to-br from-emerald-50 to-teal-50 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-emerald-900">Otros</h3>
+                  {modoEdicionDesplazamiento && (
+                    <button
+                      onClick={() =>
+                        actualizarDatosDesplazamiento("otros", [
+                          ...datosDesplazamientoActual.otros,
+                          { unidad: "", porcentaje: "", oc: "" },
+                        ])
+                      }
+                      className="text-xs bg-linear-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-emerald-700 font-semibold shadow-sm"
+                    >
+                      + Agregar
+                    </button>
+                  )}
+                </div>
+                <div className="overflow-auto" style={{ maxHeight: "300px" }}>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700 rounded-tl-lg">
+                          Unidad
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          %
+                        </th>
+                        <th className="px-2 py-2 text-left font-medium text-gray-700">
+                          OC
+                        </th>
+                        <th className="px-2 py-2 text-center font-medium text-gray-700 w-32 rounded-tr-lg">
+                          PDF
+                        </th>
+                        {modoEdicionDesplazamiento && (
+                          <th className="px-2 py-2 w-8"></th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datosDesplazamientoActual.otros.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={modoEdicionDesplazamiento ? 5 : 4}
+                            className="px-2 py-4 text-center text-gray-500 text-xs"
+                          >
+                            Sin datos
+                          </td>
+                        </tr>
+                      ) : (
+                        datosDesplazamientoActual.otros.map((item, idx) => (
+                          <tr
+                            key={idx}
+                            className="border-t border-emerald-100 hover:bg-emerald-50 transition-colors"
+                          >
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.unidad}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.otros,
+                                    ];
+                                    updated[idx].unidad = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "otros",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.unidad}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.porcentaje}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.otros,
+                                    ];
+                                    updated[idx].porcentaje = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "otros",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.porcentaje}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {modoEdicionDesplazamiento ? (
+                                <input
+                                  type="text"
+                                  value={item.oc}
+                                  onChange={(e) => {
+                                    const updated = [
+                                      ...datosDesplazamientoActual.otros,
+                                    ];
+                                    updated[idx].oc = e.target.value;
+                                    actualizarDatosDesplazamiento(
+                                      "otros",
+                                      updated,
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1.5 border border-emerald-300 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                              ) : (
+                                <span className="text-gray-900 font-medium">
+                                  {item.oc}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                {modoEdicionDesplazamiento && !item.pdf && (
+                                  <label className="cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handlePdfUpload(file, "otros", idx);
+                                        }
+                                      }}
+                                    />
+                                    <span
+                                      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition-colors"
+                                      title="Cargar PDF"
+                                    >
+                                      <CloudArrowUpIcon className="h-4 w-4" />
+                                      Cargar PDF
+                                    </span>
+                                  </label>
+                                )}
+                                {item.pdf && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        verPDF(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-blue-600 hover:text-blue-800 p-1"
+                                      title="Ver PDF"
+                                    >
+                                      <EyeIcon className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handlePdfDownload(
+                                          item.pdf!,
+                                          item.pdfNombre || "documento.pdf",
+                                        )
+                                      }
+                                      className="text-green-600 hover:text-green-800 p-1"
+                                      title="Descargar PDF"
+                                    >
+                                      <ArrowDownTrayIcon className="h-5 w-5" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                            {modoEdicionDesplazamiento && (
+                              <td className="px-2 py-2">
+                                <button
+                                  onClick={() => {
+                                    const updated =
+                                      datosDesplazamientoActual.otros.filter(
+                                        (_, i) => i !== idx,
+                                      );
+                                    actualizarDatosDesplazamiento(
+                                      "otros",
+                                      updated,
+                                    );
+                                  }}
+                                  className="text-red-600 hover:text-red-800 font-bold text-sm hover:bg-red-50 px-1 rounded"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sección Listado de Eventos */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Eventos</h2>
+            </div>
+
+            {eventosFiltrados.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">
+                  No hay eventos para este mes
+                  {agenciaSeleccionada && ` en ${agenciaSeleccionada}`}
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Encabezados */}
+                <div className="grid grid-cols-12 gap-4 px-6 py-3 mb-2">
+                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </div>
+                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Evento y Agencia
+                  </div>
+                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </div>
+                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </div>
+                </div>
+
+                {/* Lista de eventos */}
+                <div className="space-y-3">
+                  {eventosFiltrados.map((evento) => {
+                    const getEstadoColor = (estado: string) => {
+                      const colors: Record<string, string> = {
+                        Realizado: "bg-green-100 text-green-800",
+                        Confirmado: "bg-blue-100 text-blue-800",
+                        Prospectado: "bg-purple-100 text-purple-800",
+                        Cancelado: "bg-red-100 text-red-800",
+                        "Por suceder": "bg-orange-100 text-orange-800",
+                      };
+                      return colors[estado] || "bg-gray-100 text-gray-800";
+                    };
+
+                    const formatearFecha = (fecha: string) => {
+                      const date = new Date(fecha);
+                      const dia = date.getDate();
+                      const mes = date.toLocaleDateString("es-MX", {
+                        month: "long",
+                      });
+                      const año = date.getFullYear();
+                      return `${dia} ${mes} ${año}`;
+                    };
+
+                    return (
+                      <div
+                        key={evento.id}
+                        className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow relative"
+                      >
+                        <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                          {/* Fecha */}
+                          <div className="col-span-3 flex items-center h-full">
+                            <span className="text-sm text-gray-600">
+                              {formatearFecha(evento.fechaInicio)}
+                            </span>
+                          </div>
+
+                          {/* Separador vertical */}
+                          <div className="absolute left-[25%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+
+                          {/* Evento y Agencia */}
+                          <div className="col-span-3 flex items-center h-full">
+                            <div>
+                              <div className="text-sm font-semibold text-gray-900">
+                                {evento.nombre}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {formatearMarca(evento.marca)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Separador vertical */}
+                          <div className="absolute left-[50%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+
+                          {/* Tipo */}
+                          <div className="col-span-3 flex items-center h-full">
+                            <span className="text-sm text-gray-600">
+                              {evento.tipoEvento}
+                            </span>
+                          </div>
+
+                          {/* Separador vertical */}
+                          <div className="absolute left-[75%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+
+                          {/* Estado */}
+                          <div className="col-span-3 flex items-center h-full">
+                            <span
+                              className={`px-3 py-1 text-xs font-semibold rounded-full ${getEstadoColor(evento.estado)}`}
+                            >
+                              {evento.estado}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sección Campañas Digitales */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-10">
+              Campañas digitales
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-4xl mx-auto">
+              {/* Meta */}
+              <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                {/* Logo flotante */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                    <svg
+                      className="w-9 h-9 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Nombre */}
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                  META
+                </h3>
+
+                {/* Métricas */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Leads totales:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX").format(
+                        metricasMeta.leads,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Inversión:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(metricasMeta.inversion)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      CxC:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {metricasMeta.cxc.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón */}
+                <button
+                  onClick={() =>
+                    router.push("/campanas?plataforma=meta&from=dashboard")
+                  }
+                  className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                >
+                  Ver campañas
+                </button>
+              </div>
+
+              {/* Google */}
+              <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                {/* Logo flotante */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-gray-200">
+                    <svg className="w-10 h-10" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Nombre */}
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                  GOOGLE
+                </h3>
+
+                {/* Métricas */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Leads totales:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX").format(
+                        metricasGoogle.leads,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Inversión:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(metricasGoogle.inversion)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      CxC:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {metricasGoogle.cxc.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón */}
+                <button
+                  onClick={() =>
+                    router.push("/campanas?plataforma=google&from=dashboard")
+                  }
+                  className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                >
+                  Ver campañas
+                </button>
+              </div>
+
+              {/* TikTok */}
+              <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                {/* Logo flotante */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                  <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center shadow-lg">
+                    <svg
+                      className="w-9 h-9 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Nombre */}
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                  TIKTOK
+                </h3>
+
+                {/* Métricas */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Leads totales:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX").format(
+                        metricasTikTok.leads,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      Inversión:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      $
+                      {new Intl.NumberFormat("es-MX", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(metricasTikTok.inversion)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700">
+                      CxC:
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {metricasTikTok.cxc.toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón */}
+                <button
+                  onClick={() =>
+                    router.push("/campanas?plataforma=tiktok&from=dashboard")
+                  }
+                  className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                >
+                  Ver campañas
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sección Embajadores */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-[#1e293b] px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                Proyecto Embajadores
+              </h2>
+              <button
+                onClick={() => router.push("/embajadores?from=dashboard")}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <CopyPlus className="h-6 w-6 text-red-500" />
+              </button>
+            </div>
+
+            {(() => {
+              const embFiltrados = embajadoresDash.filter((e) =>
+                filtraPorMarca(e.marca || ""),
+              );
+              if (embFiltrados.length === 0) {
+                return (
+                  <div className="text-center py-10 text-gray-400">
+                    <p className="text-sm">No hay embajadores registrados.</p>
+                    <button
+                      onClick={() => router.push("/embajadores?from=dashboard")}
+                      className="mt-3 text-purple-400 hover:underline text-sm font-medium"
+                    >
+                      Administrar embajadores →
+                    </button>
+                  </div>
+                );
+              }
+              const formatAud = (n: number) => {
+                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+                return String(n);
+              };
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+                  {embFiltrados.slice(0, 6).map((emb) => {
+                    let plataformas: Array<{
+                      plataforma: string;
+                      usuario: string;
+                    }> = [];
+                    try {
+                      if (emb.plataformas_json)
+                        plataformas = JSON.parse(emb.plataformas_json);
+                    } catch {
+                      /* ignore */
+                    }
+
+                    // Obtener usuario de Instagram
+                    const instagramUser =
+                      plataformas.find(
+                        (p) => p.plataforma.toLowerCase() === "instagram",
+                      )?.usuario || "";
+                    const tiktokUser =
+                      plataformas.find(
+                        (p) => p.plataforma.toLowerCase() === "tiktok",
+                      )?.usuario || "";
+
+                    return (
+                      <div
+                        key={emb.id}
+                        className="relative flex flex-col items-center py-8 px-6 border-r border-gray-600 last:border-r-0"
+                      >
+                        {/* Foto de perfil o avatar placeholder */}
+                        <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center mb-4 overflow-hidden">
+                          <User className="w-10 h-10 text-white" />
+                        </div>
+
+                        {/* Usuario de Instagram */}
+                        <p className="text-white font-medium text-sm mb-2">
+                          @
+                          {instagramUser ||
+                            emb.nombre.toLowerCase().replace(/\s+/g, "")}
+                        </p>
+
+                        {/* Badge de agencia */}
+                        {emb.marca && (
+                          <div className="bg-white/10 text-white text-xs px-3 py-1 rounded-full mb-3 border border-white/20">
+                            {emb.marca}
+                          </div>
+                        )}
+
+                        {/* Iconos de redes sociales */}
+                        <div className="flex gap-3 mb-6">
+                          {instagramUser && (
                             <a
-                              key={i}
-                              href={profileUrl}
+                              href={`https://instagram.com/${instagramUser}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="bg-white/60 text-purple-700 text-xs px-2 py-0.5 rounded-full hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
+                              className="text-white hover:text-red-400 transition-colors"
                             >
-                              {label}
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                              </svg>
                             </a>
-                          ) : (
-                            <span
-                              key={i}
-                              className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
+                          )}
+                          {tiktokUser && (
+                            <a
+                              href={`https://tiktok.com/@${tiktokUser}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-white hover:text-red-400 transition-colors"
                             >
-                              {label}
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Métricas */}
+                        <div className="w-full space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-white text-sm">
+                              Presupuesto:
                             </span>
+                            <span className="text-white font-bold text-sm">
+                              $
+                              {new Intl.NumberFormat("es-MX").format(
+                                emb.presupuesto,
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white text-sm">Leads:</span>
+                            <span className="text-white font-bold text-sm">
+                              {new Intl.NumberFormat("es-MX").format(emb.leads)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white text-sm">
+                              Audiencia:
+                            </span>
+                            <span className="text-white font-bold text-sm">
+                              {formatAud(emb.audiencia)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Sección Presencia Tradicional */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-[#f5f5f0] px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Presencia tradicional
+              </h2>
+              <button
+                onClick={() => {
+                  /* Ver todos - navegar a vista completa */
+                }}
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-500 transition-colors"
+              >
+                VER TODOS
+                <CopyPlus className="h-4 w-4 text-red-500" />
+              </button>
+            </div>
+
+            {cargandoPresencias && presencias.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+                <p className="text-sm">Cargando presencias...</p>
+              </div>
+            ) : errorPresencias && presencias.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-red-500 mb-3">{errorPresencias}</p>
+                <button
+                  onClick={() => {
+                    invalidateCacheByPrefix("presencias:");
+                    cargarPresencias();
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : cargandoSubcategorias ? (
+              <div className="text-center py-8 text-gray-400">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
+                <p className="text-sm">Cargando presencias...</p>
+              </div>
+            ) : subcategoriasMediosTradicionales.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>
+                  No hay subcategorías configuradas en Medios Tradicionales.
+                </p>
+              </div>
+            ) : (
+              <div>
+                {/* Filter Pills */}
+                <div className="flex flex-wrap justify-center gap-2 mb-8">
+                  <button
+                    onClick={() => setSubcategoriaPresenciaFiltro("all")}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      subcategoriaPresenciaFiltro === "all"
+                        ? "bg-red-500 text-white border-2 border-red-500"
+                        : "bg-white text-gray-700 border-2 border-gray-300 hover:border-red-500"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {subcategoriasMediosTradicionales.map((subcategoria) => (
+                    <button
+                      key={subcategoria}
+                      onClick={() =>
+                        setSubcategoriaPresenciaFiltro(subcategoria)
+                      }
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        subcategoriaPresenciaFiltro === subcategoria
+                          ? "bg-red-500 text-white border-2 border-red-500"
+                          : "bg-white text-gray-700 border-2 border-gray-300 hover:border-red-500"
+                      }`}
+                    >
+                      {subcategoria}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Unified Carousel */}
+                {(() => {
+                  const todasPresencias =
+                    subcategoriaPresenciaFiltro === "all"
+                      ? (presencias || []).filter((p) =>
+                          marcaActual === "TODAS"
+                            ? true
+                            : p.marca === marcaActual,
+                        )
+                      : presenciasPorSubcategoria(subcategoriaPresenciaFiltro);
+
+                  const carouselKey =
+                    subcategoriaPresenciaFiltro === "all"
+                      ? "all"
+                      : subcategoriaPresenciaFiltro;
+                  const idx = presenciaIndices[carouselKey] ?? 0;
+                  const visibles = todasPresencias.slice(idx, idx + 4);
+                  const totalPages = Math.ceil(todasPresencias.length / 4);
+                  const currentPage = Math.floor(idx / 4);
+
+                  if (todasPresencias.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500">
+                        No hay registros disponibles
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="relative">
+                      {/* Navigation Arrows */}
+                      <button
+                        onClick={() => navegarPresencia(carouselKey, "prev")}
+                        disabled={idx === 0}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Anterior"
+                      >
+                        <ChevronLeftIcon className="h-6 w-6 text-gray-700" />
+                      </button>
+                      <button
+                        onClick={() => navegarPresencia(carouselKey, "next")}
+                        disabled={idx + 4 >= todasPresencias.length}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Siguiente"
+                      >
+                        <ChevronRightIcon className="h-6 w-6 text-gray-700" />
+                      </button>
+
+                      {/* Cards Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                        {visibles.map((presencia) => {
+                          const firstImage = (() => {
+                            try {
+                              // Try datos_extra_json.fieldImages first
+                              if (presencia.datos_extra_json) {
+                                const extras = JSON.parse(
+                                  presencia.datos_extra_json,
+                                );
+                                const allImgs: Array<{
+                                  url: string;
+                                  nombre: string;
+                                }> = Object.values(
+                                  (extras.fieldImages ?? {}) as Record<
+                                    string,
+                                    Array<{ url: string; nombre: string }>
+                                  >,
+                                ).flat();
+                                if (allImgs.length > 0) return allImgs[0].url;
+                              }
+                              // Fallback to imagenes_json
+                              if (presencia.imagenes_json) {
+                                const parsed = JSON.parse(
+                                  presencia.imagenes_json,
+                                );
+                                if (
+                                  Array.isArray(parsed) &&
+                                  parsed.length > 0
+                                ) {
+                                  const first = parsed[0];
+                                  return typeof first === "string"
+                                    ? first
+                                    : (first?.url ?? null);
+                                }
+                              }
+                            } catch {
+                              /* ignore */
+                            }
+                            return null;
+                          })();
+
+                          // Extract description from datos_extra_json if available
+                          const getDescription = () => {
+                            try {
+                              if (presencia.datos_extra_json) {
+                                const extras = JSON.parse(
+                                  presencia.datos_extra_json,
+                                );
+                                return (
+                                  extras.descripcion ||
+                                  presencia.observaciones ||
+                                  presencia.notas ||
+                                  "Sin descripción"
+                                );
+                              }
+                            } catch {
+                              /* ignore */
+                            }
+                            return (
+                              presencia.observaciones ||
+                              presencia.notas ||
+                              "Sin descripción"
+                            );
+                          };
+
+                          return (
+                            <div
+                              key={presencia.id}
+                              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
+                              onClick={() => setModalPresencia(presencia)}
+                            >
+                              {/* Image with Icons Overlay */}
+                              <div className="relative h-48 bg-gray-200">
+                                {firstImage ? (
+                                  <Image
+                                    src={firstImage}
+                                    alt={presencia.nombre}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                    <Monitor className="h-12 w-12" />
+                                  </div>
+                                )}
+                                {/* Icon Overlays */}
+                                <div className="absolute bottom-3 left-3 flex gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md">
+                                    <MapPin className="h-4 w-4 text-red-500" />
+                                  </div>
+                                  <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md">
+                                    <Eye className="h-4 w-4 text-red-500" />
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Text Content */}
+                              <div className="p-4">
+                                <h4 className="text-red-500 font-bold text-sm mb-2 line-clamp-1">
+                                  {presencia.nombre}
+                                </h4>
+                                <p className="text-gray-500 text-xs line-clamp-2">
+                                  {getDescription()}
+                                </p>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
-                    )}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Presupuesto:
-                        </span>
-                        <span className={`text-base font-bold ${p.text}`}>
-                          $
-                          {new Intl.NumberFormat("es-MX").format(
-                            emb.presupuesto,
-                          )}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Leads:
-                        </span>
-                        <span className={`text-base font-bold ${p.text}`}>
-                          {new Intl.NumberFormat("es-MX").format(emb.leads)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Audiencia:
-                        </span>
-                        <span className={`text-base font-bold ${p.text}`}>
-                          {formatAud(emb.audiencia)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-      </div>
 
-      {/* Sección Presencia Tradicional */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            Presencia Tradicional
-          </h2>
+                      {/* Pagination Dots */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center gap-2">
+                          {[...Array(totalPages)].map((_, pageIdx) => (
+                            <button
+                              key={pageIdx}
+                              onClick={() => {
+                                setPresenciaIndices((prev) => ({
+                                  ...prev,
+                                  [carouselKey]: pageIdx * 4,
+                                }));
+                              }}
+                              className={`w-2 h-2 rounded-full transition-all ${
+                                currentPage === pageIdx
+                                  ? "bg-red-500 w-8"
+                                  : "bg-gray-300 hover:bg-gray-400"
+                              }`}
+                              title={`Página ${pageIdx + 1}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
         </div>
 
-        {cargandoPresencias && presencias.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
-            <p className="text-sm">Cargando presencias...</p>
+        {/* Sección Asesores */}
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              👥 Asesores
+            </h2>
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+              <svg
+                className="h-16 w-16 mb-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <p className="text-lg font-medium">Próximamente</p>
+              <p className="text-sm">Gestión de asesores en desarrollo</p>
+            </div>
           </div>
-        ) : errorPresencias && presencias.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-red-500 mb-3">{errorPresencias}</p>
-            <button
-              onClick={() => {
-                invalidateCacheByPrefix("presencias:");
-                cargarPresencias();
-              }}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-            >
-              Reintentar
-            </button>
-          </div>
-        ) : cargandoSubcategorias ? (
-          <div className="text-center py-8 text-gray-400">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
-            <p className="text-sm">Cargando presencias...</p>
-          </div>
-        ) : subcategoriasMediosTradicionales.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No hay subcategorías configuradas en Medios Tradicionales.</p>
-          </div>
-        ) : (
-          subcategoriasMediosTradicionales.map((subcategoria, subIdx) => {
-            const todas = presenciasPorSubcategoria(subcategoria);
-            const idx = presenciaIndices[subcategoria] ?? 0;
-            const visibles = todas.slice(idx, idx + 3);
-            const isLast =
-              subIdx === subcategoriasMediosTradicionales.length - 1;
-            return (
-              <div key={subcategoria} className={isLast ? "" : "mb-8"}>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {subcategoria}
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setPresenciaEditando(null);
-                        setSubcategoriaPresenciaModal(subcategoria);
-                        setModalFormularioPresencia(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title={`Nueva presencia: ${subcategoria}`}
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500">
-                      {todas.length} registro{todas.length !== 1 ? "s" : ""}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => navegarPresencia(subcategoria, "prev")}
-                        disabled={idx === 0}
-                        className={`p-2 rounded-lg ${
-                          idx === 0
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
-                      >
-                        <ChevronLeftIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => navegarPresencia(subcategoria, "next")}
-                        disabled={idx + 3 >= todas.length}
-                        className={`p-2 rounded-lg ${
-                          idx + 3 >= todas.length
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
-                      >
-                        <ChevronRightIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                {visibles.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic py-2">
-                    Sin registros para este período.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {visibles.map((presencia) => {
-                      // Extract first image (handles new ImageItem format and old base64 format)
-                      const firstImage = (() => {
-                        try {
-                          // Try datos_extra_json.fieldImages first
-                          if (presencia.datos_extra_json) {
-                            const extras = JSON.parse(
-                              presencia.datos_extra_json,
-                            );
-                            const allImgs: Array<{
-                              url: string;
-                              nombre: string;
-                            }> = Object.values(
-                              (extras.fieldImages ?? {}) as Record<
-                                string,
-                                Array<{ url: string; nombre: string }>
-                              >,
-                            ).flat();
-                            if (allImgs.length > 0) return allImgs[0].url;
-                          }
-                          // Fallback to imagenes_json
-                          if (presencia.imagenes_json) {
-                            const parsed = JSON.parse(presencia.imagenes_json);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                              const first = parsed[0];
-                              return typeof first === "string"
-                                ? first
-                                : (first?.url ?? null);
-                            }
-                          }
-                        } catch {
-                          /* ignore */
-                        }
-                        return null;
-                      })();
-
-                      return (
-                        <div
-                          key={presencia.id}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                        >
-                          <div className="mb-3">
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-semibold text-gray-900 leading-tight">
-                                {presencia.nombre}
-                              </h4>
-                              <div className="flex items-center gap-1 shrink-0 ml-2">
-                                <button
-                                  onClick={() => {
-                                    setPresenciaEditando(presencia);
-                                    setSubcategoriaPresenciaModal(
-                                      presencia.tipo || subcategoria,
-                                    );
-                                    setModalFormularioPresencia(true);
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800 transition-colors"
-                                  title="Editar"
-                                >
-                                  <PencilIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    if (
-                                      !window.confirm(
-                                        `¿Eliminar "${presencia.nombre}"? Esta acción no se puede deshacer.`,
-                                      )
-                                    )
-                                      return;
-                                    await eliminarPresencia(presencia.id);
-                                  }}
-                                  className="text-red-500 hover:text-red-700 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <XCircleIcon className="h-5 w-5" />
-                                </button>
-                              </div>
-                            </div>
-                            {presencia.fecha_instalacion && (
-                              <p className="text-xs text-gray-500 mb-1">
-                                📅{" "}
-                                {new Date(
-                                  presencia.fecha_instalacion + "T00:00:00",
-                                ).toLocaleDateString("es-MX", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </p>
-                            )}
-                          </div>
-                          {firstImage && (
-                            <div className="relative h-32 mb-3 rounded-lg overflow-hidden">
-                              <Image
-                                src={firstImage}
-                                alt={presencia.nombre}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <button
-                            onClick={() => setModalPresencia(presencia)}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                            Ver detalles
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+        </div>
       </div>
 
-      {/* Sección Asesores */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">👥 Asesores</h2>
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <svg
-            className="h-16 w-16 mb-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+      {/* Footer */}
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="bg-[#1a2332] px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex justify-end items-center">
+            <Image
+              src="/hg_logo.png"
+              alt="HG Logo"
+              width={120}
+              height={40}
+              className="object-contain"
             />
-          </svg>
-          <p className="text-lg font-medium">Próximamente</p>
-          <p className="text-sm">Gestión de asesores en desarrollo</p>
+          </div>
         </div>
       </div>
 

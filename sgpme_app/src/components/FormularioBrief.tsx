@@ -263,11 +263,22 @@ export default function FormularioBrief({
     }));
   };
 
-  const actualizarPartida = (facturaId: string, index: number, field: keyof Partida, value: string | number) => {
+  const actualizarPartida = (
+    facturaId: string,
+    index: number,
+    field: keyof Partida,
+    value: string | number,
+  ) => {
     setPartidas((prev) => ({
       ...prev,
       [facturaId]: (prev[facturaId] || []).map((p, i) =>
-        i === index ? { ...p, [field]: field === "precio" ? parseFloat(String(value)) || 0 : value } : p
+        i === index
+          ? {
+              ...p,
+              [field]:
+                field === "precio" ? parseFloat(String(value)) || 0 : value,
+            }
+          : p,
       ),
     }));
   };
@@ -295,7 +306,9 @@ export default function FormularioBrief({
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagenes((prev) =>
-            prev.map((i) => (i.id === img.id ? { ...i, url: e.target?.result as string } : i))
+            prev.map((i) =>
+              i.id === img.id ? { ...i, url: e.target?.result as string } : i,
+            ),
           );
         };
         reader.readAsDataURL(img.file);
@@ -666,29 +679,50 @@ export default function FormularioBrief({
           {facturasEvento.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                💰 Gastos del Evento ({facturasEvento.length} factura{facturasEvento.length !== 1 ? "s" : ""})
+                💰 Gastos del Evento ({facturasEvento.length} factura
+                {facturasEvento.length !== 1 ? "s" : ""})
               </label>
               <div className="space-y-4">
                 {facturasEvento.map((factura) => {
                   const partidasFactura = partidas[factura.id] || [];
-                  const totalPartidas = partidasFactura.reduce((sum, p) => sum + p.precio, 0);
+                  const totalPartidas = partidasFactura.reduce(
+                    (sum, p) => sum + p.precio,
+                    0,
+                  );
                   return (
-                    <div key={factura.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div
+                      key={factura.id}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
                       <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium text-gray-800 text-sm">{factura.proveedor}</span>
-                          <span className="text-xs text-gray-500">Folio: {factura.folio}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            factura.estado === "Pagada" ? "bg-green-100 text-green-700" :
-                            factura.estado === "Autorizada" ? "bg-blue-100 text-blue-700" :
-                            "bg-yellow-100 text-yellow-700"
-                          }`}>{factura.estado}</span>
+                          <span className="font-medium text-gray-800 text-sm">
+                            {factura.proveedor}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Folio: {factura.folio}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${
+                              factura.estado === "Pagada"
+                                ? "bg-green-100 text-green-700"
+                                : factura.estado === "Autorizada"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {factura.estado}
+                          </span>
                         </div>
-                        <span className="font-medium text-gray-900">{formatearMonto(factura.subtotal)}</span>
+                        <span className="font-medium text-gray-900">
+                          {formatearMonto(factura.subtotal)}
+                        </span>
                       </div>
                       <div className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Partidas</span>
+                          <span className="text-sm font-medium text-gray-700">
+                            Partidas
+                          </span>
                           <button
                             type="button"
                             onClick={() => agregarPartida(factura.id)}
@@ -701,21 +735,40 @@ export default function FormularioBrief({
                         {partidasFactura.length > 0 && (
                           <div className="space-y-2">
                             {partidasFactura.map((partida, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2"
+                              >
                                 <input
                                   type="text"
                                   value={partida.nombre}
-                                  onChange={(e) => actualizarPartida(factura.id, idx, "nombre", e.target.value)}
+                                  onChange={(e) =>
+                                    actualizarPartida(
+                                      factura.id,
+                                      idx,
+                                      "nombre",
+                                      e.target.value,
+                                    )
+                                  }
                                   className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
                                   placeholder="Nombre de la partida"
                                   disabled={loading}
                                 />
                                 <div className="relative">
-                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">$</span>
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                                    $
+                                  </span>
                                   <input
                                     type="number"
                                     value={partida.precio || ""}
-                                    onChange={(e) => actualizarPartida(factura.id, idx, "precio", e.target.value)}
+                                    onChange={(e) =>
+                                      actualizarPartida(
+                                        factura.id,
+                                        idx,
+                                        "precio",
+                                        e.target.value,
+                                      )
+                                    }
                                     className="w-32 pl-5 pr-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-gray-900"
                                     placeholder="0.00"
                                     min={0}
@@ -725,7 +778,9 @@ export default function FormularioBrief({
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => removerPartida(factura.id, idx)}
+                                  onClick={() =>
+                                    removerPartida(factura.id, idx)
+                                  }
                                   className="text-red-500 hover:text-red-700 text-sm"
                                   disabled={loading}
                                 >
@@ -734,7 +789,9 @@ export default function FormularioBrief({
                               </div>
                             ))}
                             <div className="flex justify-end pt-1 border-t border-gray-100">
-                              <span className="text-sm font-medium text-gray-700">Total partidas: {formatearMonto(totalPartidas)}</span>
+                              <span className="text-sm font-medium text-gray-700">
+                                Total partidas: {formatearMonto(totalPartidas)}
+                              </span>
                             </div>
                           </div>
                         )}
@@ -744,7 +801,10 @@ export default function FormularioBrief({
                 })}
                 <div className="flex justify-end px-4 py-2 bg-gray-50 rounded-lg">
                   <span className="font-medium text-gray-900">
-                    Total Gastado: {formatearMonto(facturasEvento.reduce((sum, f) => sum + f.subtotal, 0))}
+                    Total Gastado:{" "}
+                    {formatearMonto(
+                      facturasEvento.reduce((sum, f) => sum + f.subtotal, 0),
+                    )}
                   </span>
                 </div>
               </div>
@@ -778,10 +838,15 @@ export default function FormularioBrief({
             </label>
             <div className="space-y-3">
               {ASIGNACIONES_IMAGEN.map((categoria) => {
-                const imgsCategoria = imagenes.filter((i) => i.asignacion === categoria);
+                const imgsCategoria = imagenes.filter(
+                  (i) => i.asignacion === categoria,
+                );
                 const isExpanded = seccionesExpandidas[categoria] || false;
                 return (
-                  <div key={categoria} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div
+                    key={categoria}
+                    className="border border-gray-200 rounded-lg overflow-hidden"
+                  >
                     <button
                       type="button"
                       onClick={() =>
@@ -793,57 +858,90 @@ export default function FormularioBrief({
                       className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800 text-sm">{categoria}</span>
+                        <span className="font-medium text-gray-800 text-sm">
+                          {categoria}
+                        </span>
                         {imgsCategoria.length > 0 && (
                           <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
                             {imgsCategoria.length}
                           </span>
                         )}
                       </div>
-                      <span className="text-gray-500 text-sm">{isExpanded ? "▲" : "▼"}</span>
+                      <span className="text-gray-500 text-sm">
+                        {isExpanded ? "▲" : "▼"}
+                      </span>
                     </button>
                     {isExpanded && (
                       <div className="p-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {imgsCategoria.map((imagen) => (
-                            <div key={imagen.id} className="border border-gray-200 rounded-lg p-2 bg-white">
+                            <div
+                              key={imagen.id}
+                              className="border border-gray-200 rounded-lg p-2 bg-white"
+                            >
                               <div
                                 className="relative w-full h-28 rounded mb-2 cursor-pointer overflow-hidden bg-gray-100"
                                 onClick={() => abrirImagenModal(imagen)}
                               >
                                 {imagen.url.startsWith("data:video/") ? (
-                                  <video src={imagen.url} className="w-full h-28 object-cover rounded" muted />
+                                  <video
+                                    src={imagen.url}
+                                    className="w-full h-28 object-cover rounded"
+                                    muted
+                                  />
                                 ) : (
                                   /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img src={imagen.url} alt={imagen.nombre} className="w-full h-28 object-cover rounded" loading="eager" />
+                                  <img
+                                    src={imagen.url}
+                                    alt={imagen.nombre}
+                                    className="w-full h-28 object-cover rounded"
+                                    loading="eager"
+                                  />
                                 )}
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); removerImagen(imagen.id); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removerImagen(imagen.id);
+                                  }}
                                   className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors z-10"
                                   disabled={loading}
                                 >
                                   ✕
                                 </button>
                               </div>
-                              <span className="text-xs text-gray-600 truncate block">{imagen.nombre}</span>
+                              <span className="text-xs text-gray-600 truncate block">
+                                {imagen.nombre}
+                              </span>
                             </div>
                           ))}
                           <div
-                            onClick={() => categoryInputRefs.current[categoria]?.click()}
+                            onClick={() =>
+                              categoryInputRefs.current[categoria]?.click()
+                            }
                             className="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-white hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-colors flex flex-col items-center justify-center min-h-[140px]"
                           >
                             <span className="text-3xl text-gray-400">+</span>
-                            <span className="text-xs text-gray-500 mt-1">Agregar</span>
+                            <span className="text-xs text-gray-500 mt-1">
+                              Agregar
+                            </span>
                             <input
-                              ref={(el) => { categoryInputRefs.current[categoria] = el; }}
+                              ref={(el) => {
+                                categoryInputRefs.current[categoria] = el;
+                              }}
                               type="file"
                               multiple
                               accept="image/*,video/*"
                               className="hidden"
                               onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                  handleCategoryImageUpload(categoria, e.target.files);
+                                if (
+                                  e.target.files &&
+                                  e.target.files.length > 0
+                                ) {
+                                  handleCategoryImageUpload(
+                                    categoria,
+                                    e.target.files,
+                                  );
                                   e.target.value = "";
                                 }
                               }}

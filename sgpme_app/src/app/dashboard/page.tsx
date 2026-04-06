@@ -3,22 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import {
-  useAuth,
-  obtenerNombreRol,
-  obtenerColorRol,
-} from "@/hooks/useAuthUnified";
+import Image from "next/image";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
-import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
 import DashboardGeneral from "@/components/DashboardGeneral";
-import NavBar from "@/components/NavBar";
-import { Bars3Icon } from "@heroicons/react/24/outline";
+import Sidebar from "@/components/Sidebar";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 
 // Lazy-load components that are only shown on specific user actions
-const ConfigSidebar = dynamic(() => import("@/components/ConfigSidebar"));
-const ConfigSidebarCoordinador = dynamic(
-  () => import("@/components/ConfigSidebarCoordinador"),
-);
 const GestionPerfilCoordinador = dynamic(
   () => import("@/components/GestionPerfilCoordinador"),
 );
@@ -36,13 +32,11 @@ export default function Dashboard() {
   } = useAuth();
 
   const { marcaSeleccionada } = useMarcaGlobal();
-  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
 
   const isAdmin =
     usuario?.tipo === "administrador" || usuario?.tipo === "developer";
   const isCoordinador = usuario?.tipo === "coordinador";
-  const mostrarMenu = isAdmin || isCoordinador;
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -74,118 +68,92 @@ export default function Dashboard() {
       return;
     }
     setActiveConfigView(item);
-    setConfigSidebarOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {mostrarMenu && (
-                <button
-                  onClick={() => setConfigSidebarOpen(true)}
-                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Configuración del Sistema"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              )}
+    <div className="min-h-screen bg-gray-50">
+      {/* Full-width fixed header */}
+      <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+        {/* Logo — flush to the left edge */}
+        <div className="pl-3 shrink-0">
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
+        </div>
 
-              <div className="shrink-0">
-                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                  HG
-                </div>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {usuario.grupo}
-                </p>
-              </div>
-            </div>
+        {/* Navigation arrows — red, spread out between logo and search */}
+        <div className="flex items-center gap-6 px-8">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
 
-            <div className="flex items-center space-x-4">
-              <FiltroMarcaGlobal />
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {usuario.nombre}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo,
-                      )}`}
-                    >
-                      {obtenerNombreRol(usuario.tipo)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCerrarSesion}
-                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                  title="Cerrar Sesión"
-                >
-                  ↗
-                </button>
-              </div>
-            </div>
+        {/* Search bar — absolutely centered in the full header */}
+        <div className="absolute left-1/2 -translate-x-1/2 w-80">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
-      <NavBar usuario={usuario} paginaActiva="dashboard" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <DashboardGeneral agenciaSeleccionada={marcaSeleccionada} />
-        {usuario?.tipo === "auditor" && (
-          <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <div className="shrink-0">
-                <span className="text-green-600 text-2xl">👁️</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Modo Auditor Activo
-                </h3>
-                <p className="text-sm text-green-700 mt-1">
-                  Tienes acceso completo de lectura para auditoría y supervisión
-                  del sistema.
-                </p>
+
+      {/* Left collapsible sidebar — starts below header */}
+      <Sidebar
+        usuario={usuario}
+        paginaActiva="dashboard"
+        onMenuClick={handleMenuClick}
+        onCerrarSesion={handleCerrarSesion}
+      />
+
+      {/* Main content — offset for header height + sidebar width */}
+      <div className="pt-14 pl-14 bg-white min-h-screen">
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          <DashboardGeneral agenciaSeleccionada={marcaSeleccionada} />
+          {usuario?.tipo === "auditor" && (
+            <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+              <div className="flex items-center">
+                <div className="shrink-0">
+                  <span className="text-green-600 text-2xl">👁️</span>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">
+                    Modo Auditor Activo
+                  </h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    Tienes acceso completo de lectura para auditoría y
+                    supervisión del sistema.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </main>
-
-      {/* Sidebar para Administradores */}
-      {isAdmin && (
-        <>
-          <ConfigSidebar
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-            isDeveloper={usuario?.tipo === "developer"}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
-          )}
-        </>
-      )}
+        </main>
+      </div>
 
-      {/* Sidebar para Coordinadores */}
-      {isCoordinador && (
+      {/* Modals triggered from sidebar user menu */}
+      {(isAdmin || isCoordinador) && (
         <>
-          <ConfigSidebarCoordinador
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-          />
           {activeConfigView === "mi-perfil" && (
             <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
