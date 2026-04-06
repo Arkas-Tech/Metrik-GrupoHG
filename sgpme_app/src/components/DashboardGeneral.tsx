@@ -1564,7 +1564,7 @@ export default function DashboardGeneral({
   //   - 2+ fechas → presencia activa dentro del rango [primera, última]
   // Fallback: comparación exacta de año+mes contra fecha_instalacion.
   const presenciaTradicionalData = presencias.filter((presencia) => {
-    if (!presencia.agencia || !filtraPorMarca(presencia.agencia)) return false;
+    if (!filtraPorMarca(presencia.marca)) return false;
 
     const selectedVal = añoSeleccionado * 12 + filtroMesGlobal;
 
@@ -1628,9 +1628,8 @@ export default function DashboardGeneral({
       return selectedVal >= inicioVal;
     }
 
-    // Fallback 2: comparación exacta de año+mes contra fecha_instalacion
-    const fi = new Date(presencia.fecha_instalacion + "T00:00:00");
-    return fi.getFullYear() * 12 + fi.getMonth() + 1 === selectedVal;
+    // Fallback 2: si no hay info de fechas, mostrar la presencia siempre
+    return true;
   });
 
   // Presencias por subcategoría (comparación case-insensitive)

@@ -86,7 +86,7 @@ export const usePresencias = () => {
       setError(null);
 
       const url = marcaSeleccionada
-        ? `${API_URL}/presencia-tradicional/?agencia=${encodeURIComponent(
+        ? `${API_URL}/presencia-tradicional/?marca=${encodeURIComponent(
             marcaSeleccionada,
           )}`
         : `${API_URL}/presencia-tradicional/`;
