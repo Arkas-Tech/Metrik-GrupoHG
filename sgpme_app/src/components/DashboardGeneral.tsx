@@ -3555,17 +3555,20 @@ export default function DashboardGeneral({
             ) : (
               <div>
                 {/* Encabezados */}
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 mb-2">
-                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center px-6 py-3 mb-2">
+                  <div className="flex-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                     Fecha
                   </div>
-                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="w-px" />
+                  <div className="flex-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                     Evento y Agencia
                   </div>
-                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="w-px" />
+                  <div className="flex-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                     Tipo
                   </div>
-                  <div className="col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="w-px" />
+                  <div className="px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                     Estado
                   </div>
                 </div>
@@ -3597,22 +3600,22 @@ export default function DashboardGeneral({
                     return (
                       <div
                         key={evento.id}
-                        className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow relative"
+                        className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="grid grid-cols-12 gap-4 px-6 py-4 items-center">
+                        <div className="flex items-center px-6 py-4">
                           {/* Fecha */}
-                          <div className="col-span-3 flex items-center h-full">
+                          <div className="flex-2 flex items-center justify-center">
                             <span className="text-sm text-gray-600">
                               {formatearFecha(evento.fechaInicio)}
                             </span>
                           </div>
 
                           {/* Separador vertical */}
-                          <div className="absolute left-[25%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+                          <div className="w-px bg-gray-200 self-stretch my-2" />
 
                           {/* Evento y Agencia */}
-                          <div className="col-span-3 flex items-center h-full">
-                            <div>
+                          <div className="flex-3 flex items-center justify-center">
+                            <div className="text-center">
                               <div className="text-sm font-semibold text-gray-900">
                                 {evento.nombre}
                               </div>
@@ -3623,20 +3626,20 @@ export default function DashboardGeneral({
                           </div>
 
                           {/* Separador vertical */}
-                          <div className="absolute left-[50%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+                          <div className="w-px bg-gray-200 self-stretch my-2" />
 
                           {/* Tipo */}
-                          <div className="col-span-3 flex items-center h-full">
-                            <span className="text-sm text-gray-600">
+                          <div className="flex-2 flex items-center justify-center">
+                            <span className="text-sm text-gray-600 text-center">
                               {evento.tipoEvento}
                             </span>
                           </div>
 
                           {/* Separador vertical */}
-                          <div className="absolute left-[75%] top-[5%] h-[90%] w-px bg-gray-200"></div>
+                          <div className="w-px bg-gray-200 self-stretch my-2" />
 
                           {/* Estado */}
-                          <div className="col-span-3 flex items-center h-full">
+                          <div className="flex items-center justify-center px-6">
                             <span
                               className={`px-3 py-1 text-xs font-semibold rounded-full ${getEstadoColor(evento.estado)}`}
                             >
@@ -4227,11 +4230,11 @@ export default function DashboardGeneral({
                           return (
                             <div
                               key={presencia.id}
-                              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer"
+                              className="flex flex-col gap-3 cursor-pointer"
                               onClick={() => setModalPresencia(presencia)}
                             >
-                              {/* Image with Icons Overlay */}
-                              <div className="relative h-48 bg-gray-200">
+                              {/* Image — standalone floating */}
+                              <div className="relative h-48 bg-gray-200 rounded-xl overflow-hidden shadow-md">
                                 {firstImage ? (
                                   <Image
                                     src={firstImage}
@@ -4244,22 +4247,24 @@ export default function DashboardGeneral({
                                     <Monitor className="h-12 w-12" />
                                   </div>
                                 )}
-                                {/* Icon Overlays */}
-                                <div className="absolute bottom-3 left-3 flex gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md">
-                                    <MapPin className="h-4 w-4 text-red-500" />
-                                  </div>
-                                  <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md">
-                                    <Eye className="h-4 w-4 text-red-500" />
-                                  </div>
+                              </div>
+
+                              {/* Icon buttons — standalone floating */}
+                              <div className="flex gap-2">
+                                <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                                  <MapPin className="h-4 w-4 text-gray-600" />
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                                  <Eye className="h-4 w-4 text-gray-600" />
                                 </div>
                               </div>
-                              {/* Text Content */}
-                              <div className="p-4">
-                                <h4 className="text-red-500 font-bold text-sm mb-2 line-clamp-1">
+
+                              {/* Text — standalone floating */}
+                              <div>
+                                <h4 className="text-red-500 font-bold text-sm mb-1 line-clamp-1">
                                   {presencia.nombre}
                                 </h4>
-                                <p className="text-gray-500 text-xs line-clamp-2">
+                                <p className="text-gray-500 text-xs line-clamp-3">
                                   {getDescription()}
                                 </p>
                               </div>
