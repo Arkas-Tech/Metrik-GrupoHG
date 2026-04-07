@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Factura, METODOS_PAGO, MESES, AÑOS } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { useProveedoresAPI } from "@/hooks/useProveedoresAPI";
@@ -142,6 +142,14 @@ export default function FormularioFactura({
   const [enviando, setEnviando] = useState(false);
   const [procesandoXML, setProcesandoXML] = useState(false);
 
+  // Buscador de proveedor
+  const [busquedaProveedor, setBusquedaProveedor] = useState(
+    facturaInicial?.proveedor || "",
+  );
+  const [mostrarDropdownProveedor, setMostrarDropdownProveedor] =
+    useState(false);
+  const dropdownProveedorRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const subtotalNum = parseFloat(subtotal) || 0;
     const ivaNum = parseFloat(iva) || 0;
@@ -173,6 +181,7 @@ export default function FormularioFactura({
         console.log("✅ Proveedor encontrado:", proveedorEncontrado.nombre);
         if (proveedor !== proveedorEncontrado.nombre) {
           setProveedor(proveedorEncontrado.nombre);
+          setBusquedaProveedor(proveedorEncontrado.nombre);
         }
         if (rfc !== (proveedorEncontrado.rfc || "")) {
           setRfc(proveedorEncontrado.rfc || "");
@@ -222,6 +231,7 @@ export default function FormularioFactura({
           proveedorNuevo.nombre,
         );
         setProveedor(proveedorNuevo.nombre);
+        setBusquedaProveedor(proveedorNuevo.nombre);
         setRfc(proveedorNuevo.rfc || "");
       } else {
         console.warn(
@@ -264,15 +274,45 @@ export default function FormularioFactura({
     cargarEventosYCampanyas();
   }, []);
 
+  // Click fuera del dropdown de proveedor
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownProveedorRef.current &&
+        !dropdownProveedorRef.current.contains(e.target as Node)
+      ) {
+        setMostrarDropdownProveedor(false);
+        // Si se cerró sin seleccionar, restaurar el texto al proveedor actual
+        setBusquedaProveedor(proveedor);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [proveedor]);
+
+  const proveedoresFiltrados = proveedores
+    .filter((p) => p.activo)
+    .filter((p) => {
+      const q = busquedaProveedor.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        p.nombre.toLowerCase().includes(q) ||
+        (p.rfc && p.rfc.toLowerCase().includes(q))
+      );
+    });
+
   const handleProveedorChange = (proveedorId: string) => {
     const proveedorSeleccionado = proveedores.find((p) => p.id === proveedorId);
     if (proveedorSeleccionado) {
       setProveedor(proveedorSeleccionado.nombre);
+      setBusquedaProveedor(proveedorSeleccionado.nombre);
       setRfc(proveedorSeleccionado.rfc || "");
     } else {
       setProveedor("");
+      setBusquedaProveedor("");
       setRfc("");
     }
+    setMostrarDropdownProveedor(false);
     if (errores.proveedor) {
       setErrores((prev) => ({ ...prev, proveedor: "" }));
     }
@@ -291,6 +331,7 @@ export default function FormularioFactura({
       );
       if (proveedorEncontrado) {
         setProveedor(proveedorEncontrado.nombre);
+        setBusquedaProveedor(proveedorEncontrado.nombre);
 
         if (errores.proveedor) {
           setErrores((prev) => ({ ...prev, proveedor: "" }));
@@ -322,6 +363,7 @@ export default function FormularioFactura({
     if (facturaInicial) {
       setFolio(facturaInicial.folio || "");
       setProveedor(facturaInicial.proveedor || "");
+      setBusquedaProveedor(facturaInicial.proveedor || "");
       setRfc(facturaInicial.rfc || "");
       setSubtotal(facturaInicial.subtotal?.toString() || "");
       setIva(facturaInicial.iva?.toString() || "");
@@ -505,9 +547,13 @@ export default function FormularioFactura({
 
         if (proveedorExistente) {
           setProveedor(proveedorExistente.nombre);
+          setBusquedaProveedor(proveedorExistente.nombre);
           setRfc(proveedorExistente.rfc || "");
         } else {
-          if (nombreProveedor) setProveedor(nombreProveedor);
+          if (nombreProveedor) {
+            setProveedor(nombreProveedor);
+            setBusquedaProveedor(nombreProveedor);
+          }
           if (rfcProveedor) handleRfcChange(rfcProveedor);
         }
       }
@@ -690,6 +736,7 @@ export default function FormularioFactura({
         // Si es una factura nueva, resetear campos
         setFolio("");
         setProveedor("");
+        setBusquedaProveedor("");
         setRfc("");
         setSubtotal("");
         setIva("");
@@ -869,29 +916,61 @@ export default function FormularioFactura({
                 </button>
               )}
             </div>
-            <select
-              value={
-                proveedores.find(
-                  (p) => p.nombre === proveedor || (rfc && p.rfc === rfc),
-                )?.id || ""
-              }
-              onChange={(e) => handleProveedorChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              disabled={enviando || proveedoresLoading}
-            >
-              <option value="">
-                {proveedoresLoading
-                  ? "Cargando proveedores..."
-                  : "Selecciona un proveedor"}
-              </option>
-              {proveedores
-                .filter((p) => p.activo)
-                .map((prov) => (
-                  <option key={prov.id} value={prov.id}>
-                    {prov.nombre} {prov.rfc ? `- ${prov.rfc}` : ""}
-                  </option>
-                ))}
-            </select>
+            <div className="relative" ref={dropdownProveedorRef}>
+              <input
+                type="text"
+                value={busquedaProveedor}
+                onChange={(e) => {
+                  setBusquedaProveedor(e.target.value);
+                  setMostrarDropdownProveedor(true);
+                  if (!e.target.value) {
+                    setProveedor("");
+                    setRfc("");
+                  }
+                }}
+                onFocus={(e) => {
+                  e.target.select();
+                  setMostrarDropdownProveedor(true);
+                }}
+                placeholder={
+                  proveedoresLoading
+                    ? "Cargando proveedores..."
+                    : "Buscar proveedor..."
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                disabled={enviando || proveedoresLoading}
+                autoComplete="off"
+              />
+              {mostrarDropdownProveedor && (
+                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-52 overflow-y-auto">
+                  {proveedoresFiltrados.length > 0 ? (
+                    proveedoresFiltrados.map((prov) => (
+                      <li
+                        key={prov.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleProveedorChange(prov.id);
+                        }}
+                        className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm"
+                      >
+                        <span className="font-medium text-gray-900">
+                          {prov.nombre}
+                        </span>
+                        {prov.rfc && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            {prov.rfc}
+                          </span>
+                        )}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-3 py-2 text-sm text-gray-400">
+                      Sin resultados
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
             {errores.proveedor && (
               <p className="text-red-500 text-xs mt-1">{errores.proveedor}</p>
             )}
