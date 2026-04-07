@@ -178,6 +178,12 @@ export const SUBCATEGORIAS_POR_CATEGORIA: Record<string, string[]> = {
   Plataformas: ["CRM", "WEB", "Otras Plataformas"],
 };
 
+export interface ContactoProveedor {
+  nombre: string;
+  email: string;
+  telefono?: string;
+}
+
 export interface Proveedor {
   id: string;
   nombre: string;
@@ -196,6 +202,8 @@ export interface Proveedor {
   ciudad?: string;
   estado?: string;
   codigoPostal?: string;
+  // Múltiples contactos
+  contactos?: ContactoProveedor[];
   // Campos de control
   categoria: string;
   activo: boolean;

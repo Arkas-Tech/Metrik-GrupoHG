@@ -157,6 +157,8 @@ class Proveedores(Base):
     ciudad = Column(String(200), nullable=True)
     estado = Column(String(100), nullable=True)
     codigo_postal = Column(String(10), nullable=True)
+    # Múltiples contactos (JSON)
+    contactos_json = Column(Text, nullable=True)
     # Campos de control
     categoria = Column(String)
     activo = Column(Boolean, default=True)

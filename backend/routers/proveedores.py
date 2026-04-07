@@ -1,4 +1,5 @@
 from typing import Annotated, Optional
+import json
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -42,6 +43,8 @@ class ProveedorRequest(BaseModel):
     # Campos de control
     categoria: str = Field(min_length=1, max_length=100)
     activo: Optional[bool] = True
+    # Múltiples contactos
+    contactos_json: Optional[str] = None
 
 class ProveedorResponse(BaseModel):
     id: int
@@ -49,7 +52,7 @@ class ProveedorResponse(BaseModel):
     razon_social: Optional[str]
     contacto: str
     email: str
-    rfc: Optional[str]  # Opcional por compatibilidad con datos existentes
+    rfc: Optional[str]
     telefono: Optional[str]
     # Campo antiguo de dirección
     direccion: Optional[str]
@@ -61,6 +64,8 @@ class ProveedorResponse(BaseModel):
     ciudad: Optional[str]
     estado: Optional[str]
     codigo_postal: Optional[str]
+    # Múltiples contactos
+    contactos_json: Optional[str] = None
     # Campos de control
     categoria: str
     activo: bool
@@ -127,13 +132,27 @@ async def create_proveedor(user: user_dependency, db: db_dependency, proveedor_r
         if existing:
             raise HTTPException(status_code=409, detail=f'Ya existe un proveedor con el RFC {proveedor_request.rfc}')
 
+    # Derive first-contact legacy fields from contactos_json if provided
+    contacto = proveedor_request.contacto
+    email = proveedor_request.email
+    telefono = proveedor_request.telefono
+    if proveedor_request.contactos_json:
+        try:
+            contactos = json.loads(proveedor_request.contactos_json)
+            if contactos and isinstance(contactos, list) and len(contactos) > 0:
+                contacto = contactos[0].get('nombre', contacto)
+                email = contactos[0].get('email', email)
+                telefono = contactos[0].get('telefono', telefono)
+        except Exception:
+            pass
+
     proveedor_model = Proveedores(
         nombre=proveedor_request.nombre,
         razon_social=proveedor_request.razon_social,
-        contacto=proveedor_request.contacto,
-        email=proveedor_request.email,
+        contacto=contacto,
+        email=email,
         rfc=proveedor_request.rfc,
-        telefono=proveedor_request.telefono,
+        telefono=telefono,
         direccion=proveedor_request.direccion,
         calle=proveedor_request.calle,
         numero_exterior=proveedor_request.numero_exterior,
@@ -142,6 +161,7 @@ async def create_proveedor(user: user_dependency, db: db_dependency, proveedor_r
         ciudad=proveedor_request.ciudad,
         estado=proveedor_request.estado,
         codigo_postal=proveedor_request.codigo_postal,
+        contactos_json=proveedor_request.contactos_json,
         categoria=proveedor_request.categoria,
         activo=proveedor_request.activo,
         creado_por=user.get('username'),
@@ -167,10 +187,7 @@ async def update_proveedor(user: user_dependency, db: db_dependency,
 
     proveedor.nombre = proveedor_request.nombre
     proveedor.razon_social = proveedor_request.razon_social
-    proveedor.contacto = proveedor_request.contacto
-    proveedor.email = proveedor_request.email
     proveedor.rfc = proveedor_request.rfc
-    proveedor.telefono = proveedor_request.telefono
     proveedor.direccion = proveedor_request.direccion
     proveedor.calle = proveedor_request.calle
     proveedor.numero_exterior = proveedor_request.numero_exterior
@@ -179,8 +196,26 @@ async def update_proveedor(user: user_dependency, db: db_dependency,
     proveedor.ciudad = proveedor_request.ciudad
     proveedor.estado = proveedor_request.estado
     proveedor.codigo_postal = proveedor_request.codigo_postal
+    proveedor.contactos_json = proveedor_request.contactos_json
     proveedor.categoria = proveedor_request.categoria
     proveedor.activo = proveedor_request.activo
+
+    # Mirror first contact to legacy fields
+    contacto = proveedor_request.contacto
+    email = proveedor_request.email
+    telefono = proveedor_request.telefono
+    if proveedor_request.contactos_json:
+        try:
+            contactos = json.loads(proveedor_request.contactos_json)
+            if contactos and isinstance(contactos, list) and len(contactos) > 0:
+                contacto = contactos[0].get('nombre', contacto)
+                email = contactos[0].get('email', email)
+                telefono = contactos[0].get('telefono', telefono)
+        except Exception:
+            pass
+    proveedor.contacto = contacto
+    proveedor.email = email
+    proveedor.telefono = telefono
 
     db.add(proveedor)
     db.commit()

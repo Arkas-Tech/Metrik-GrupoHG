@@ -17,7 +17,7 @@ interface ProveedorBackend {
   razon_social?: string;
   contacto: string;
   email: string;
-  rfc: string; // Ahora obligatorio
+  rfc: string;
   telefono?: string;
   direccion?: string;
   calle?: string;
@@ -27,6 +27,7 @@ interface ProveedorBackend {
   ciudad?: string;
   estado?: string;
   codigo_postal?: string;
+  contactos_json?: string;
   categoria: string;
   activo: boolean;
   creado_por: string;
@@ -89,6 +90,15 @@ export const useProveedoresAPI = () => {
             ciudad: prov.ciudad || "",
             estado: prov.estado || "",
             codigoPostal: prov.codigo_postal || "",
+            contactos: prov.contactos_json
+              ? (() => {
+                  try {
+                    return JSON.parse(prov.contactos_json!);
+                  } catch {
+                    return [];
+                  }
+                })()
+              : [],
             categoria: prov.categoria || "",
             activo: prov.activo ?? true,
             fechaCreacion: prov.fecha_creacion
@@ -129,7 +139,7 @@ export const useProveedoresAPI = () => {
           razon_social: datos.razonSocial || null,
           contacto: datos.contacto,
           email: datos.email,
-          rfc: datos.rfc, // Ahora obligatorio
+          rfc: datos.rfc,
           telefono: datos.telefono || null,
           direccion: datos.direccion || null,
           calle: datos.calle || null,
@@ -139,6 +149,10 @@ export const useProveedoresAPI = () => {
           ciudad: datos.ciudad || null,
           estado: datos.estado || null,
           codigo_postal: datos.codigoPostal || null,
+          contactos_json:
+            datos.contactos && datos.contactos.length > 0
+              ? JSON.stringify(datos.contactos)
+              : null,
           categoria: datos.categoria,
           activo: datos.activo ?? true,
         };
@@ -182,6 +196,15 @@ export const useProveedoresAPI = () => {
           ciudad: proveedorCreado.ciudad || "",
           estado: proveedorCreado.estado || "",
           codigoPostal: proveedorCreado.codigo_postal || "",
+          contactos: proveedorCreado.contactos_json
+            ? (() => {
+                try {
+                  return JSON.parse(proveedorCreado.contactos_json);
+                } catch {
+                  return [];
+                }
+              })()
+            : [],
           categoria: proveedorCreado.categoria,
           activo: proveedorCreado.activo,
           fechaCreacion: new Date().toISOString().split("T")[0],
@@ -203,7 +226,7 @@ export const useProveedoresAPI = () => {
           razon_social: datos.razonSocial || null,
           contacto: datos.contacto,
           email: datos.email,
-          rfc: datos.rfc, // Ahora obligatorio
+          rfc: datos.rfc,
           telefono: datos.telefono || null,
           direccion: datos.direccion || null,
           calle: datos.calle || null,
@@ -213,6 +236,10 @@ export const useProveedoresAPI = () => {
           ciudad: datos.ciudad || null,
           estado: datos.estado || null,
           codigo_postal: datos.codigoPostal || null,
+          contactos_json:
+            datos.contactos && datos.contactos.length > 0
+              ? JSON.stringify(datos.contactos)
+              : null,
           categoria: datos.categoria,
           activo: datos.activo ?? true,
         };
