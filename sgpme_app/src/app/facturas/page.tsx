@@ -618,6 +618,10 @@ function FacturasPageContent() {
       setVistaActual("proveedores");
     } catch (error) {
       console.error("Error al crear proveedor:", error);
+      showToast(
+        error instanceof Error ? error.message : "Error al crear proveedor",
+        "error",
+      );
     }
   };
 
@@ -667,6 +671,10 @@ function FacturasPageContent() {
       }, 100);
     } catch (error) {
       console.error("Error al crear proveedor desde modal:", error);
+      showToast(
+        error instanceof Error ? error.message : "Error al crear proveedor",
+        "error",
+      );
     }
   };
 

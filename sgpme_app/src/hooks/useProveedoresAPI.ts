@@ -152,6 +152,12 @@ export const useProveedoresAPI = () => {
         if (!response.ok) {
           const errorData = await response.text();
           console.error("❌ Error response:", response.status, errorData);
+          try {
+            const parsed = JSON.parse(errorData);
+            if (parsed?.detail) throw new Error(parsed.detail);
+          } catch (e) {
+            if (e instanceof Error && e.message !== errorData) throw e;
+          }
           throw new Error(`Error al crear proveedor: ${response.status}`);
         }
 

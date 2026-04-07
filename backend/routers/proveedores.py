@@ -122,6 +122,11 @@ async def create_proveedor(user: user_dependency, db: db_dependency, proveedor_r
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
+    if proveedor_request.rfc:
+        existing = db.query(Proveedores).filter(Proveedores.rfc == proveedor_request.rfc).first()
+        if existing:
+            raise HTTPException(status_code=409, detail=f'Ya existe un proveedor con el RFC {proveedor_request.rfc}')
+
     proveedor_model = Proveedores(
         nombre=proveedor_request.nombre,
         razon_social=proveedor_request.razon_social,
