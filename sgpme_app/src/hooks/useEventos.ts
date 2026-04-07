@@ -9,6 +9,7 @@ import {
   Factura,
 } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 import {
   getCached,
   getStale,
@@ -714,7 +715,7 @@ export function useEventos() {
           : evento?.briefs?.[0];
 
         if (!evento || !brief) {
-          alert("No se encontró el brief para este evento");
+          showToast("No se encontró el brief para este evento", "error");
           return false;
         }
 
@@ -733,7 +734,7 @@ export function useEventos() {
         ) as HTMLElement;
 
         if (!briefElement) {
-          alert("No se encontró el contenido del brief para exportar");
+          showToast("No se encontró el contenido del brief para exportar", "error");
           return false;
         }
 
@@ -1137,7 +1138,7 @@ export function useEventos() {
       } catch (err) {
         console.error("Error al exportar PDF:", err);
         setError(err instanceof Error ? err.message : "Error al exportar PDF");
-        alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
+        showToast("Error al generar el PDF. Por favor, inténtalo de nuevo.", "error");
         return false;
       }
     },
@@ -1149,7 +1150,7 @@ export function useEventos() {
       try {
         const evento = eventos.find((e) => e.id === eventoId);
         if (!evento) {
-          alert("No se encontró el evento");
+          showToast("No se encontró el evento", "error");
           return false;
         }
 
@@ -1333,7 +1334,7 @@ export function useEventos() {
         return true;
       } catch (err) {
         console.error("Error al exportar PDF del evento:", err);
-        alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
+        showToast("Error al generar el PDF. Por favor, inténtalo de nuevo.", "error");
         return false;
       }
     },

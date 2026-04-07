@@ -5,6 +5,7 @@ import { usePartidas } from "@/hooks/useProyecciones";
 import { useCategoriasAPI } from "@/hooks/useCategoriasAPI";
 import { Proyeccion, Partida, MESES, AÑOS } from "@/types";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { showToast } from "@/lib/toast";
 
 interface FormularioProyeccionProps {
   proyeccionInicial?: Proyeccion;
@@ -197,14 +198,14 @@ export default function FormularioProyeccion({
       !nuevaPartida.subcategoria ||
       !nuevaPartida.monto
     ) {
-      alert("Por favor completa todos los campos de la partida");
+      showToast("Por favor completa todos los campos de la partida", "error");
       return;
     }
 
     const monto = parseFloat(nuevaPartida.monto);
 
     if (isNaN(monto) || monto <= 0) {
-      alert("El monto debe ser un número válido mayor a 0");
+      showToast("El monto debe ser un número válido mayor a 0", "error");
       return;
     }
 

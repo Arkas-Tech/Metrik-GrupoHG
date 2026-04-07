@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Factura, FiltrosFactura, EstadisticasFactura } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 import {
   getCached,
   getStale,
@@ -600,7 +601,7 @@ export function useFacturasAPI() {
   const exportarPDF = useCallback(
     (facturasFiltradas: Factura[] = facturas) => {
       console.log("Exportando PDF de", facturasFiltradas.length, "facturas");
-      alert("Función de exportar PDF en desarrollo");
+      showToast("Función de exportar PDF en desarrollo", "info");
     },
     [facturas],
   );
@@ -748,7 +749,7 @@ export function useFacturasAPI() {
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error("Error descargando archivo:", error);
-        alert("Error al descargar el archivo");
+        showToast("Error al descargar el archivo", "error");
       }
     },
     [],
@@ -776,7 +777,7 @@ export function useFacturasAPI() {
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error("Error descargando cotización:", error);
-        alert("Error al descargar la cotización");
+        showToast("Error al descargar la cotización", "error");
       }
     },
     [],

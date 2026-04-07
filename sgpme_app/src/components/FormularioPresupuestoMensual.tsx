@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { fetchConToken } from "@/lib/auth-utils";
+import { showToast } from "@/lib/toast";
 
 interface Marca {
   id: number;
@@ -143,8 +144,9 @@ export default function FormularioPresupuestoMensual({
             const mesNombre =
               MESES.find((m) => m.numero === parseInt(formData.mes.toString()))
                 ?.nombre || formData.mes;
-            alert(
+            showToast(
               `Ya existe un presupuesto para ${marcaNombre}, categoría "${formData.categoria}", ${mesNombre} ${formData.anio}. No se permiten presupuestos duplicados.`,
+              "error",
             );
             setLoading(false);
             return;

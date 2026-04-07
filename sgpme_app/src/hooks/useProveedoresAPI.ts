@@ -210,7 +210,6 @@ export const useProveedoresAPI = () => {
           fechaCreacion: new Date().toISOString().split("T")[0],
         };
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error desconocido");
         console.error("❌ Error creando proveedor:", err);
         throw err;
       }

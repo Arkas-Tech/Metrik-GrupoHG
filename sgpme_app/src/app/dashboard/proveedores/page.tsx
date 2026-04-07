@@ -5,30 +5,17 @@ import { useProveedoresAPI } from "@/hooks/useProveedoresAPI";
 import { Proveedor } from "@/types";
 import ListaProveedores from "@/components/ListaProveedores";
 import FormularioProveedor from "@/components/FormularioProveedor";
+import { showToast } from "@/lib/toast";
 
 export default function ProveedoresPage() {
-  const [errorVisible, setErrorVisible] = useState<string | null>(null);
-
   const {
     proveedores,
     loading,
-    error,
     cargarProveedores,
     crearProveedor,
     actualizarProveedor,
     eliminarProveedor,
   } = useProveedoresAPI();
-
-  // Auto-dismiss error banner after 6 seconds
-  useEffect(() => {
-    if (error) {
-      setErrorVisible(error);
-      const t = setTimeout(() => setErrorVisible(null), 6000);
-      return () => clearTimeout(t);
-    } else {
-      setErrorVisible(null);
-    }
-  }, [error]);
 
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   const [proveedorEdicion, setProveedorEdicion] = useState<
@@ -50,7 +37,10 @@ export default function ProveedoresPage() {
       setMostrandoFormulario(false);
       setProveedorEdicion(undefined);
     } catch (error) {
-      console.error("Error al guardar proveedor:", error);
+      showToast(
+        error instanceof Error ? error.message : "Error al guardar proveedor",
+        "error",
+      );
     } finally {
       setProcesando(false);
     }
@@ -102,19 +92,7 @@ export default function ProveedoresPage() {
         </button>
       </div>
 
-      {/* eslint-disable-next-line react-hooks/exhaustive-deps */
-      /* Auto-dismiss error after 6s */}
-      {errorVisible && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center justify-between">
-          <span>{errorVisible}</span>
-          <button
-            onClick={() => setErrorVisible(null)}
-            className="ml-3 text-red-500 hover:text-red-700 font-bold text-lg leading-none"
-          >
-            &times;
-          </button>
-        </div>
-      )}
+
 
       {mostrandoFormulario ? (
         <div className="bg-white rounded-lg shadow p-6">
