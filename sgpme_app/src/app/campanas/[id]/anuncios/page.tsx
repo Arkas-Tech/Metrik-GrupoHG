@@ -312,20 +312,40 @@ const AnunciosPage = () => {
     <div className="min-h-screen bg-gray-50">
       <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
         <div className="pl-3 shrink-0">
-          <Image src="/metrik_logo.png" alt="Metrik" width={96} height={30} className="object-contain" priority />
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
         </div>
         <div className="flex items-center gap-6 px-8">
-          <button onClick={() => router.back()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Atrás">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
-          <button onClick={() => router.forward()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Adelante">
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
             <ChevronRightIcon className="h-5 w-5" />
           </button>
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 w-80">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Buscar en Metrik..." className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors" readOnly />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
@@ -338,95 +358,97 @@ const AnunciosPage = () => {
       />
 
       <div className="pt-14 pl-14 bg-white min-h-screen">
-      <main className="px-4 sm:px-6 lg:px-8 pt-8">
-        <div className="space-y-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push("/campanyas")}
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeftIcon className="w-5 h-5 mr-2" />
-                Volver a Campañas
-              </button>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {campanya.nombre}
-                </h1>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getPlatformColor(
-                    campanya.plataforma,
-                  )}`}
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="space-y-8">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => router.push("/campanyas")}
+                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                  {campanya.plataforma}
-                </span>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Anuncios y creatividades de la campaña
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-700 mb-2">
-                  Auto Objetivo
-                </h3>
-                <p className="text-lg font-medium text-gray-900">
-                  {campanya.autoObjetivo}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-700 mb-2">Conversión</h3>
-                <p className="text-lg font-medium text-gray-900">
-                  {campanya.conversion}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-700 mb-2">
-                  Presupuesto
-                </h3>
-                <p className="text-lg font-medium text-gray-900">
-                  {campanya.presupuesto}
-                </p>
+                  <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                  Volver a Campañas
+                </button>
               </div>
             </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Anuncios de la Campaña
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {anuncios.map((anuncio) => (
-                <div
-                  key={anuncio.id}
-                  className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedImage(anuncio.imagen)}
-                >
-                  <div className="aspect-w-16 aspect-h-9 bg-gray-200 relative">
-                    <Image
-                      src={anuncio.imagen}
-                      alt={anuncio.titulo}
-                      width={600}
-                      height={400}
-                      className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      {anuncio.titulo}
-                    </h3>
-                    <p className="text-sm text-gray-600">{anuncio.tipo}</p>
-                  </div>
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {campanya.nombre}
+                  </h1>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getPlatformColor(
+                      campanya.plataforma,
+                    )}`}
+                  >
+                    {campanya.plataforma}
+                  </span>
                 </div>
-              ))}
+                <p className="text-gray-600 mb-6">
+                  Anuncios y creatividades de la campaña
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">
+                    Auto Objetivo
+                  </h3>
+                  <p className="text-lg font-medium text-gray-900">
+                    {campanya.autoObjetivo}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">
+                    Conversión
+                  </h3>
+                  <p className="text-lg font-medium text-gray-900">
+                    {campanya.conversion}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">
+                    Presupuesto
+                  </h3>
+                  <p className="text-lg font-medium text-gray-900">
+                    {campanya.presupuesto}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Anuncios de la Campaña
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {anuncios.map((anuncio) => (
+                  <div
+                    key={anuncio.id}
+                    className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setSelectedImage(anuncio.imagen)}
+                  >
+                    <div className="aspect-w-16 aspect-h-9 bg-gray-200 relative">
+                      <Image
+                        src={anuncio.imagen}
+                        alt={anuncio.titulo}
+                        width={600}
+                        height={400}
+                        className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {anuncio.titulo}
+                      </h3>
+                      <p className="text-sm text-gray-600">{anuncio.tipo}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
       </div>
 
       {activeConfigView === "mi-perfil" && (

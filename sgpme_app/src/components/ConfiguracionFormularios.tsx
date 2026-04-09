@@ -55,6 +55,7 @@ export interface SeccionConfig {
 export interface FormTemplateData {
   subcategoria: string;
   secciones: SeccionConfig[];
+  previewFieldId?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -860,6 +861,44 @@ export default function ConfiguracionFormularios({
                   Activa/desactiva secciones, agrega campos y ordénalos a tu
                   gusto. Cada cambio requiere guardar.
                 </p>
+
+                {/* Preview image field selector */}
+                {(() => {
+                  const imageFields = template.secciones
+                    .filter((s) => s.activo)
+                    .flatMap((s) =>
+                      s.campos.filter((c) => c.tipo === "imagenes"),
+                    );
+                  if (imageFields.length === 0) return null;
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+                      <span className="text-sm font-medium text-blue-800 shrink-0">
+                        Imagen de preview en dashboard:
+                      </span>
+                      <select
+                        value={template.previewFieldId ?? ""}
+                        onChange={(e) =>
+                          setTemplate((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  previewFieldId: e.target.value || undefined,
+                                }
+                              : prev,
+                          )
+                        }
+                        className="flex-1 px-3 py-1.5 border border-blue-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">— Primera imagen disponible —</option>
+                        {imageFields.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.etiqueta}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
 
                 {/* Secciones */}
                 <div className="space-y-3">

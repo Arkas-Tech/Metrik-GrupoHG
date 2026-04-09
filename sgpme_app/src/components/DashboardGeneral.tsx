@@ -96,8 +96,8 @@ import {
   Tag,
   User,
   CopyPlus,
-  MapPin,
   Eye,
+  Pencil,
 } from "lucide-react";
 import {
   CreditCardIcon,
@@ -320,6 +320,7 @@ export default function DashboardGeneral({
     Record<
       string,
       {
+        previewFieldId?: string;
         secciones: Array<{
           nombre: string;
           activo: boolean;
@@ -4110,15 +4111,27 @@ export default function DashboardGeneral({
                                 const extras = JSON.parse(
                                   presencia.datos_extra_json,
                                 );
+                                const fieldImages = (extras.fieldImages ??
+                                  {}) as Record<
+                                  string,
+                                  Array<{ url: string; nombre: string }>
+                                >;
+
+                                // If template has a previewFieldId, use that field first
+                                const tmpl = templatesCache[presencia.tipo];
+                                if (
+                                  tmpl?.previewFieldId &&
+                                  fieldImages[tmpl.previewFieldId]?.length > 0
+                                ) {
+                                  return fieldImages[tmpl.previewFieldId][0]
+                                    .url;
+                                }
+
+                                // Fallback: first image from any field
                                 const allImgs: Array<{
                                   url: string;
                                   nombre: string;
-                                }> = Object.values(
-                                  (extras.fieldImages ?? {}) as Record<
-                                    string,
-                                    Array<{ url: string; nombre: string }>
-                                  >,
-                                ).flat();
+                                }> = Object.values(fieldImages).flat();
                                 if (allImgs.length > 0) return allImgs[0].url;
                               }
                               // Fallback to imagenes_json
@@ -4169,8 +4182,7 @@ export default function DashboardGeneral({
                           return (
                             <div
                               key={presencia.id}
-                              className="flex flex-col gap-3 cursor-pointer"
-                              onClick={() => setModalPresencia(presencia)}
+                              className="flex flex-col gap-3"
                             >
                               {/* Image — standalone floating */}
                               <div className="relative h-48 bg-gray-200 rounded-xl overflow-hidden shadow-md">
@@ -4188,14 +4200,28 @@ export default function DashboardGeneral({
                                 )}
                               </div>
 
-                              {/* Icon buttons — standalone floating */}
+                              {/* Action buttons — Edit + Preview */}
                               <div className="flex gap-2">
-                                <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
-                                  <MapPin className="h-4 w-4 text-gray-600" />
-                                </div>
-                                <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                                <button
+                                  onClick={() => {
+                                    setSubcategoriaPresenciaModal(
+                                      presencia.tipo,
+                                    );
+                                    setPresenciaEditando(presencia);
+                                    setModalFormularioPresencia(true);
+                                  }}
+                                  className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Pencil className="h-4 w-4 text-gray-600" />
+                                </button>
+                                <button
+                                  onClick={() => setModalPresencia(presencia)}
+                                  className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
+                                  title="Ver detalle"
+                                >
                                   <Eye className="h-4 w-4 text-gray-600" />
-                                </div>
+                                </button>
                               </div>
 
                               {/* Text — standalone floating */}

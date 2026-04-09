@@ -392,20 +392,40 @@ export default function EmbajadoresPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
         <div className="pl-3 shrink-0">
-          <Image src="/metrik_logo.png" alt="Metrik" width={96} height={30} className="object-contain" priority />
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
         </div>
         <div className="flex items-center gap-6 px-8">
-          <button onClick={() => router.back()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Atrás">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
-          <button onClick={() => router.forward()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Adelante">
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
             <ChevronRightIcon className="h-5 w-5" />
           </button>
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 w-80">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Buscar en Metrik..." className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors" readOnly />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
@@ -414,497 +434,511 @@ export default function EmbajadoresPage() {
         usuario={usuario}
         paginaActiva="embajadores"
         onMenuClick={(item) => {
-          if (item === "configuracion") { window.location.href = "/configuracion"; return; }
+          if (item === "configuracion") {
+            window.location.href = "/configuracion";
+            return;
+          }
           setActiveConfigView(item);
         }}
         onCerrarSesion={handleCerrarSesion}
       />
 
       <div className="pt-14 pl-14 bg-white min-h-screen">
-      <main className="px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Top bar */}
-        <div className="mb-8">
-          <button
-            onClick={() =>
-              router.push(
-                searchParams.get("from") === "digital"
-                  ? "/digital"
-                  : "/dashboard",
-              )
-            }
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeftIcon className="w-5 h-5 mr-2" />
-            {searchParams.get("from") === "digital"
-              ? "Volver a Digital"
-              : "Volver a Dashboard"}
-          </button>
-          <div className="flex items-center justify-between mt-3">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Embajadores</h2>
-              <p className="text-sm text-gray-500">
-                {embajadoresFiltrados.length} embajadores
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          {/* Top bar */}
+          <div className="mb-8">
+            <button
+              onClick={() =>
+                router.push(
+                  searchParams.get("from") === "digital"
+                    ? "/digital"
+                    : "/dashboard",
+                )
+              }
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeftIcon className="w-5 h-5 mr-2" />
+              {searchParams.get("from") === "digital"
+                ? "Volver a Digital"
+                : "Volver a Dashboard"}
+            </button>
+            <div className="flex items-center justify-between mt-3">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Embajadores
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {embajadoresFiltrados.length} embajadores
+                </p>
+              </div>
+              <button
+                onClick={abrirNuevo}
+                className="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                <PlusIcon className="w-5 h-5 mr-2" />
+                Nuevo embajador
+              </button>
+            </div>
+          </div>
+
+          {/* List */}
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
+            </div>
+          ) : embajadoresFiltrados.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <UserGroupIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg font-medium">
+                No hay embajadores registrados
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                Haz clic en &quot;Nuevo embajador&quot; para agregar uno
               </p>
             </div>
-            <button
-              onClick={abrirNuevo}
-              className="flex items-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              <PlusIcon className="w-5 h-5 mr-2" />
-              Nuevo embajador
-            </button>
-          </div>
-        </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {embajadoresFiltrados.map((emb) => {
+                let plataformas: Plataforma[] = [];
+                try {
+                  if (emb.plataformas_json)
+                    plataformas = JSON.parse(emb.plataformas_json);
+                } catch {
+                  /* ignore */
+                }
+                let imagenes: ImagenEmb[] = [];
+                try {
+                  if (emb.imagenes_json)
+                    imagenes = JSON.parse(emb.imagenes_json);
+                } catch {
+                  /* ignore */
+                }
+                const checked = isCumplimientoChecked(emb);
 
-        {/* List */}
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
-          </div>
-        ) : embajadoresFiltrados.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <UserGroupIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg font-medium">
-              No hay embajadores registrados
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              Haz clic en &quot;Nuevo embajador&quot; para agregar uno
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {embajadoresFiltrados.map((emb) => {
-              let plataformas: Plataforma[] = [];
-              try {
-                if (emb.plataformas_json)
-                  plataformas = JSON.parse(emb.plataformas_json);
-              } catch {
-                /* ignore */
-              }
-              let imagenes: ImagenEmb[] = [];
-              try {
-                if (emb.imagenes_json) imagenes = JSON.parse(emb.imagenes_json);
-              } catch {
-                /* ignore */
-              }
-              const checked = isCumplimientoChecked(emb);
-
-              return (
-                <div
-                  key={emb.id}
-                  className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow"
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center shrink-0">
-                        <UserGroupIcon className="w-6 h-6 text-purple-600" />
+                return (
+                  <div
+                    key={emb.id}
+                    className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center shrink-0">
+                          <UserGroupIcon className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                            {emb.nombre}
+                          </h3>
+                          {emb.marca && (
+                            <span className="text-xs text-purple-600 font-medium">
+                              {emb.marca}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                          {emb.nombre}
-                        </h3>
-                        {emb.marca && (
-                          <span className="text-xs text-purple-600 font-medium">
-                            {emb.marca}
-                          </span>
+                      <div className="flex items-center space-x-1 ml-2 shrink-0">
+                        <button
+                          onClick={() => abrirEditar(emb)}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title="Editar"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleEliminar(emb)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Eliminar"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1 ml-2 shrink-0">
-                      <button
-                        onClick={() => abrirEditar(emb)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                        title="Editar"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleEliminar(emb)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Plataformas - clickable links */}
-                  {plataformas.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                        Plataformas
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {plataformas.map((p, i) => {
-                          const profileUrl = buildProfileUrl(
-                            p.plataforma,
-                            p.usuario,
-                          );
-                          const label = `${p.plataforma}${p.usuario ? ` · ${p.usuario}` : ""}`;
-                          return profileUrl ? (
-                            <a
-                              key={i}
-                              href={profileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
-                            >
-                              {label}
-                            </a>
-                          ) : (
-                            <span
-                              key={i}
-                              className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium"
-                            >
-                              {label}
-                            </span>
-                          );
-                        })}
+                    {/* Plataformas - clickable links */}
+                    {plataformas.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                          Plataformas
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {plataformas.map((p, i) => {
+                            const profileUrl = buildProfileUrl(
+                              p.plataforma,
+                              p.usuario,
+                            );
+                            const label = `${p.plataforma}${p.usuario ? ` · ${p.usuario}` : ""}`;
+                            return profileUrl ? (
+                              <a
+                                key={i}
+                                href={profileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
+                              >
+                                {label}
+                              </a>
+                            ) : (
+                              <span
+                                key={i}
+                                className="inline-flex items-center bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-full font-medium"
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Métricas */}
+                    <div className="space-y-2 border-t border-gray-100 pt-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          Presupuesto
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX").format(
+                            emb.presupuesto,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Leads</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {new Intl.NumberFormat("es-MX").format(emb.leads)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Audiencia</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatAudiencia(emb.audiencia)}
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Métricas */}
-                  <div className="space-y-2 border-t border-gray-100 pt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Presupuesto</span>
-                      <span className="text-sm font-bold text-gray-900">
-                        $
-                        {new Intl.NumberFormat("es-MX").format(emb.presupuesto)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Leads</span>
-                      <span className="text-sm font-bold text-gray-900">
-                        {new Intl.NumberFormat("es-MX").format(emb.leads)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Audiencia</span>
-                      <span className="text-sm font-bold text-gray-900">
-                        {formatAudiencia(emb.audiencia)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ver publicaciones + Cumplimiento */}
-                  <div className="flex items-center gap-3 border-t border-gray-100 pt-4 mt-4">
-                    {imagenes.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setCarouselEmb(emb);
-                          setCarouselIdx(0);
-                        }}
-                        className="flex items-center gap-1.5 text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors"
-                      >
-                        <PhotoIcon className="w-4 h-4" />
-                        Ver publicaciones ({imagenes.length})
-                      </button>
-                    )}
-                    <button
-                      onClick={() => toggleCumplimiento(emb)}
-                      disabled={checked}
-                      className={`flex items-center gap-1.5 text-sm font-medium transition-colors ml-auto ${
-                        checked
-                          ? "text-green-600 cursor-default"
-                          : "text-gray-400 hover:text-green-600 cursor-pointer"
-                      }`}
-                      title={
-                        checked
-                          ? `Cumplimiento marcado - ${
-                              getCumplimiento(emb).find(
-                                (e) =>
-                                  e.mes === mesActual && e.anio === anioActual,
-                              )?.checked_por || ""
-                            }`
-                          : "Marcar cumplimiento del mes"
-                      }
-                    >
-                      {checked ? (
-                        <CheckCircleSolid className="w-5 h-5" />
-                      ) : (
-                        <CheckCircleIcon className="w-5 h-5" />
-                      )}
-                      <span className="text-xs">
-                        {checked ? "Cumplido" : "Cumplimiento"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
-
-      {/* Modal crear/editar */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">
-                {editando ? "Editar embajador" : "Nuevo embajador"}
-              </h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Nombre */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  value={form.nombre}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, nombre: e.target.value }))
-                  }
-                  placeholder="Ej. @mariana_fitness"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Agencia */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Agencia
-                </label>
-                <select
-                  value={form.marca}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, marca: e.target.value }))
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">— Sin agencia —</option>
-                  {marcasPermitidas.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Plataformas */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Plataformas y usuarios
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addPlataforma}
-                    className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
-                  >
-                    <PlusIcon className="w-3.5 h-3.5" /> Agregar
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {form.plataformas.map((p, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <select
-                        value={p.plataforma}
-                        onChange={(e) =>
-                          updatePlataforma(i, "plataforma", e.target.value)
-                        }
-                        className="border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        {PLATAFORMAS_OPCIONES.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={p.usuario}
-                        onChange={(e) =>
-                          updatePlataforma(i, "usuario", e.target.value)
-                        }
-                        placeholder="@usuario"
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                      {form.plataformas.length > 1 && (
+                    {/* Ver publicaciones + Cumplimiento */}
+                    <div className="flex items-center gap-3 border-t border-gray-100 pt-4 mt-4">
+                      {imagenes.length > 0 && (
                         <button
-                          type="button"
-                          onClick={() => removePlataforma(i)}
-                          className="text-red-400 hover:text-red-600 p-1"
+                          onClick={() => {
+                            setCarouselEmb(emb);
+                            setCarouselIdx(0);
+                          }}
+                          className="flex items-center gap-1.5 text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors"
                         >
-                          <XMarkIcon className="w-4 h-4" />
+                          <PhotoIcon className="w-4 h-4" />
+                          Ver publicaciones ({imagenes.length})
                         </button>
                       )}
+                      <button
+                        onClick={() => toggleCumplimiento(emb)}
+                        disabled={checked}
+                        className={`flex items-center gap-1.5 text-sm font-medium transition-colors ml-auto ${
+                          checked
+                            ? "text-green-600 cursor-default"
+                            : "text-gray-400 hover:text-green-600 cursor-pointer"
+                        }`}
+                        title={
+                          checked
+                            ? `Cumplimiento marcado - ${
+                                getCumplimiento(emb).find(
+                                  (e) =>
+                                    e.mes === mesActual &&
+                                    e.anio === anioActual,
+                                )?.checked_por || ""
+                              }`
+                            : "Marcar cumplimiento del mes"
+                        }
+                      >
+                        {checked ? (
+                          <CheckCircleSolid className="w-5 h-5" />
+                        ) : (
+                          <CheckCircleIcon className="w-5 h-5" />
+                        )}
+                        <span className="text-xs">
+                          {checked ? "Cumplido" : "Cumplimiento"}
+                        </span>
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+
+        {/* Modal crear/editar */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {editando ? "Editar embajador" : "Nuevo embajador"}
+                </h3>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
               </div>
 
-              {/* Presupuesto */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Presupuesto ($)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.presupuesto}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, presupuesto: e.target.value }))
-                  }
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Leads */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Leads
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.leads}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, leads: e.target.value }))
-                  }
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Audiencia */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Audiencia{" "}
-                  <span className="text-gray-400 font-normal">
-                    (número real, ej. 85400 para 85.4K)
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.audiencia}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, audiencia: e.target.value }))
-                  }
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* Imágenes / Publicaciones */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Publicaciones
+              <div className="p-6 space-y-4">
+                {/* Nombre */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
-                  >
-                    <PlusIcon className="w-3.5 h-3.5" /> Agregar imágenes
-                  </button>
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/jpg"
-                    multiple
-                    onChange={(e) => handleImageUpload(e.target.files)}
-                    className="hidden"
+                    type="text"
+                    value={form.nombre}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, nombre: e.target.value }))
+                    }
+                    placeholder="Ej. @mariana_fitness"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                {form.imagenes.length > 0 && (
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {form.imagenes.map((img) => (
-                      <div
-                        key={img.id}
-                        className="flex gap-2 items-start bg-gray-50 rounded-lg p-2"
-                      >
-                        <div className="w-16 h-16 rounded overflow-hidden shrink-0 bg-gray-200">
-                          <Image
-                            src={img.url}
-                            alt={img.nombre}
-                            width={64}
-                            height={64}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <input
-                            type="text"
-                            value={img.nombre}
-                            onChange={(e) =>
-                              updateImageField(img.id, "nombre", e.target.value)
-                            }
-                            placeholder="Nombre de la publicación"
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
-                          />
-                          <input
-                            type="text"
-                            value={img.link}
-                            onChange={(e) =>
-                              updateImageField(img.id, "link", e.target.value)
-                            }
-                            placeholder="Link del anuncio (opcional)"
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeImage(img.id)}
-                          className="text-red-400 hover:text-red-600 p-1 shrink-0"
+
+                {/* Agencia */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Agencia
+                  </label>
+                  <select
+                    value={form.marca}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, marca: e.target.value }))
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">— Sin agencia —</option>
+                    {marcasPermitidas.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Plataformas */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Plataformas y usuarios
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addPlataforma}
+                      className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
+                    >
+                      <PlusIcon className="w-3.5 h-3.5" /> Agregar
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {form.plataformas.map((p, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <select
+                          value={p.plataforma}
+                          onChange={(e) =>
+                            updatePlataforma(i, "plataforma", e.target.value)
+                          }
+                          className="border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
+                          {PLATAFORMAS_OPCIONES.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={p.usuario}
+                          onChange={(e) =>
+                            updatePlataforma(i, "usuario", e.target.value)
+                          }
+                          placeholder="@usuario"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                        {form.plataformas.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removePlataforma(i)}
+                            className="text-red-400 hover:text-red-600 p-1"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
-                )}
-                {form.imagenes.length === 0 && (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-400 text-sm cursor-pointer hover:border-purple-400 hover:text-purple-500 transition-colors"
-                  >
-                    <PhotoIcon className="w-8 h-8 mx-auto mb-1" />
-                    Haz clic para subir imágenes de publicaciones
+                </div>
+
+                {/* Presupuesto */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Presupuesto ($)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.presupuesto}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, presupuesto: e.target.value }))
+                    }
+                    placeholder="0"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                {/* Leads */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Leads
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.leads}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, leads: e.target.value }))
+                    }
+                    placeholder="0"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                {/* Audiencia */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Audiencia{" "}
+                    <span className="text-gray-400 font-normal">
+                      (número real, ej. 85400 para 85.4K)
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.audiencia}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, audiencia: e.target.value }))
+                    }
+                    placeholder="0"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                {/* Imágenes / Publicaciones */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Publicaciones
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
+                    >
+                      <PlusIcon className="w-3.5 h-3.5" /> Agregar imágenes
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      multiple
+                      onChange={(e) => handleImageUpload(e.target.files)}
+                      className="hidden"
+                    />
                   </div>
-                )}
+                  {form.imagenes.length > 0 && (
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {form.imagenes.map((img) => (
+                        <div
+                          key={img.id}
+                          className="flex gap-2 items-start bg-gray-50 rounded-lg p-2"
+                        >
+                          <div className="w-16 h-16 rounded overflow-hidden shrink-0 bg-gray-200">
+                            <Image
+                              src={img.url}
+                              alt={img.nombre}
+                              width={64}
+                              height={64}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <input
+                              type="text"
+                              value={img.nombre}
+                              onChange={(e) =>
+                                updateImageField(
+                                  img.id,
+                                  "nombre",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="Nombre de la publicación"
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
+                            />
+                            <input
+                              type="text"
+                              value={img.link}
+                              onChange={(e) =>
+                                updateImageField(img.id, "link", e.target.value)
+                              }
+                              placeholder="Link del anuncio (opcional)"
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs text-gray-900"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(img.id)}
+                            className="text-red-400 hover:text-red-600 p-1 shrink-0"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {form.imagenes.length === 0 && (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-400 text-sm cursor-pointer hover:border-purple-400 hover:text-purple-500 transition-colors"
+                    >
+                      <PhotoIcon className="w-8 h-8 mx-auto mb-1" />
+                      Haz clic para subir imágenes de publicaciones
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 p-6 border-t border-gray-200">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleGuardar}
+                  disabled={guardando}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  {guardando
+                    ? "Guardando..."
+                    : editando
+                      ? "Actualizar"
+                      : "Crear embajador"}
+                </button>
               </div>
             </div>
-
-            <div className="flex gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGuardar}
-                disabled={guardando}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                {guardando
-                  ? "Guardando..."
-                  : editando
-                    ? "Actualizar"
-                    : "Crear embajador"}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-
+        )}
       </div>
 
       {activeConfigView === "mi-perfil" && (
