@@ -366,6 +366,16 @@ export interface Evento {
   ubicacion?: string;
   coordenadasResponsable?: string;
   tipoEvento: string;
+  datosConfirmacion?: {
+    asesores: boolean;
+    asesoresAsignados?: number;
+    objetivos?: {
+      leads?: number;
+      pruebasManejo?: number;
+      solicitudesCredito?: number;
+      ventas?: number;
+    };
+  };
   gastosProyectados: GastoEvento[];
   briefs?: BriefEvento[];
   fechaCreacion: string;

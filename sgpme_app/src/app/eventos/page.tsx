@@ -19,6 +19,7 @@ import CalendarioTrimestral from "@/components/CalendarioTrimestral";
 import CalendarioAnual from "@/components/CalendarioAnual";
 import CalendarioMensual from "@/components/CalendarioMensual";
 import UbicacionDisplay from "@/components/UbicacionDisplay";
+import ModalConfirmacionEvento from "@/components/ModalConfirmacionEvento";
 import { Evento, FiltrosEvento, BriefEvento } from "@/types";
 import {
   eventoPerteneceAMarca,
@@ -88,6 +89,7 @@ export default function EventosPage() {
   const [briefMarcaSeleccionada, setBriefMarcaSeleccionada] = useState<
     string | undefined
   >(undefined);
+  const [eventoParaConfirmar, setEventoParaConfirmar] = useState<Evento | null>(null);
 
   // Navegación con soporte para botón atrás del navegador
   const navegarA = (
@@ -1165,6 +1167,19 @@ export default function EventosPage() {
                                   e.stopPropagation();
                                   const nuevoEstado = e.target
                                     .value as Evento["estado"];
+                                  // Solo admins pueden confirmar
+                                  if (nuevoEstado === "Confirmado") {
+                                    if (!isAdmin) {
+                                      showToast(
+                                        "Solo los administradores pueden confirmar un evento",
+                                        "error",
+                                      );
+                                      e.target.value = evento.estado;
+                                      return;
+                                    }
+                                    setEventoParaConfirmar(evento);
+                                    return;
+                                  }
                                   try {
                                     await actualizarEvento(evento.id, {
                                       estado: nuevoEstado,
@@ -1215,14 +1230,22 @@ export default function EventosPage() {
                                         </span>{" "}
                                         {(() => {
                                           try {
-                                            const p = JSON.parse(evento.ubicacion || "");
-                                            if (p && typeof p.lat === "number") {
-                                              return <UbicacionDisplay value={p} />;
+                                            const p = JSON.parse(
+                                              evento.ubicacion || "",
+                                            );
+                                            if (
+                                              p &&
+                                              typeof p.lat === "number"
+                                            ) {
+                                              return (
+                                                <UbicacionDisplay value={p} />
+                                              );
                                             }
                                           } catch {}
                                           return (
                                             <span className="text-gray-900">
-                                              {evento.ubicacion || "Sin ubicación"}
+                                              {evento.ubicacion ||
+                                                "Sin ubicación"}
                                             </span>
                                           );
                                         })()}
@@ -1260,6 +1283,47 @@ export default function EventosPage() {
                                               evento.presupuestoReal,
                                             )}
                                           </span>
+                                        </div>
+                                      )}
+                                      {/* Datos de confirmación */}
+                                      {evento.estado === "Confirmado" && evento.datosConfirmacion && (
+                                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-1.5">
+                                          <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                                            ✅ Detalles de confirmación
+                                          </p>
+                                          <div>
+                                            <span className="text-gray-600">Asesores:</span>{" "}
+                                            <span className="text-gray-900 font-medium">
+                                              {evento.datosConfirmacion.asesores ? "Sí" : "No"}
+                                            </span>
+                                          </div>
+                                          {evento.datosConfirmacion.asesores && (
+                                            <>
+                                              {evento.datosConfirmacion.asesoresAsignados != null && evento.datosConfirmacion.asesoresAsignados > 0 && (
+                                                <div>
+                                                  <span className="text-gray-600">Asesores asignados:</span>{" "}
+                                                  <span className="text-gray-900 font-medium">{evento.datosConfirmacion.asesoresAsignados}</span>
+                                                </div>
+                                              )}
+                                              {evento.datosConfirmacion.objetivos && (
+                                                <div className="space-y-0.5">
+                                                  <p className="text-gray-600 text-xs font-medium">Objetivos:</p>
+                                                  {evento.datosConfirmacion.objetivos.leads != null && evento.datosConfirmacion.objetivos.leads > 0 && (
+                                                    <div className="pl-2 text-xs"><span className="text-gray-500">Leads:</span> <span className="font-medium text-gray-900">{evento.datosConfirmacion.objetivos.leads}</span></div>
+                                                  )}
+                                                  {evento.datosConfirmacion.objetivos.pruebasManejo != null && evento.datosConfirmacion.objetivos.pruebasManejo > 0 && (
+                                                    <div className="pl-2 text-xs"><span className="text-gray-500">Pruebas de manejo:</span> <span className="font-medium text-gray-900">{evento.datosConfirmacion.objetivos.pruebasManejo}</span></div>
+                                                  )}
+                                                  {evento.datosConfirmacion.objetivos.solicitudesCredito != null && evento.datosConfirmacion.objetivos.solicitudesCredito > 0 && (
+                                                    <div className="pl-2 text-xs"><span className="text-gray-500">Sol. de crédito:</span> <span className="font-medium text-gray-900">{evento.datosConfirmacion.objetivos.solicitudesCredito}</span></div>
+                                                  )}
+                                                  {evento.datosConfirmacion.objetivos.ventas != null && evento.datosConfirmacion.objetivos.ventas > 0 && (
+                                                    <div className="pl-2 text-xs"><span className="text-gray-500">Ventas:</span> <span className="font-medium text-gray-900">{evento.datosConfirmacion.objetivos.ventas}</span></div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -2002,6 +2066,28 @@ export default function EventosPage() {
             />
           )}
         </>
+      )}
+
+      {/* Modal checkpoint confirmación de evento */}
+      {eventoParaConfirmar && (
+        <ModalConfirmacionEvento
+          evento={eventoParaConfirmar}
+          onCancelar={() => setEventoParaConfirmar(null)}
+          onConfirmar={async (datos) => {
+            try {
+              await actualizarEvento(eventoParaConfirmar.id, {
+                estado: "Confirmado",
+                datosConfirmacion: datos,
+              });
+              await cargarEventos();
+              showToast("Evento confirmado correctamente", "success");
+            } catch {
+              showToast("Error al confirmar el evento", "error");
+            } finally {
+              setEventoParaConfirmar(null);
+            }
+          }}
+        />
       )}
     </div>
   );

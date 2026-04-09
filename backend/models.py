@@ -48,6 +48,7 @@ class Eventos(Base):
     presupuesto_estimado = Column(Float)
     presupuesto_real = Column(Float)
     observaciones = Column(Text)
+    datos_confirmacion = Column(Text, nullable=True)  # JSON: {asesores, asesoresAsignados, objetivos}
     fecha_creacion = Column(DateTime, server_default=func.now())
     fecha_modificacion = Column(DateTime, server_default=func.now(), onupdate=func.now())
     creado_por = Column(String)

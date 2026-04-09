@@ -56,8 +56,7 @@ class EventoRequest(BaseModel):
     presupuesto_estimado: Optional[float] = None
     presupuesto_real: Optional[float] = None
     observaciones: Optional[str] = None
-
-class EventoResponse(BaseModel):
+    datos_confirmacion: Optional[str] = None  # JSON string
     id: int
     nombre: str
     descripcion: Optional[str]
@@ -78,6 +77,7 @@ class EventoResponse(BaseModel):
     presupuesto_estimado: Optional[float]
     presupuesto_real: Optional[float]
     observaciones: Optional[str]
+    datos_confirmacion: Optional[str]
     creado_por: str
 
 class ActividadEventoRequest(BaseModel):
@@ -289,6 +289,7 @@ async def read_all_eventos_with_briefs(user: user_dependency, db: db_dependency,
             "presupuesto_estimado": evento.presupuesto_estimado,
             "presupuesto_real": evento.presupuesto_real,
             "observaciones": evento.observaciones,
+            "datos_confirmacion": evento.datos_confirmacion,
             "creado_por": evento.creado_por,
             "fecha_creacion": evento.fecha_creacion.isoformat() if evento.fecha_creacion else None,
             "fecha_modificacion": evento.fecha_modificacion.isoformat() if evento.fecha_modificacion else None,
@@ -356,6 +357,7 @@ async def create_evento(user: user_dependency, db: db_dependency, evento_request
         presupuesto_estimado=evento_request.presupuesto_estimado,
         presupuesto_real=evento_request.presupuesto_real,
         observaciones=evento_request.observaciones,
+        datos_confirmacion=evento_request.datos_confirmacion,
         creado_por=user.get('username'),
         user_id=user.get('id')
     )
@@ -395,6 +397,7 @@ async def update_evento(user: user_dependency, db: db_dependency,
     evento.presupuesto_estimado = evento_request.presupuesto_estimado
     evento.presupuesto_real = evento_request.presupuesto_real
     evento.observaciones = evento_request.observaciones
+    evento.datos_confirmacion = evento_request.datos_confirmacion
 
     db.add(evento)
     db.commit()

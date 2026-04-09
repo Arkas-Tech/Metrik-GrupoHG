@@ -42,6 +42,7 @@ interface EventoBackend {
   numero_autos?: number;
   observaciones?: string;
   notas?: string;
+  datos_confirmacion?: string;
   creado_por?: string;
   fecha_creacion: string;
   fecha_modificacion?: string;
@@ -165,6 +166,11 @@ export function useEventos() {
         presupuestoEstimado: evento.presupuesto_estimado || 0,
         presupuestoReal: evento.presupuesto_real,
         observaciones: evento.observaciones || "",
+        datosConfirmacion: (() => {
+          try {
+            return evento.datos_confirmacion ? JSON.parse(evento.datos_confirmacion) : undefined;
+          } catch { return undefined; }
+        })(),
         gastosProyectados: [],
         briefs: briefs.length > 0 ? briefs : undefined,
         fechaCreacion: evento.fecha_creacion,
@@ -371,6 +377,10 @@ export function useEventos() {
             datosActualizados.presupuestoReal || evento.presupuestoReal,
           observaciones:
             datosActualizados.observaciones || evento.observaciones,
+          datos_confirmacion: (() => {
+            const dc = datosActualizados.datosConfirmacion ?? evento.datosConfirmacion;
+            return dc ? JSON.stringify(dc) : null;
+          })(),
         };
 
         const response = await fetchConToken(`${API_URL}/eventos/${id}`, {
@@ -873,7 +883,14 @@ export function useEventos() {
           addSpace(3);
           addText(`Objetivo: ${evento.objetivo || "No especificado"}`, 12);
           addText(`Audiencia: ${evento.audiencia || "No especificado"}`, 12);
-          const ubicacionTexto1 = (() => { try { const p = JSON.parse(evento.ubicacion || ""); if (p && typeof p.lat === "number") return p.address || evento.ubicacion; } catch {} return evento.ubicacion || "No especificado"; })();
+          const ubicacionTexto1 = (() => {
+            try {
+              const p = JSON.parse(evento.ubicacion || "");
+              if (p && typeof p.lat === "number")
+                return p.address || evento.ubicacion;
+            } catch {}
+            return evento.ubicacion || "No especificado";
+          })();
           addText(`Ubicación: ${ubicacionTexto1}`, 12);
           addText(
             `Presupuesto Estimado: ${new Intl.NumberFormat("es-MX", {
@@ -1229,8 +1246,34 @@ export function useEventos() {
         addField("Responsable", evento.responsable);
         addField("Marca/Agencia", marcaTexto);
         addField("Horario", evento.horario || "");
-        const ubicacionTexto2 = (() => { try { const p = JSON.parse(evento.ubicacion || ""); if (p && typeof p.lat === "number") return p.address || evento.ubicacion || ""; } catch {} return evento.ubicacion || ""; })();
+        const ubicacionTexto2 = (() => {
+          try {
+            const p = JSON.parse(evento.ubicacion || "");
+            if (p && typeof p.lat === "number")
+              return p.address || evento.ubicacion || "";
+          } catch {}
+          return evento.ubicacion || "";
+        })();
         addField("Ubicación", ubicacionTexto2);
+
+        // Datos de confirmación
+        if (evento.estado === "Confirmado" && evento.datosConfirmacion) {
+          addSpace(3);
+          addText("DATOS DE CONFIRMACIÓN", 14, true);
+          addSpace(2);
+          const dc = evento.datosConfirmacion;
+          addField("Asesores", dc.asesores ? "Sí" : "No");
+          if (dc.asesores) {
+            if (dc.asesoresAsignados) addField("Asesores asignados", String(dc.asesoresAsignados));
+            if (dc.objetivos) {
+              if (dc.objetivos.leads) addField("Objetivo Leads", String(dc.objetivos.leads));
+              if (dc.objetivos.pruebasManejo) addField("Objetivo Pruebas de manejo", String(dc.objetivos.pruebasManejo));
+              if (dc.objetivos.solicitudesCredito) addField("Objetivo Sol. de crédito", String(dc.objetivos.solicitudesCredito));
+              if (dc.objetivos.ventas) addField("Objetivo Ventas", String(dc.objetivos.ventas));
+            }
+          }
+        }
+
         addSpace(5);
 
         // Fechas
