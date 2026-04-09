@@ -4245,8 +4245,8 @@ export default function DashboardGeneral({
                                 <h4 className="text-red-500 font-bold text-sm mb-1 line-clamp-1">
                                   {presencia.nombre}
                                 </h4>
-                                <p className="text-gray-500 text-xs line-clamp-3">
-                                  {getDescription()}
+                                <p className="text-gray-500 text-xs line-clamp-1">
+                                  {presencia.agencia || presencia.marca || "Sin agencia"}
                                 </p>
                               </div>
                             </div>
