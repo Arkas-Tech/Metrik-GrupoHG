@@ -1086,18 +1086,16 @@ export default function ConciliacionBDCSection() {
                         {open && (
                           <div className="p-4 border-t bg-white">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                              <div className="space-y-4">
-                                <TablaLeads
-                                  titulo="Leads Activos"
-                                  filas={r.leads_activos}
-                                />
-                                <TablaLeads
-                                  titulo="Leads Cerrados"
-                                  filas={r.leads_cerrados}
-                                />
-                              </div>
                               <TablaMedios filas={r.comparacion_medios} />
+                              <TablaLeads
+                                titulo="Leads Activos"
+                                filas={r.leads_activos}
+                              />
                             </div>
+                            <TablaLeads
+                              titulo="Leads Cerrados"
+                              filas={r.leads_cerrados}
+                            />
                             {r.notas_generales && (
                               <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                                 <p className="text-xs font-semibold text-yellow-700 mb-1">
