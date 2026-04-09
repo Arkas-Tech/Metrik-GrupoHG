@@ -168,8 +168,12 @@ export function useEventos() {
         observaciones: evento.observaciones || "",
         datosConfirmacion: (() => {
           try {
-            return evento.datos_confirmacion ? JSON.parse(evento.datos_confirmacion) : undefined;
-          } catch { return undefined; }
+            return evento.datos_confirmacion
+              ? JSON.parse(evento.datos_confirmacion)
+              : undefined;
+          } catch {
+            return undefined;
+          }
         })(),
         gastosProyectados: [],
         briefs: briefs.length > 0 ? briefs : undefined,
@@ -378,7 +382,8 @@ export function useEventos() {
           observaciones:
             datosActualizados.observaciones || evento.observaciones,
           datos_confirmacion: (() => {
-            const dc = datosActualizados.datosConfirmacion ?? evento.datosConfirmacion;
+            const dc =
+              datosActualizados.datosConfirmacion ?? evento.datosConfirmacion;
             return dc ? JSON.stringify(dc) : null;
           })(),
         };
@@ -1264,12 +1269,23 @@ export function useEventos() {
           const dc = evento.datosConfirmacion;
           addField("Asesores", dc.asesores ? "Sí" : "No");
           if (dc.asesores) {
-            if (dc.asesoresAsignados) addField("Asesores asignados", String(dc.asesoresAsignados));
+            if (dc.asesoresAsignados)
+              addField("Asesores asignados", String(dc.asesoresAsignados));
             if (dc.objetivos) {
-              if (dc.objetivos.leads) addField("Objetivo Leads", String(dc.objetivos.leads));
-              if (dc.objetivos.pruebasManejo) addField("Objetivo Pruebas de manejo", String(dc.objetivos.pruebasManejo));
-              if (dc.objetivos.solicitudesCredito) addField("Objetivo Sol. de crédito", String(dc.objetivos.solicitudesCredito));
-              if (dc.objetivos.ventas) addField("Objetivo Ventas", String(dc.objetivos.ventas));
+              if (dc.objetivos.leads)
+                addField("Objetivo Leads", String(dc.objetivos.leads));
+              if (dc.objetivos.pruebasManejo)
+                addField(
+                  "Objetivo Pruebas de manejo",
+                  String(dc.objetivos.pruebasManejo),
+                );
+              if (dc.objetivos.solicitudesCredito)
+                addField(
+                  "Objetivo Sol. de crédito",
+                  String(dc.objetivos.solicitudesCredito),
+                );
+              if (dc.objetivos.ventas)
+                addField("Objetivo Ventas", String(dc.objetivos.ventas));
             }
           }
         }

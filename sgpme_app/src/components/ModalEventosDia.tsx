@@ -281,27 +281,116 @@ export default function ModalEventosDia({
                                       Reporte del Evento
                                     </h5>
                                     {/* Datos de confirmación */}
-                                    {evento.estado === "Confirmado" && evento.datosConfirmacion && (
-                                      <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-100 space-y-1 text-xs">
-                                        <p className="font-semibold text-blue-700">✅ Detalles de confirmación</p>
-                                        <div><span className="text-gray-600">Asesores:</span> <span className="font-medium">{evento.datosConfirmacion.asesores ? "Sí" : "No"}</span></div>
-                                        {evento.datosConfirmacion.asesores && (
-                                          <>
-                                            {(evento.datosConfirmacion.asesoresAsignados ?? 0) > 0 && (
-                                              <div><span className="text-gray-600">Asesores asignados:</span> <span className="font-medium">{evento.datosConfirmacion.asesoresAsignados}</span></div>
-                                            )}
-                                            {evento.datosConfirmacion.objetivos && (
-                                              <div className="space-y-0.5 pl-1">
-                                                {(evento.datosConfirmacion.objetivos.leads ?? 0) > 0 && <div><span className="text-gray-500">Leads:</span> <span className="font-medium">{evento.datosConfirmacion.objetivos.leads}</span></div>}
-                                                {(evento.datosConfirmacion.objetivos.pruebasManejo ?? 0) > 0 && <div><span className="text-gray-500">Pruebas de manejo:</span> <span className="font-medium">{evento.datosConfirmacion.objetivos.pruebasManejo}</span></div>}
-                                                {(evento.datosConfirmacion.objetivos.solicitudesCredito ?? 0) > 0 && <div><span className="text-gray-500">Sol. crédito:</span> <span className="font-medium">{evento.datosConfirmacion.objetivos.solicitudesCredito}</span></div>}
-                                                {(evento.datosConfirmacion.objetivos.ventas ?? 0) > 0 && <div><span className="text-gray-500">Ventas:</span> <span className="font-medium">{evento.datosConfirmacion.objetivos.ventas}</span></div>}
-                                              </div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
+                                    {evento.estado === "Confirmado" &&
+                                      evento.datosConfirmacion && (
+                                        <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-100 space-y-1 text-xs">
+                                          <p className="font-semibold text-blue-700">
+                                            ✅ Detalles de confirmación
+                                          </p>
+                                          <div>
+                                            <span className="text-gray-600">
+                                              Asesores:
+                                            </span>{" "}
+                                            <span className="font-medium">
+                                              {evento.datosConfirmacion.asesores
+                                                ? "Sí"
+                                                : "No"}
+                                            </span>
+                                          </div>
+                                          {evento.datosConfirmacion
+                                            .asesores && (
+                                            <>
+                                              {(evento.datosConfirmacion
+                                                .asesoresAsignados ?? 0) >
+                                                0 && (
+                                                <div>
+                                                  <span className="text-gray-600">
+                                                    Asesores asignados:
+                                                  </span>{" "}
+                                                  <span className="font-medium">
+                                                    {
+                                                      evento.datosConfirmacion
+                                                        .asesoresAsignados
+                                                    }
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {evento.datosConfirmacion
+                                                .objetivos && (
+                                                <div className="space-y-0.5 pl-1">
+                                                  {(evento.datosConfirmacion
+                                                    .objetivos.leads ?? 0) >
+                                                    0 && (
+                                                    <div>
+                                                      <span className="text-gray-500">
+                                                        Leads:
+                                                      </span>{" "}
+                                                      <span className="font-medium">
+                                                        {
+                                                          evento
+                                                            .datosConfirmacion
+                                                            .objetivos.leads
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {(evento.datosConfirmacion
+                                                    .objetivos.pruebasManejo ??
+                                                    0) > 0 && (
+                                                    <div>
+                                                      <span className="text-gray-500">
+                                                        Pruebas de manejo:
+                                                      </span>{" "}
+                                                      <span className="font-medium">
+                                                        {
+                                                          evento
+                                                            .datosConfirmacion
+                                                            .objetivos
+                                                            .pruebasManejo
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {(evento.datosConfirmacion
+                                                    .objetivos
+                                                    .solicitudesCredito ?? 0) >
+                                                    0 && (
+                                                    <div>
+                                                      <span className="text-gray-500">
+                                                        Sol. crédito:
+                                                      </span>{" "}
+                                                      <span className="font-medium">
+                                                        {
+                                                          evento
+                                                            .datosConfirmacion
+                                                            .objetivos
+                                                            .solicitudesCredito
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  {(evento.datosConfirmacion
+                                                    .objetivos.ventas ?? 0) >
+                                                    0 && (
+                                                    <div>
+                                                      <span className="text-gray-500">
+                                                        Ventas:
+                                                      </span>{" "}
+                                                      <span className="font-medium">
+                                                        {
+                                                          evento
+                                                            .datosConfirmacion
+                                                            .objetivos.ventas
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
                                     {evento.briefs &&
                                     evento.briefs.length > 0 ? (
                                       <div className="space-y-2">

@@ -32,7 +32,11 @@ interface SidebarProps {
     | "eventos"
     | "digital"
     | "campanas"
-    | "configuracion";
+    | "configuracion"
+    | "presencias"
+    | "embajadores"
+    | "presupuesto"
+    | "anuncios";
   onMenuClick: (item: string) => void;
   onCerrarSesion: () => void;
 }

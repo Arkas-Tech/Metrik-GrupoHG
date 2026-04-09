@@ -34,13 +34,16 @@ const MESES_CORTOS = [
   "Dic",
 ];
 
-const obtenerColorAgencia = (marca: string | string[]): { bg: string; text: string } => {
+const obtenerColorAgencia = (
+  marca: string | string[],
+): { bg: string; text: string } => {
   const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
   if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white" };
   if (m.includes("kia")) return { bg: "bg-black", text: "text-white" };
   if (m.includes("gwm")) return { bg: "bg-gray-300", text: "text-gray-800" };
   if (m.includes("subaru")) return { bg: "bg-blue-600", text: "text-white" };
-  if (m.includes("seminuevo")) return { bg: "bg-orange-700", text: "text-white" };
+  if (m.includes("seminuevo"))
+    return { bg: "bg-orange-700", text: "text-white" };
   return { bg: "bg-gray-500", text: "text-white" };
 };
 
@@ -400,7 +403,8 @@ export default function CalendarioAnual({
                             className={`w-2 h-2 rounded-full shrink-0 ${obtenerColorAgencia(evento.marca).bg}`}
                           />
                           <span className="truncate text-gray-700">
-                            {obtenerEmojiEstado(evento.estado)}{evento.nombre}
+                            {obtenerEmojiEstado(evento.estado)}
+                            {evento.nombre}
                           </span>
                         </div>
                       ))}
@@ -432,7 +436,6 @@ export default function CalendarioAnual({
           })}
         </div>
       </div>
-
 
       <ModalEventosDia
         isOpen={modalAbierto}

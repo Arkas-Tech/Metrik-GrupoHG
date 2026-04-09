@@ -37,13 +37,28 @@ const MESES = [
 
 const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 
-const obtenerColorAgencia = (marca: string | string[]): { bg: string; text: string; border: string } => {
+const obtenerColorAgencia = (
+  marca: string | string[],
+): { bg: string; text: string; border: string } => {
   const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
-  if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white", border: "border-red-700" };
-  if (m.includes("kia")) return { bg: "bg-black", text: "text-white", border: "border-gray-800" };
-  if (m.includes("gwm")) return { bg: "bg-gray-300", text: "text-gray-800", border: "border-gray-400" };
-  if (m.includes("subaru")) return { bg: "bg-blue-600", text: "text-white", border: "border-blue-700" };
-  if (m.includes("seminuevo")) return { bg: "bg-orange-700", text: "text-white", border: "border-orange-800" };
+  if (m.includes("toyota"))
+    return { bg: "bg-red-600", text: "text-white", border: "border-red-700" };
+  if (m.includes("kia"))
+    return { bg: "bg-black", text: "text-white", border: "border-gray-800" };
+  if (m.includes("gwm"))
+    return {
+      bg: "bg-gray-300",
+      text: "text-gray-800",
+      border: "border-gray-400",
+    };
+  if (m.includes("subaru"))
+    return { bg: "bg-blue-600", text: "text-white", border: "border-blue-700" };
+  if (m.includes("seminuevo"))
+    return {
+      bg: "bg-orange-700",
+      text: "text-white",
+      border: "border-orange-800",
+    };
   return { bg: "bg-gray-500", text: "text-white", border: "border-gray-600" };
 };
 
@@ -401,7 +416,10 @@ export default function CalendarioTrimestral({
                   className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${obtenerColorAgencia(evento.marca).bg} ${obtenerColorAgencia(evento.marca).text} ${obtenerColorAgencia(evento.marca).border}`}
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{obtenerEmojiEstado(evento.estado)}{evento.nombre}</div>
+                    <div className="font-medium text-sm">
+                      {obtenerEmojiEstado(evento.estado)}
+                      {evento.nombre}
+                    </div>
                     <div className="text-xs text-gray-600">
                       {formatearMarca(evento.marca)} • {evento.fechaInicio}
                     </div>

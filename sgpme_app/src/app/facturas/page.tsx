@@ -5,11 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
 import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
-import {
-  useAuth,
-  obtenerNombreRol,
-  obtenerColorRol,
-} from "@/hooks/useAuthUnified";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import {
   Factura,
@@ -24,12 +20,14 @@ import FormularioProveedor from "@/components/FormularioProveedor";
 import ListaFacturas from "@/components/ListaFacturas";
 import ListaProveedores from "@/components/ListaProveedores";
 import FiltrosFacturas from "@/components/FiltrosFacturas";
-import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
-import NavBar from "@/components/NavBar";
 import GraficaProyeccionVsGasto from "@/components/GraficaProyeccionVsGasto";
-import { Bars3Icon } from "@heroicons/react/24/outline";
-import ConfigSidebar from "@/components/ConfigSidebar";
-import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import Sidebar from "@/components/Sidebar";
+import Image from "next/image";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 import { showToast } from "@/lib/toast";
@@ -104,7 +102,6 @@ function FacturasPageContent() {
     mes: mesActual,
     año: añoActual,
   });
-  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
 
   // Estados para popup de comprobante de pago
@@ -151,7 +148,6 @@ function FacturasPageContent() {
       return;
     }
     setActiveConfigView(item);
-    setConfigSidebarOpen(false);
   }, []);
 
   const {
@@ -716,345 +712,300 @@ function FacturasPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {mostrarMenu && (
-                <button
-                  onClick={() => {
-                    console.log("Hamburger button clicked, opening sidebar");
-                    setConfigSidebarOpen(true);
-                  }}
-                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Configuración del Sistema"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              )}
-
-              <div className="shrink-0">
-                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                  HG
-                </div>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {usuario.grupo}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <FiltroMarcaGlobal />
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {usuario.nombre}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo,
-                      )}`}
-                    >
-                      {obtenerNombreRol(usuario.tipo)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCerrarSesion}
-                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                  title="Cerrar Sesión"
-                >
-                  ↗
-                </button>
-              </div>
-            </div>
+      <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+        <div className="pl-3 shrink-0">
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
+        </div>
+        <div className="flex items-center gap-6 px-8">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 w-80">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
-      <NavBar usuario={usuario} paginaActiva="facturas" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {vistaActual === "dashboard" && (
-          <>
-            <div className="mb-8">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Facturas y Pagos
-                  </h2>
-                  <p className="text-gray-600">
-                    {usuario?.tipo === "auditor"
-                      ? "Consulta y auditoría de facturas y pagos"
-                      : "Gestión de facturas, proveedores y control de pagos"}
-                  </p>
-                </div>
-                {(tienePermiso("facturas", "crear") ||
-                  tienePermiso("facturas", "marcarPagada") ||
-                  tienePermiso("facturas", "exportar")) && (
-                  <div className="flex flex-wrap gap-3">
-                    {tienePermiso("facturas", "crear") && (
-                      <>
-                        <button
-                          onClick={() => navegarA("nueva")}
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                          📄 Cargar Factura (PDF/XML)
-                        </button>
-                        <button
-                          onClick={() => navegarA("proveedores")}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                          🏢 Gestionar Proveedores
-                        </button>
-                      </>
-                    )}
-                    {tienePermiso("facturas", "exportar") && (
-                      <button
-                        onClick={() => exportarExcel()}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        📊 Exportar CSV
-                      </button>
-                    )}
-                    {usuario?.tipo === "auditor" && (
-                      <div className="flex items-center space-x-2">
-                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          👁️ Modo Auditor
-                        </span>
-                      </div>
-                    )}
+
+      <Sidebar
+        usuario={usuario}
+        paginaActiva="facturas"
+        onMenuClick={handleMenuClick}
+        onCerrarSesion={handleCerrarSesion}
+      />
+
+      <div className="pt-14 pl-14 bg-white min-h-screen">
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          {vistaActual === "dashboard" && (
+            <>
+              <div className="mb-8">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Facturas y Pagos
+                    </h2>
+                    <p className="text-gray-600">
+                      {usuario?.tipo === "auditor"
+                        ? "Consulta y auditoría de facturas y pagos"
+                        : "Gestión de facturas, proveedores y control de pagos"}
+                    </p>
                   </div>
-                )}
+                  {(tienePermiso("facturas", "crear") ||
+                    tienePermiso("facturas", "marcarPagada") ||
+                    tienePermiso("facturas", "exportar")) && (
+                    <div className="flex flex-wrap gap-3">
+                      {tienePermiso("facturas", "crear") && (
+                        <>
+                          <button
+                            onClick={() => navegarA("nueva")}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                          >
+                            📄 Cargar Factura (PDF/XML)
+                          </button>
+                          <button
+                            onClick={() => navegarA("proveedores")}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                          >
+                            🏢 Gestionar Proveedores
+                          </button>
+                        </>
+                      )}
+                      {tienePermiso("facturas", "exportar") && (
+                        <button
+                          onClick={() => exportarExcel()}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          📊 Exportar CSV
+                        </button>
+                      )}
+                      {usuario?.tipo === "auditor" && (
+                        <div className="flex items-center space-x-2">
+                          <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            👁️ Modo Auditor
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="space-y-6">
-              {/* Filtros primero */}
-              <div className="w-full">
-                <FiltrosFacturas
-                  filtros={filtros}
-                  onFiltrosChange={setFiltros}
-                  facturas={facturas}
-                />
-              </div>
-
-              {/* Gráfica de proyección vs gasto */}
-              <div className="w-full">
-                <GraficaProyeccionVsGasto
-                  año={filtros.año}
-                  mes={filtros.mes}
-                  categoriaFiltro={filtros.categoria}
-                />
-              </div>
-
-              {/* Lista de facturas */}
-              <div className="w-full">
-                <ListaFacturas
-                  facturas={facturasFiltradasMemo}
-                  onEditar={manejarEditarFactura}
-                  onEliminar={manejarEliminarFactura}
-                  onCambiarEstado={manejarCambiarEstado}
-                  onIngresarFactura={manejarIngresarFactura}
-                  onSubirArchivo={subirArchivo}
-                  onAgregarCotizacion={agregarCotizacion}
-                  onDescargarArchivo={descargarArchivo}
-                  onDescargarCotizacion={descargarCotizacion}
-                  loading={loading}
-                  permisos={{
-                    editar: tienePermiso("facturas", "editar"),
-                    eliminar: tienePermiso("facturas", "eliminar"),
-                    autorizar: tienePermiso("facturas", "autorizar"),
-                    marcarPagada: tienePermiso("facturas", "marcarPagada"),
-                    ingresar:
-                      tienePermiso("facturas", "autorizar") ||
-                      usuario?.tipo === "coordinador",
-                  }}
-                  esAdministrador={
-                    usuario?.tipo === "administrador" ||
-                    usuario?.tipo === "developer"
-                  }
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {vistaActual === "nueva" && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("dashboard")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Facturas
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Registrar Nueva Factura
-              </h2>
-            </div>
-            <FormularioFactura
-              onSubmit={manejarCrearFactura}
-              onCancel={() => setVistaActual("dashboard")}
-              loading={loading}
-              onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
-              proveedorRecienCreado={proveedorRecienCreado}
-            />
-          </div>
-        )}
-
-        {vistaActual === "editar" && facturaEditando && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("dashboard")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Facturas
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Editar Factura
-              </h2>
-            </div>
-            <FormularioFactura
-              facturaInicial={facturaEditando}
-              onSubmit={manejarActualizarFactura}
-              onCancel={() => setVistaActual("dashboard")}
-              loading={loading}
-              onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
-              proveedorRecienCreado={proveedorRecienCreado}
-            />
-          </div>
-        )}
-
-        {vistaActual === "proveedores" && (
-          <>
-            <div className="mb-8">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <button
-                    onClick={() => setVistaActual("dashboard")}
-                    className="text-blue-600 hover:text-blue-800 mb-4"
-                  >
-                    ← Volver a Facturas
-                  </button>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Gestión de Proveedores
-                  </h2>
-                  <p className="text-gray-600">
-                    Administra la información de contacto y detalles de tus
-                    proveedores
-                  </p>
+              <div className="space-y-6">
+                {/* Filtros primero */}
+                <div className="w-full">
+                  <FiltrosFacturas
+                    filtros={filtros}
+                    onFiltrosChange={setFiltros}
+                    facturas={facturas}
+                  />
                 </div>
 
-                {tienePermiso("facturas", "crear") && (
-                  <button
-                    onClick={() => navegarA("nuevo-proveedor")}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    ➕ Nuevo Proveedor
-                  </button>
-                )}
+                {/* Gráfica de proyección vs gasto */}
+                <div className="w-full">
+                  <GraficaProyeccionVsGasto
+                    año={filtros.año}
+                    mes={filtros.mes}
+                    categoriaFiltro={filtros.categoria}
+                  />
+                </div>
+
+                {/* Lista de facturas */}
+                <div className="w-full">
+                  <ListaFacturas
+                    facturas={facturasFiltradasMemo}
+                    onEditar={manejarEditarFactura}
+                    onEliminar={manejarEliminarFactura}
+                    onCambiarEstado={manejarCambiarEstado}
+                    onIngresarFactura={manejarIngresarFactura}
+                    onSubirArchivo={subirArchivo}
+                    onAgregarCotizacion={agregarCotizacion}
+                    onDescargarArchivo={descargarArchivo}
+                    onDescargarCotizacion={descargarCotizacion}
+                    loading={loading}
+                    permisos={{
+                      editar: tienePermiso("facturas", "editar"),
+                      eliminar: tienePermiso("facturas", "eliminar"),
+                      autorizar: tienePermiso("facturas", "autorizar"),
+                      marcarPagada: tienePermiso("facturas", "marcarPagada"),
+                      ingresar:
+                        tienePermiso("facturas", "autorizar") ||
+                        usuario?.tipo === "coordinador",
+                    }}
+                    esAdministrador={
+                      usuario?.tipo === "administrador" ||
+                      usuario?.tipo === "developer"
+                    }
+                  />
+                </div>
               </div>
-            </div>
-
-            <ListaProveedores
-              proveedores={proveedores}
-              onEditar={manejarEditarProveedor}
-              onEliminar={manejarEliminarProveedor}
-              onReactivar={manejarReactivarProveedor}
-              loading={loadingProveedores}
-            />
-          </>
-        )}
-
-        {vistaActual === "nuevo-proveedor" && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("proveedores")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Proveedores
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Registrar Nuevo Proveedor
-              </h2>
-            </div>
-            <FormularioProveedor
-              onSubmit={manejarCrearProveedor}
-              onCancelar={() => setVistaActual("proveedores")}
-              loading={loadingProveedores}
-            />
-          </div>
-        )}
-
-        {vistaActual === "editar-proveedor" && proveedorEditando && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("proveedores")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Proveedores
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Editar Proveedor
-              </h2>
-            </div>
-            <FormularioProveedor
-              proveedor={proveedorEditando}
-              onSubmit={manejarActualizarProveedor}
-              onCancelar={() => {
-                setVistaActual("proveedores");
-                setProveedorEditando(null);
-              }}
-              loading={loadingProveedores}
-            />
-          </div>
-        )}
-
-
-      </main>
-
-      {/* Sidebar para Administradores */}
-      {isAdmin && (
-        <>
-          <ConfigSidebar
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-            isDeveloper={usuario?.tipo === "developer"}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
+            </>
           )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
+
+          {vistaActual === "nueva" && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("dashboard")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Facturas
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Registrar Nueva Factura
+                </h2>
+              </div>
+              <FormularioFactura
+                onSubmit={manejarCrearFactura}
+                onCancel={() => setVistaActual("dashboard")}
+                loading={loading}
+                onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
+                proveedorRecienCreado={proveedorRecienCreado}
+              />
+            </div>
           )}
-        </>
+
+          {vistaActual === "editar" && facturaEditando && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("dashboard")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Facturas
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Editar Factura
+                </h2>
+              </div>
+              <FormularioFactura
+                facturaInicial={facturaEditando}
+                onSubmit={manejarActualizarFactura}
+                onCancel={() => setVistaActual("dashboard")}
+                loading={loading}
+                onAbrirModalProveedor={() => setMostrarModalProveedor(true)}
+                proveedorRecienCreado={proveedorRecienCreado}
+              />
+            </div>
+          )}
+
+          {vistaActual === "proveedores" && (
+            <>
+              <div className="mb-8">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <button
+                      onClick={() => setVistaActual("dashboard")}
+                      className="text-blue-600 hover:text-blue-800 mb-4"
+                    >
+                      ← Volver a Facturas
+                    </button>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Gestión de Proveedores
+                    </h2>
+                    <p className="text-gray-600">
+                      Administra la información de contacto y detalles de tus
+                      proveedores
+                    </p>
+                  </div>
+
+                  {tienePermiso("facturas", "crear") && (
+                    <button
+                      onClick={() => navegarA("nuevo-proveedor")}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      ➕ Nuevo Proveedor
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <ListaProveedores
+                proveedores={proveedores}
+                onEditar={manejarEditarProveedor}
+                onEliminar={manejarEliminarProveedor}
+                onReactivar={manejarReactivarProveedor}
+                loading={loadingProveedores}
+              />
+            </>
+          )}
+
+          {vistaActual === "nuevo-proveedor" && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("proveedores")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Proveedores
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Registrar Nuevo Proveedor
+                </h2>
+              </div>
+              <FormularioProveedor
+                onSubmit={manejarCrearProveedor}
+                onCancelar={() => setVistaActual("proveedores")}
+                loading={loadingProveedores}
+              />
+            </div>
+          )}
+
+          {vistaActual === "editar-proveedor" && proveedorEditando && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("proveedores")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Proveedores
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Editar Proveedor
+                </h2>
+              </div>
+              <FormularioProveedor
+                proveedor={proveedorEditando}
+                onSubmit={manejarActualizarProveedor}
+                onCancelar={() => {
+                  setVistaActual("proveedores");
+                  setProveedorEditando(null);
+                }}
+                loading={loadingProveedores}
+              />
+            </div>
+          )}
+        </main>
+      </div>
+
+      {activeConfigView === "mi-perfil" && (
+        <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
       )}
-
-      {/* Sidebar para Coordinadores */}
-      {isCoordinador && (
-        <>
-          <ConfigSidebarCoordinador
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
-          )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
-          )}
-        </>
+      {activeConfigView === "cambiar-contrasena" && (
+        <CambiarContrasenaCoordinador onClose={() => setActiveConfigView("")} />
       )}
 
       {/* Popup para comprobante de pago */}

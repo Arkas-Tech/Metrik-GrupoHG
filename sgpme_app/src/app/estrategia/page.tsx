@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useProyecciones } from "@/hooks/useProyecciones";
-import {
-  useAuth,
-  obtenerNombreRol,
-  obtenerColorRol,
-} from "@/hooks/useAuthUnified";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { FiltrosProyeccion, Proyeccion } from "@/types";
 import {
@@ -15,11 +11,13 @@ import {
   ListaProyecciones,
   FiltrosPanel,
 } from "@/components";
-import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
-import NavBar from "@/components/NavBar";
-import { Bars3Icon } from "@heroicons/react/24/outline";
-import ConfigSidebar from "@/components/ConfigSidebar";
-import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
+import Sidebar from "@/components/Sidebar";
+import Image from "next/image";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 import { showToast } from "@/lib/toast";
@@ -58,7 +56,6 @@ export default function ProyeccionesPage() {
 
   const [proyeccionEditando, setProyeccionEditando] =
     useState<Proyeccion | null>(null);
-  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
 
   const isAdmin =
@@ -72,7 +69,6 @@ export default function ProyeccionesPage() {
       return;
     }
     setActiveConfigView(item);
-    setConfigSidebarOpen(false);
   };
 
   // Obtener mes y año actual
@@ -289,257 +285,217 @@ export default function ProyeccionesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {mostrarMenu && (
-                <button
-                  onClick={() => setConfigSidebarOpen(true)}
-                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Configuración del Sistema"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              )}
-
-              <div className="shrink-0">
-                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                  HG
-                </div>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {usuario.grupo}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <FiltroMarcaGlobal />
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {usuario.nombre}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo,
-                      )}`}
-                    >
-                      {obtenerNombreRol(usuario.tipo)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCerrarSesion}
-                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                  title="Cerrar Sesión"
-                >
-                  ↗
-                </button>
-              </div>
-            </div>
+      <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+        <div className="pl-3 shrink-0">
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
+        </div>
+        <div className="flex items-center gap-6 px-8">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 w-80">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
-      <NavBar usuario={usuario} paginaActiva="estrategia" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {vistaActual === "dashboard" && (
-          <>
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Proyecciones Presupuestales
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  {usuario?.tipo === "auditor"
-                    ? "Consulta y auditoría de proyecciones presupuestales"
-                    : "Gestión de presupuestos y proyecciones financieras"}
-                </p>
+
+      <Sidebar
+        usuario={usuario}
+        paginaActiva="estrategia"
+        onMenuClick={handleMenuClick}
+        onCerrarSesion={handleCerrarSesion}
+      />
+
+      <div className="pt-14 pl-14 bg-white min-h-screen">
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          {vistaActual === "dashboard" && (
+            <>
+              <div className="mb-8 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Proyecciones Presupuestales
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    {usuario?.tipo === "auditor"
+                      ? "Consulta y auditoría de proyecciones presupuestales"
+                      : "Gestión de presupuestos y proyecciones financieras"}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => router.push("/presupuesto")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <span>💰</span>
+                    <span>Gestionar Presupuestos</span>
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => router.push("/presupuesto")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
-                >
-                  <span>💰</span>
-                  <span>Gestionar Presupuestos</span>
-                </button>
-              </div>
-            </div>
-            {tienePermiso("proyecciones", "crear") ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-900">
-                      Nueva Proyección
-                    </h3>
-                    <button
-                      onClick={() => navegarA("nueva")}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                    >
-                      Crear Nueva Proyección
-                    </button>
+              {tienePermiso("proyecciones", "crear") ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">
+                        Nueva Proyección
+                      </h3>
+                      <button
+                        onClick={() => navegarA("nueva")}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        Crear Nueva Proyección
+                      </button>
+                    </div>
+                    <div className="mt-6">
+                      <FiltrosPanel
+                        filtros={filtros}
+                        onFiltrosChange={setFiltros}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-6">
+                  <div className="lg:col-span-2">
+                    <ListaProyecciones
+                      proyecciones={proyeccionesFiltradas}
+                      onEditar={manejarEditarProyeccion}
+                      onEliminar={manejarEliminarProyeccion}
+                      onAprobar={manejarAprobarProyeccion}
+                      loading={loading}
+                      permisos={{
+                        editar: tienePermiso("proyecciones", "editar"),
+                        eliminar:
+                          isAdmin || tienePermiso("proyecciones", "eliminar"),
+                        aprobar: isAdmin,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        🔍 Filtros de Búsqueda
+                      </h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          👁️ Modo Auditor
+                        </span>
+                      </div>
+                    </div>
                     <FiltrosPanel
                       filtros={filtros}
                       onFiltrosChange={setFiltros}
                     />
                   </div>
-                </div>
-                <div className="lg:col-span-2">
-                  <ListaProyecciones
-                    proyecciones={proyeccionesFiltradas}
-                    onEditar={manejarEditarProyeccion}
-                    onEliminar={manejarEliminarProyeccion}
-                    onAprobar={manejarAprobarProyeccion}
-                    loading={loading}
-                    permisos={{
-                      editar: tienePermiso("proyecciones", "editar"),
-                      eliminar:
-                        isAdmin || tienePermiso("proyecciones", "eliminar"),
-                      aprobar: isAdmin,
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      🔍 Filtros de Búsqueda
-                    </h3>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        👁️ Modo Auditor
-                      </span>
-                    </div>
+                  <div className="w-full">
+                    <ListaProyecciones
+                      proyecciones={proyeccionesFiltradas}
+                      onEditar={manejarEditarProyeccion}
+                      onEliminar={manejarEliminarProyeccion}
+                      onAprobar={manejarAprobarProyeccion}
+                      loading={loading}
+                      permisos={{
+                        editar: tienePermiso("proyecciones", "editar"),
+                        eliminar:
+                          isAdmin || tienePermiso("proyecciones", "eliminar"),
+                        aprobar: isAdmin,
+                      }}
+                    />
                   </div>
-                  <FiltrosPanel
-                    filtros={filtros}
-                    onFiltrosChange={setFiltros}
-                  />
                 </div>
-                <div className="w-full">
-                  <ListaProyecciones
-                    proyecciones={proyeccionesFiltradas}
-                    onEditar={manejarEditarProyeccion}
-                    onEliminar={manejarEliminarProyeccion}
-                    onAprobar={manejarAprobarProyeccion}
-                    loading={loading}
-                    permisos={{
-                      editar: tienePermiso("proyecciones", "editar"),
-                      eliminar:
-                        isAdmin || tienePermiso("proyecciones", "eliminar"),
-                      aprobar: isAdmin,
-                    }}
-                  />
-                </div>
+              )}
+            </>
+          )}
+
+          {vistaActual === "nueva" && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("dashboard")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Proyecciones
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Nueva Proyección
+                </h2>
               </div>
-            )}
-          </>
-        )}
-
-        {vistaActual === "nueva" && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("dashboard")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Proyecciones
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Nueva Proyección
-              </h2>
+              <FormularioProyeccion
+                onSubmit={manejarCrearProyeccion}
+                onCancel={() => setVistaActual("dashboard")}
+                loading={loading}
+                proyeccionesExistentes={proyecciones}
+              />
             </div>
-            <FormularioProyeccion
-              onSubmit={manejarCrearProyeccion}
-              onCancel={() => setVistaActual("dashboard")}
-              loading={loading}
-              proyeccionesExistentes={proyecciones}
-            />
-          </div>
-        )}
+          )}
 
-        {vistaActual === "editar" && proyeccionEditando && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <button
-                onClick={() => setVistaActual("dashboard")}
-                className="text-blue-600 hover:text-blue-800 mb-4"
-              >
-                ← Volver a Proyecciones
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Editar Proyección
-              </h2>
+          {vistaActual === "editar" && proyeccionEditando && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <button
+                  onClick={() => setVistaActual("dashboard")}
+                  className="text-blue-600 hover:text-blue-800 mb-4"
+                >
+                  ← Volver a Proyecciones
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Editar Proyección
+                </h2>
+              </div>
+              <FormularioProyeccion
+                proyeccionInicial={proyeccionEditando}
+                onSubmit={manejarActualizarProyeccion}
+                onCancel={() => setVistaActual("dashboard")}
+                loading={loading}
+                proyeccionesExistentes={proyecciones}
+              />
             </div>
-            <FormularioProyeccion
-              proyeccionInicial={proyeccionEditando}
-              onSubmit={manejarActualizarProyeccion}
-              onCancel={() => setVistaActual("dashboard")}
-              loading={loading}
-              proyeccionesExistentes={proyecciones}
-            />
-          </div>
-        )}
-
-        {errorVisible && (
-          <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-3 z-50">
-            <span>{errorVisible}</span>
-            <button
-              onClick={() => setErrorVisible(null)}
-              className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
-            >
-              &times;
-            </button>
-          </div>
-        )}
-      </main>
-
-      {/* Sidebar para Administradores */}
-      {isAdmin && (
-        <>
-          <ConfigSidebar
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-            isDeveloper={usuario?.tipo === "developer"}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
           )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
+
+          {errorVisible && (
+            <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-3 z-50">
+              <span>{errorVisible}</span>
+              <button
+                onClick={() => setErrorVisible(null)}
+                className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
+              >
+                &times;
+              </button>
+            </div>
           )}
-        </>
+        </main>
+      </div>
+
+      {activeConfigView === "mi-perfil" && (
+        <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
       )}
-
-      {/* Sidebar para Coordinadores */}
-      {isCoordinador && (
-        <>
-          <ConfigSidebarCoordinador
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
-          )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
-          )}
-        </>
+      {activeConfigView === "cambiar-contrasena" && (
+        <CambiarContrasenaCoordinador onClose={() => setActiveConfigView("")} />
       )}
     </div>
   );

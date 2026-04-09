@@ -3,24 +3,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  useAuth,
-  obtenerNombreRol,
-  obtenerColorRol,
-} from "@/hooks/useAuthUnified";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
-import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
-import NavBar from "@/components/NavBar";
 import {
   ArrowTrendingUpIcon,
   CalendarIcon,
   BuildingOfficeIcon,
   CurrencyDollarIcon,
-  Bars3Icon,
   XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import ConfigSidebar from "@/components/ConfigSidebar";
-import ConfigSidebarCoordinador from "@/components/ConfigSidebarCoordinador";
+import Sidebar from "@/components/Sidebar";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 import { fetchConToken } from "@/lib/auth-utils";
@@ -85,7 +80,6 @@ const MetricasPage = () => {
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva-presencia"
   >("dashboard");
-  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
   const [modalPresencia, setModalPresencia] = useState<Presencia | null>(null);
   const [presenciaEditando, setPresenciaEditando] = useState<Presencia | null>(
@@ -194,7 +188,6 @@ const MetricasPage = () => {
       return;
     }
     setActiveConfigView(item);
-    setConfigSidebarOpen(false);
   };
 
   const metricasDelMes = metricasDb.filter(
@@ -354,209 +347,121 @@ const MetricasPage = () => {
   if (vistaActual === "nueva-presencia") {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                {mostrarMenu && (
-                  <button
-                    onClick={() => setConfigSidebarOpen(true)}
-                    className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                    title="Configuración del Sistema"
-                  >
-                    <Bars3Icon className="h-6 w-6" />
-                  </button>
-                )}
-
-                <div className="shrink-0">
-                  <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                    HG
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    Metrik
-                  </h1>
-                  <p className="text-sm text-gray-600 font-medium">
-                    {usuario.grupo}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <FiltroMarcaGlobal />
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
-                      {usuario.nombre}
-                    </p>
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                          usuario.tipo,
-                        )}`}
-                      >
-                        {obtenerNombreRol(usuario.tipo)}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleCerrarSesion}
-                    className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer text-xl"
-                    title="Cerrar Sesión"
-                  >
-                    ↗
-                  </button>
-                </div>
-              </div>
+        <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+          <div className="pl-3 shrink-0">
+            <Image
+              src="/metrik_logo.png"
+              alt="Metrik"
+              width={96}
+              height={30}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <div className="flex items-center gap-6 px-8">
+            <button
+              onClick={() => router.back()}
+              className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+              title="Atrás"
+            >
+              <ChevronLeftIcon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => router.forward()}
+              className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+              title="Adelante"
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="absolute left-1/2 -translate-x-1/2 w-80">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar en Metrik..."
+                className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+                readOnly
+              />
             </div>
           </div>
         </header>
 
-        <nav className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex space-x-8">
+        <Sidebar
+          usuario={usuario}
+          paginaActiva="digital"
+          onMenuClick={handleMenuClick}
+          onCerrarSesion={handleCerrarSesion}
+        />
+
+        <div className="pt-14 pl-14 bg-white min-h-screen">
+          <main className="px-4 sm:px-6 lg:px-8 pt-8">
+            <div className="mb-6">
               <button
-                onClick={() => router.push("/dashboard")}
-                className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
+                onClick={() => {
+                  setVistaActual("dashboard");
+                  setPresenciaEditando(null);
+                }}
+                className="text-purple-600 hover:text-purple-700 font-medium mb-4 inline-flex items-center"
               >
-                📊 Dashboard
+                ← Volver al Dashboard
               </button>
-              <button
-                onClick={() => router.push("/estrategia")}
-                className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
-              >
-                🎯 Estrategia
-              </button>
-              <button
-                onClick={() => router.push("/facturas")}
-                className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
-              >
-                📋 Facturas
-              </button>
-              <button
-                onClick={() => router.push("/eventos")}
-                className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
-              >
-                🎉 Eventos
-              </button>
-              <button
-                onClick={() => setVistaActual("dashboard")}
-                className="py-4 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm"
-              >
-                📈 Digital
-              </button>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {presenciaEditando
+                  ? "Editar Presencia"
+                  : "Registrar Nueva Presencia"}
+              </h1>
             </div>
-          </div>
-        </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <button
-              onClick={() => {
-                setVistaActual("dashboard");
-                setPresenciaEditando(null);
-              }}
-              className="text-purple-600 hover:text-purple-700 font-medium mb-4 inline-flex items-center"
-            >
-              ← Volver al Dashboard
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {presenciaEditando
-                ? "Editar Presencia"
-                : "Registrar Nueva Presencia"}
-            </h1>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <FormularioPresencia
-              marcaActual={marcaSeleccionada || ""}
-              presenciaInicial={presenciaEditando}
-              proveedores={proveedores}
-              onNavigateToProveedores={() => {
-                router.push("/facturas?action=nuevo-proveedor");
-              }}
-              onCancel={() => {
-                setVistaActual("dashboard");
-                setPresenciaEditando(null);
-              }}
-              onSubmit={async (presencia) => {
-                if (presenciaEditando) {
-                  const success = await actualizarPresencia(
-                    presenciaEditando.id,
-                    presencia,
-                  );
-                  if (success) {
-                    showToast("Presencia actualizada exitosamente", "success");
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <FormularioPresencia
+                marcaActual={marcaSeleccionada || ""}
+                presenciaInicial={presenciaEditando}
+                proveedores={proveedores}
+                onNavigateToProveedores={() => {
+                  router.push("/facturas?action=nuevo-proveedor");
+                }}
+                onCancel={() => {
+                  setVistaActual("dashboard");
+                  setPresenciaEditando(null);
+                }}
+                onSubmit={async (presencia) => {
+                  if (presenciaEditando) {
+                    const success = await actualizarPresencia(
+                      presenciaEditando.id,
+                      presencia,
+                    );
+                    if (success) {
+                      showToast(
+                        "Presencia actualizada exitosamente",
+                        "success",
+                      );
+                    } else {
+                      showToast("Error al actualizar la presencia", "error");
+                    }
                   } else {
-                    showToast("Error al actualizar la presencia", "error");
+                    const success = await crearPresencia(presencia);
+                    if (success) {
+                      showToast("Presencia creada exitosamente", "success");
+                    } else {
+                      showToast("Error al crear la presencia", "error");
+                    }
                   }
-                } else {
-                  const success = await crearPresencia(presencia);
-                  if (success) {
-                    showToast("Presencia creada exitosamente", "success");
-                  } else {
-                    showToast("Error al crear la presencia", "error");
-                  }
-                }
-                setVistaActual("dashboard");
-                setPresenciaEditando(null);
-              }}
-            />
-          </div>
-        </main>
+                  setVistaActual("dashboard");
+                  setPresenciaEditando(null);
+                }}
+              />
+            </div>
+          </main>
+        </div>
 
-        {/* Sidebar y modales para administradores */}
-        {isAdmin && (
-          <>
-            <ConfigSidebar
-              isOpen={configSidebarOpen}
-              onClose={() => setConfigSidebarOpen(false)}
-              onNavigate={handleMenuClick}
-              isDeveloper={usuario?.tipo === "developer"}
-            />
-
-            {activeConfigView === "mi-perfil" && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                  <GestionPerfilCoordinador
-                    onClose={() => setActiveConfigView("")}
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeConfigView === "cambiar-contrasena" && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                  <CambiarContrasenaCoordinador
-                    onClose={() => setActiveConfigView("")}
-                  />
-                </div>
-              </div>
-            )}
-          </>
+        {activeConfigView === "mi-perfil" && (
+          <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
         )}
-
-        {/* Sidebar para coordinadores */}
-        {isCoordinador && (
-          <>
-            <ConfigSidebarCoordinador
-              isOpen={configSidebarOpen}
-              onClose={() => setConfigSidebarOpen(false)}
-              onNavigate={handleMenuClick}
-            />
-            {activeConfigView === "mi-perfil" && (
-              <GestionPerfilCoordinador
-                onClose={() => setActiveConfigView("")}
-              />
-            )}
-            {activeConfigView === "cambiar-contrasena" && (
-              <CambiarContrasenaCoordinador
-                onClose={() => setActiveConfigView("")}
-              />
-            )}
-          </>
+        {activeConfigView === "cambiar-contrasena" && (
+          <CambiarContrasenaCoordinador
+            onClose={() => setActiveConfigView("")}
+          />
         )}
       </div>
     );
@@ -564,673 +469,641 @@ const MetricasPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {mostrarMenu && (
-                <button
-                  onClick={() => setConfigSidebarOpen(true)}
-                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Configuración del Sistema"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              )}
-
-              <div className="shrink-0">
-                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                  HG
-                </div>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {usuario.grupo}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <FiltroMarcaGlobal />
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {usuario.nombre}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo,
-                      )}`}
-                    >
-                      {obtenerNombreRol(usuario.tipo)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCerrarSesion}
-                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer text-xl"
-                  title="Cerrar Sesión"
-                >
-                  ↗
-                </button>
-              </div>
-            </div>
+      <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+        <div className="pl-3 shrink-0">
+          <Image
+            src="/metrik_logo.png"
+            alt="Metrik"
+            width={96}
+            height={30}
+            className="object-contain"
+            priority
+          />
+        </div>
+        <div className="flex items-center gap-6 px-8">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Atrás"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => router.forward()}
+            className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+            title="Adelante"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 w-80">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar en Metrik..."
+              className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors"
+              readOnly
+            />
           </div>
         </div>
       </header>
 
-      <NavBar usuario={usuario} paginaActiva="digital" />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Digital</h1>
-            <p className="text-gray-600">
-              Panel de control de rendimiento y campañas
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 mb-6">
-            <div className="flex items-center gap-4">
-              <label className="text-sm font-medium text-gray-900">
-                Filtrar por período:
-              </label>
-              <select
-                value={mesSeleccionado ?? ""}
-                onChange={(e) =>
-                  setMesSeleccionado(
-                    e.target.value === "" ? undefined : Number(e.target.value),
-                  )
-                }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
-              >
-                <option value="">Todos los meses</option>
-                <option value={1}>Enero</option>
-                <option value={2}>Febrero</option>
-                <option value={3}>Marzo</option>
-                <option value={4}>Abril</option>
-                <option value={5}>Mayo</option>
-                <option value={6}>Junio</option>
-                <option value={7}>Julio</option>
-                <option value={8}>Agosto</option>
-                <option value={9}>Septiembre</option>
-                <option value={10}>Octubre</option>
-                <option value={11}>Noviembre</option>
-                <option value={12}>Diciembre</option>
-              </select>
-              <select
-                value={anioSeleccionado}
-                onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
-              >
-                {Array.from(
-                  { length: 5 },
-                  (_, i) => new Date().getFullYear() - i,
-                ).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">Funnel</h2>
-              {!isAuditor && (
-                <button
-                  onClick={() => {
-                    setMetricaEditando(null);
-                    setModalMetricaOpen(true);
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  + Registrar Métricas
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {metrics.map((metric, index) => {
-                const IconComponent = metric.icon;
-                return (
-                  <div
-                    key={index}
-                    className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <IconComponent className="w-6 h-6 text-blue-600" />
-                        </div>
-                      </div>
-                      <span
-                        className={`text-sm font-medium ${getChangeColor(
-                          metric.changeType,
-                        )}`}
-                      >
-                        {metric.change}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-1">
-                      {metric.title}
-                    </h3>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {metric.value}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
-            <button
-              onClick={() => setHistorialExpanded(!historialExpanded)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-gray-900">
-                Historial de Métricas
-              </h3>
-              {historialExpanded ? (
-                <ChevronUpIcon className="w-5 h-5 text-gray-500" />
-              ) : (
-                <ChevronDownIcon className="w-5 h-5 text-gray-500" />
-              )}
-            </button>
-
-            {historialExpanded && (
-              <div className="px-6 pb-6 border-t border-gray-200">
-                <div className="mt-4 overflow-x-auto">
-                  {metricasDb.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      No hay métricas registradas
-                    </p>
-                  ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Período
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Agencia
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Leads
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Citas
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                            Ventas
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Creado por
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {metricasDb.slice(0, 10).map((metrica) => (
-                          <tr key={metrica.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                              {new Date(0, metrica.mes - 1).toLocaleDateString(
-                                "es-MX",
-                                { month: "short" },
-                              )}{" "}
-                              {metrica.anio}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                              {metrica.marca && (
-                                <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded capitalize">
-                                  {metrica.marca}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                              {metrica.leads.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                              {metrica.citas.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                              {metrica.utilidades.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
-                              {metrica.creado_por_nombre || metrica.creado_por}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                              {!isAuditor && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setMetricaEditando(metrica);
-                                      setModalMetricaOpen(true);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-800 font-medium mr-3"
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      if (confirm("¿Eliminar esta métrica?")) {
-                                        await eliminarMetrica(metrica.id);
-                                      }
-                                    }}
-                                    className="text-red-600 hover:text-red-800 font-medium"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                  {metricasDb.length > 10 && (
-                    <p className="text-xs text-gray-500 text-center mt-4">
-                      Mostrando las últimas 10 métricas de {metricasDb.length}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sección Conciliación con BDC */}
-          <ConciliacionBDCSection />
-
-          {/* Sección Diagramas de Conversión */}
-          <DiagramasConversionSection />
-
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Campañas Digitales
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Meta */}
-              <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-blue-900">Meta</h3>
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads totales:
-                    </span>
-                    <span className="text-lg font-bold text-blue-900">
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasMeta.leads,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Inversión:
-                    </span>
-                    <span className="text-lg font-bold text-blue-900">
-                      $
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasMeta.inversion,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      CxC:
-                    </span>
-                    <span className="text-lg font-bold text-blue-900">
-                      {metricasMeta.cxc.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => router.push("/campanas?plataforma=meta")}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Ver campañas
-                </button>
-              </div>
-
-              {/* Google */}
-              <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-red-900">Google</h3>
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads totales:
-                    </span>
-                    <span className="text-lg font-bold text-red-900">
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasGoogle.leads,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Inversión:
-                    </span>
-                    <span className="text-lg font-bold text-red-900">
-                      $
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasGoogle.inversion,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      CxC:
-                    </span>
-                    <span className="text-lg font-bold text-red-900">
-                      {metricasGoogle.cxc.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => router.push("/campanas?plataforma=google")}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Ver campañas
-                </button>
-              </div>
-
-              {/* TikTok */}
-              <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
-                  <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-7 h-7 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Leads totales:
-                    </span>
-                    <span className="text-lg font-bold text-gray-900">
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasTikTok.leads,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Inversión:
-                    </span>
-                    <span className="text-lg font-bold text-gray-900">
-                      $
-                      {new Intl.NumberFormat("es-MX").format(
-                        metricasTikTok.inversion,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      CxC:
-                    </span>
-                    <span className="text-lg font-bold text-gray-900">
-                      {metricasTikTok.cxc.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => router.push("/campanas?plataforma=tiktok")}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Ver campañas
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sección Embajadores */}
-          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Embajadores</h2>
-              <button
-                onClick={() => router.push("/embajadores?from=digital")}
-                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-              >
-                Ver todos →
-              </button>
-            </div>
-
-            {(() => {
-              const embFiltrados = embajadoresDig.filter((e) =>
-                !e.marca ? true : filtraPorMarca(e.marca),
-              );
-              if (embFiltrados.length === 0) {
-                return (
-                  <div className="text-center py-10 text-gray-400">
-                    <p className="text-sm">No hay embajadores registrados.</p>
-                    <button
-                      onClick={() => router.push("/embajadores?from=digital")}
-                      className="mt-3 text-purple-600 hover:underline text-sm font-medium"
-                    >
-                      Administrar embajadores →
-                    </button>
-                  </div>
-                );
-              }
-              const paletas = [
-                {
-                  bg: "from-purple-50 to-purple-100",
-                  border: "border-purple-200",
-                  avatar: "bg-purple-600",
-                  text: "text-purple-900",
-                },
-                {
-                  bg: "from-pink-50 to-pink-100",
-                  border: "border-pink-200",
-                  avatar: "bg-pink-600",
-                  text: "text-pink-900",
-                },
-                {
-                  bg: "from-indigo-50 to-indigo-100",
-                  border: "border-indigo-200",
-                  avatar: "bg-indigo-600",
-                  text: "text-indigo-900",
-                },
-              ];
-              const fmtAud = (n: number) => {
-                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-                if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-                return String(n);
-              };
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {embFiltrados.slice(0, 6).map((emb, idx) => {
-                    const p = paletas[idx % paletas.length];
-                    let plataformas: Array<{
-                      plataforma: string;
-                      usuario: string;
-                    }> = [];
-                    try {
-                      if (emb.plataformas_json)
-                        plataformas = JSON.parse(emb.plataformas_json);
-                    } catch {
-                      /* ignore */
-                    }
-                    return (
-                      <div
-                        key={emb.id}
-                        className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h3
-                              className={`text-lg font-bold ${p.text} leading-tight`}
-                            >
-                              {emb.nombre}
-                            </h3>
-                            {emb.marca && (
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                {emb.marca}
-                              </p>
-                            )}
-                          </div>
-                          <div
-                            className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}
-                          >
-                            <svg
-                              className="w-7 h-7 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                        {plataformas.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {plataformas.map((pl, i) => {
-                              const profileUrl = pl.usuario
-                                ? buildProfileUrl(pl.plataforma, pl.usuario)
-                                : null;
-                              const label = `${pl.plataforma}${pl.usuario ? ` · ${pl.usuario}` : ""}`;
-                              return profileUrl ? (
-                                <a
-                                  key={i}
-                                  href={profileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="bg-white/60 text-purple-700 text-xs px-2 py-0.5 rounded-full hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
-                                >
-                                  {label}
-                                </a>
-                              ) : (
-                                <span
-                                  key={i}
-                                  className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
-                                >
-                                  {label}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              Presupuesto:
-                            </span>
-                            <span className={`text-base font-bold ${p.text}`}>
-                              $
-                              {new Intl.NumberFormat("es-MX").format(
-                                emb.presupuesto,
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              Leads:
-                            </span>
-                            <span className={`text-base font-bold ${p.text}`}>
-                              {new Intl.NumberFormat("es-MX").format(emb.leads)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              Audiencia:
-                            </span>
-                            <span className={`text-base font-bold ${p.text}`}>
-                              {fmtAud(emb.audiencia)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </main>
-
-      <ConfigSidebar
-        isOpen={configSidebarOpen}
-        onClose={() => setConfigSidebarOpen(false)}
-        onNavigate={handleMenuClick}
-        isDeveloper={usuario?.tipo === "developer"}
+      <Sidebar
+        usuario={usuario}
+        paginaActiva="digital"
+        onMenuClick={handleMenuClick}
+        onCerrarSesion={handleCerrarSesion}
       />
 
-      {/* Modales para administradores */}
-      {isAdmin && (
-        <>
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
-          )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
-          )}
-        </>
-      )}
+      <div className="pt-14 pl-14 bg-white min-h-screen">
+        <main className="px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="space-y-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Digital</h1>
+              <p className="text-gray-600">
+                Panel de control de rendimiento y campañas
+              </p>
+            </div>
 
-      {/* Sidebar para coordinadores */}
-      {isCoordinador && (
-        <>
-          <ConfigSidebarCoordinador
-            isOpen={configSidebarOpen}
-            onClose={() => setConfigSidebarOpen(false)}
-            onNavigate={handleMenuClick}
-          />
-          {activeConfigView === "mi-perfil" && (
-            <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
-          )}
-          {activeConfigView === "cambiar-contrasena" && (
-            <CambiarContrasenaCoordinador
-              onClose={() => setActiveConfigView("")}
-            />
-          )}
-        </>
+            <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 mb-6">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-gray-900">
+                  Filtrar por período:
+                </label>
+                <select
+                  value={mesSeleccionado ?? ""}
+                  onChange={(e) =>
+                    setMesSeleccionado(
+                      e.target.value === ""
+                        ? undefined
+                        : Number(e.target.value),
+                    )
+                  }
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
+                >
+                  <option value="">Todos los meses</option>
+                  <option value={1}>Enero</option>
+                  <option value={2}>Febrero</option>
+                  <option value={3}>Marzo</option>
+                  <option value={4}>Abril</option>
+                  <option value={5}>Mayo</option>
+                  <option value={6}>Junio</option>
+                  <option value={7}>Julio</option>
+                  <option value={8}>Agosto</option>
+                  <option value={9}>Septiembre</option>
+                  <option value={10}>Octubre</option>
+                  <option value={11}>Noviembre</option>
+                  <option value={12}>Diciembre</option>
+                </select>
+                <select
+                  value={anioSeleccionado}
+                  onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
+                >
+                  {Array.from(
+                    { length: 5 },
+                    (_, i) => new Date().getFullYear() - i,
+                  ).map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Funnel</h2>
+                {!isAuditor && (
+                  <button
+                    onClick={() => {
+                      setMetricaEditando(null);
+                      setModalMetricaOpen(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    + Registrar Métricas
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {metrics.map((metric, index) => {
+                  const IconComponent = metric.icon;
+                  return (
+                    <div
+                      key={index}
+                      className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <IconComponent className="w-6 h-6 text-blue-600" />
+                          </div>
+                        </div>
+                        <span
+                          className={`text-sm font-medium ${getChangeColor(
+                            metric.changeType,
+                          )}`}
+                        >
+                          {metric.change}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                        {metric.title}
+                      </h3>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {metric.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
+              <button
+                onClick={() => setHistorialExpanded(!historialExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Historial de Métricas
+                </h3>
+                {historialExpanded ? (
+                  <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              {historialExpanded && (
+                <div className="px-6 pb-6 border-t border-gray-200">
+                  <div className="mt-4 overflow-x-auto">
+                    {metricasDb.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">
+                        No hay métricas registradas
+                      </p>
+                    ) : (
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Período
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Agencia
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Leads
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              Citas
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                              Ventas
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                              Creado por
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                              Acciones
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {metricasDb.slice(0, 10).map((metrica) => (
+                            <tr key={metrica.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                {new Date(
+                                  0,
+                                  metrica.mes - 1,
+                                ).toLocaleDateString("es-MX", {
+                                  month: "short",
+                                })}{" "}
+                                {metrica.anio}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                {metrica.marca && (
+                                  <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded capitalize">
+                                    {metrica.marca}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                                {metrica.leads.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                                {metrica.citas.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                                {metrica.utilidades.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                                {metrica.creado_por_nombre ||
+                                  metrica.creado_por}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
+                                {!isAuditor && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setMetricaEditando(metrica);
+                                        setModalMetricaOpen(true);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-800 font-medium mr-3"
+                                    >
+                                      Editar
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (
+                                          confirm("¿Eliminar esta métrica?")
+                                        ) {
+                                          await eliminarMetrica(metrica.id);
+                                        }
+                                      }}
+                                      className="text-red-600 hover:text-red-800 font-medium"
+                                    >
+                                      Eliminar
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    {metricasDb.length > 10 && (
+                      <p className="text-xs text-gray-500 text-center mt-4">
+                        Mostrando las últimas 10 métricas de {metricasDb.length}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sección Conciliación con BDC */}
+            <ConciliacionBDCSection />
+
+            {/* Sección Diagramas de Conversión */}
+            <DiagramasConversionSection />
+
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Campañas Digitales
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Meta */}
+                <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-blue-900">Meta</h3>
+                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-7 h-7 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Leads totales:
+                      </span>
+                      <span className="text-lg font-bold text-blue-900">
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasMeta.leads,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Inversión:
+                      </span>
+                      <span className="text-lg font-bold text-blue-900">
+                        $
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasMeta.inversion,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        CxC:
+                      </span>
+                      <span className="text-lg font-bold text-blue-900">
+                        {metricasMeta.cxc.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push("/campanas?plataforma=meta")}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Ver campañas
+                  </button>
+                </div>
+
+                {/* Google */}
+                <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-red-900">Google</h3>
+                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-7 h-7 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Leads totales:
+                      </span>
+                      <span className="text-lg font-bold text-red-900">
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasGoogle.leads,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Inversión:
+                      </span>
+                      <span className="text-lg font-bold text-red-900">
+                        $
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasGoogle.inversion,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        CxC:
+                      </span>
+                      <span className="text-lg font-bold text-red-900">
+                        {metricasGoogle.cxc.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push("/campanas?plataforma=google")}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Ver campañas
+                  </button>
+                </div>
+
+                {/* TikTok */}
+                <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
+                    <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-7 h-7 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Leads totales:
+                      </span>
+                      <span className="text-lg font-bold text-gray-900">
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasTikTok.leads,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Inversión:
+                      </span>
+                      <span className="text-lg font-bold text-gray-900">
+                        $
+                        {new Intl.NumberFormat("es-MX").format(
+                          metricasTikTok.inversion,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        CxC:
+                      </span>
+                      <span className="text-lg font-bold text-gray-900">
+                        {metricasTikTok.cxc.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push("/campanas?plataforma=tiktok")}
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Ver campañas
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sección Embajadores */}
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Embajadores
+                </h2>
+                <button
+                  onClick={() => router.push("/embajadores?from=digital")}
+                  className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+                >
+                  Ver todos →
+                </button>
+              </div>
+
+              {(() => {
+                const embFiltrados = embajadoresDig.filter((e) =>
+                  !e.marca ? true : filtraPorMarca(e.marca),
+                );
+                if (embFiltrados.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-gray-400">
+                      <p className="text-sm">No hay embajadores registrados.</p>
+                      <button
+                        onClick={() => router.push("/embajadores?from=digital")}
+                        className="mt-3 text-purple-600 hover:underline text-sm font-medium"
+                      >
+                        Administrar embajadores →
+                      </button>
+                    </div>
+                  );
+                }
+                const paletas = [
+                  {
+                    bg: "from-purple-50 to-purple-100",
+                    border: "border-purple-200",
+                    avatar: "bg-purple-600",
+                    text: "text-purple-900",
+                  },
+                  {
+                    bg: "from-pink-50 to-pink-100",
+                    border: "border-pink-200",
+                    avatar: "bg-pink-600",
+                    text: "text-pink-900",
+                  },
+                  {
+                    bg: "from-indigo-50 to-indigo-100",
+                    border: "border-indigo-200",
+                    avatar: "bg-indigo-600",
+                    text: "text-indigo-900",
+                  },
+                ];
+                const fmtAud = (n: number) => {
+                  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+                  return String(n);
+                };
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {embFiltrados.slice(0, 6).map((emb, idx) => {
+                      const p = paletas[idx % paletas.length];
+                      let plataformas: Array<{
+                        plataforma: string;
+                        usuario: string;
+                      }> = [];
+                      try {
+                        if (emb.plataformas_json)
+                          plataformas = JSON.parse(emb.plataformas_json);
+                      } catch {
+                        /* ignore */
+                      }
+                      return (
+                        <div
+                          key={emb.id}
+                          className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3
+                                className={`text-lg font-bold ${p.text} leading-tight`}
+                              >
+                                {emb.nombre}
+                              </h3>
+                              {emb.marca && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {emb.marca}
+                                </p>
+                              )}
+                            </div>
+                            <div
+                              className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}
+                            >
+                              <svg
+                                className="w-7 h-7 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                          {plataformas.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {plataformas.map((pl, i) => {
+                                const profileUrl = pl.usuario
+                                  ? buildProfileUrl(pl.plataforma, pl.usuario)
+                                  : null;
+                                const label = `${pl.plataforma}${pl.usuario ? ` · ${pl.usuario}` : ""}`;
+                                return profileUrl ? (
+                                  <a
+                                    key={i}
+                                    href={profileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-white/60 text-purple-700 text-xs px-2 py-0.5 rounded-full hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
+                                  >
+                                    {label}
+                                  </a>
+                                ) : (
+                                  <span
+                                    key={i}
+                                    className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
+                                  >
+                                    {label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">
+                                Presupuesto:
+                              </span>
+                              <span className={`text-base font-bold ${p.text}`}>
+                                $
+                                {new Intl.NumberFormat("es-MX").format(
+                                  emb.presupuesto,
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">
+                                Leads:
+                              </span>
+                              <span className={`text-base font-bold ${p.text}`}>
+                                {new Intl.NumberFormat("es-MX").format(
+                                  emb.leads,
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">
+                                Audiencia:
+                              </span>
+                              <span className={`text-base font-bold ${p.text}`}>
+                                {fmtAud(emb.audiencia)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {activeConfigView === "mi-perfil" && (
+        <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
+      )}
+      {activeConfigView === "cambiar-contrasena" && (
+        <CambiarContrasenaCoordinador onClose={() => setActiveConfigView("")} />
       )}
 
       {modalPresencia && (

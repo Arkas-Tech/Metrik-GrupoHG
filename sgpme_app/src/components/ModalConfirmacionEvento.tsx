@@ -62,7 +62,9 @@ export default function ModalConfirmacionEvento({
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-5 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">✅ Confirmar Evento</h2>
+            <h2 className="text-lg font-bold text-white">
+              ✅ Confirmar Evento
+            </h2>
             <p className="text-sm text-blue-100 mt-0.5 truncate max-w-[280px]">
               {evento.nombre}
             </p>
@@ -151,9 +153,7 @@ export default function ModalConfirmacionEvento({
                         type="number"
                         min={0}
                         value={value}
-                        onChange={(e) =>
-                          setter(parseInt(e.target.value) || 0)
-                        }
+                        onChange={(e) => setter(parseInt(e.target.value) || 0)}
                         className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
                       />
                     </div>

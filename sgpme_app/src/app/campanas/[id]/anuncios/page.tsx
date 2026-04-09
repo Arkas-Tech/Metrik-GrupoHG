@@ -3,19 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import {
-  useAuth,
-  obtenerNombreRol,
-  obtenerColorRol,
-} from "@/hooks/useAuthUnified";
+import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
-import FiltroMarcaGlobal from "@/components/FiltroMarcaGlobal";
 import {
   ArrowLeftIcon,
   XMarkIcon,
-  Bars3Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import ConfigSidebar from "@/components/ConfigSidebar";
+import Sidebar from "@/components/Sidebar";
+import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
+import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 
 interface CampanyaInfo {
   id: number;
@@ -45,7 +44,6 @@ const AnunciosPage = () => {
     loading: authLoading,
   } = useAuth();
   useMarcaGlobal();
-  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const [activeConfigView, setActiveConfigView] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -77,8 +75,11 @@ const AnunciosPage = () => {
   };
 
   const handleMenuClick = (item: string) => {
+    if (item === "configuracion") {
+      router.push("/configuracion");
+      return;
+    }
     setActiveConfigView(item);
-    setConfigSidebarOpen(false);
   };
 
   const getCampanyaInfo = (id: string): CampanyaInfo => {
@@ -309,102 +310,35 @@ const AnunciosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              {isAdmin && (
-                <button
-                  onClick={() => setConfigSidebarOpen(true)}
-                  className="mr-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Configuración del Sistema"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              )}
-
-              <div className="shrink-0">
-                <div className="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold">
-                  HG
-                </div>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-semibold text-gray-900">Metrik</h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {usuario.grupo}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <FiltroMarcaGlobal />
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {usuario.nombre}
-                  </p>
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${obtenerColorRol(
-                        usuario.tipo,
-                      )}`}
-                    >
-                      {obtenerNombreRol(usuario.tipo)}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCerrarSesion}
-                  className="text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                  title="Cerrar Sesión"
-                >
-                  ↗
-                </button>
-              </div>
-            </div>
+      <header className="fixed top-0 left-0 right-0 z-30 bg-gray-100 border-b border-gray-200 h-14 flex items-center">
+        <div className="pl-3 shrink-0">
+          <Image src="/metrik_logo.png" alt="Metrik" width={96} height={30} className="object-contain" priority />
+        </div>
+        <div className="flex items-center gap-6 px-8">
+          <button onClick={() => router.back()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Atrás">
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <button onClick={() => router.forward()} className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors" title="Adelante">
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 w-80">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input type="text" placeholder="Buscar en Metrik..." className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border-0 rounded-full text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-colors" readOnly />
           </div>
         </div>
       </header>
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 h-14">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => router.push("/estrategia")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎯 Estrategia
-            </button>
-            <button
-              onClick={() => router.push("/facturas")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📋 Facturas
-            </button>
-            <button
-              onClick={() => router.push("/digital")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              📈 Digital
-            </button>
-            <button
-              onClick={() => router.push("/eventos")}
-              className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              🎉 Eventos
-            </button>
-            <button className="flex items-center px-1 text-sm font-medium text-gray-600 hover:text-gray-800">
-              👁️ Vista Consolidada
-            </button>
-          </div>
-        </div>
-      </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      <Sidebar
+        usuario={usuario}
+        paginaActiva="anuncios"
+        onMenuClick={handleMenuClick}
+        onCerrarSesion={handleCerrarSesion}
+      />
+
+      <div className="pt-14 pl-14 bg-white min-h-screen">
+      <main className="px-4 sm:px-6 lg:px-8 pt-8">
         <div className="space-y-8">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-4">
@@ -493,6 +427,15 @@ const AnunciosPage = () => {
           </div>
         </div>
       </main>
+      </div>
+
+      {activeConfigView === "mi-perfil" && (
+        <GestionPerfilCoordinador onClose={() => setActiveConfigView("")} />
+      )}
+      {activeConfigView === "cambiar-contrasena" && (
+        <CambiarContrasenaCoordinador onClose={() => setActiveConfigView("")} />
+      )}
+
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="relative max-w-5xl max-h-full">
@@ -513,12 +456,6 @@ const AnunciosPage = () => {
           </div>
         </div>
       )}
-      <ConfigSidebar
-        isOpen={configSidebarOpen}
-        onClose={() => setConfigSidebarOpen(false)}
-        onNavigate={handleMenuClick}
-        isDeveloper={usuario?.tipo === "developer"}
-      />
     </div>
   );
 };
