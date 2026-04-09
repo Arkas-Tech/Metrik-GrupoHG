@@ -1558,79 +1558,11 @@ export default function DashboardGeneral({
     return { pisos, cotizaciones, solicitudes, ventas };
   }, [funnelPisosData, agenciaSeleccionada, marcasPermitidas]);
 
-  // Datos para Presencia Tradicional — filtra por año + mes global.
-  // Usa rango de fechas de la sección Temporalidad del template (si existe):
-  //   - 1 fecha  → presencia activa desde esa fecha en adelante (onset)
-  //   - 2+ fechas → presencia activa dentro del rango [primera, última]
-  // Fallback: comparación exacta de año+mes contra fecha_instalacion.
-  const presenciaTradicionalData = presencias.filter((presencia) => {
-    if (!filtraPorMarca(presencia.marca)) return false;
-
-    const selectedVal = añoSeleccionado * 12 + filtroMesGlobal;
-
-    // Intentar rango de fechas desde sección Temporalidad del template cacheado
-    if (presencia.datos_extra_json) {
-      try {
-        const extras = JSON.parse(presencia.datos_extra_json);
-        const fv: Record<string, string | number> = extras.fieldValues ?? {};
-        const tmpl = templatesCache[presencia.tipo];
-
-        if (tmpl) {
-          const sec = tmpl.secciones?.find(
-            (s: { activo: boolean; nombre: string }) =>
-              s.activo && s.nombre?.toLowerCase().includes("temporal"),
-          );
-          if (sec) {
-            const dateVals = (
-              (sec as { campos?: Array<{ id: string; tipo: string }> })
-                .campos ?? []
-            )
-              .filter((c) => c.tipo === "fecha")
-              .map((c) => fv[c.id])
-              .filter(
-                (v): v is string =>
-                  typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
-              )
-              .map((s) => {
-                const d = new Date(s + "T00:00:00");
-                return d.getFullYear() * 12 + d.getMonth() + 1;
-              });
-
-            if (dateVals.length === 1) {
-              // Solo fecha de inicio → presencia activa desde esa fecha en adelante
-              return selectedVal >= dateVals[0];
-            }
-            if (dateVals.length >= 2) {
-              const minVal = Math.min(...dateVals);
-              const maxVal = Math.max(...dateVals);
-              return minVal <= selectedVal && selectedVal <= maxVal;
-            }
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
-    // Fallback 1: usar inicio_contrato / termino_contrato si existen
-    if (presencia.inicio_contrato) {
-      const inicioVal = (() => {
-        const d = new Date(presencia.inicio_contrato + "T00:00:00");
-        return d.getFullYear() * 12 + d.getMonth() + 1;
-      })();
-      if (presencia.termino_contrato) {
-        const terminoVal = (() => {
-          const d = new Date(presencia.termino_contrato + "T00:00:00");
-          return d.getFullYear() * 12 + d.getMonth() + 1;
-        })();
-        return inicioVal <= selectedVal && selectedVal <= terminoVal;
-      }
-      return selectedVal >= inicioVal;
-    }
-
-    // Fallback 2: si no hay info de fechas, mostrar la presencia siempre
-    return true;
-  });
+  // Datos para Presencia Tradicional — filtra solo por marca/agencia.
+  // En el dashboard se muestran TODAS las presencias sin importar fechas.
+  const presenciaTradicionalData = presencias.filter((presencia) =>
+    filtraPorMarca(presencia.marca),
+  );
 
   // Presencias por subcategoría (comparación case-insensitive)
   const presenciasPorSubcategoria = (subcategoria: string) =>
@@ -4068,7 +4000,8 @@ export default function DashboardGeneral({
               </div>
             </div>
 
-            {(cargandoPresencias || cargandoSubcategorias) && presenciaTradicionalData.length === 0 ? (
+            {(cargandoPresencias || cargandoSubcategorias) &&
+            presenciaTradicionalData.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
                 <p className="text-sm">Cargando presencias...</p>
