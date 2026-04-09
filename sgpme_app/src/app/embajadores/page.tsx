@@ -21,7 +21,6 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { CheckCircleIcon as CheckCircleSolid } from "@heroicons/react/24/solid";
-import Sidebar from "@/components/Sidebar";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 import Image from "next/image";
@@ -140,8 +139,6 @@ export default function EmbajadoresPage() {
 
   const isAdmin =
     usuario?.tipo === "administrador" || usuario?.tipo === "developer";
-  const isCoordinador = usuario?.tipo === "coordinador";
-  const mostrarMenu = isAdmin || isCoordinador;
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -908,7 +905,6 @@ export default function EmbajadoresPage() {
         </div>
       )}
 
-      </main>
       </div>
 
       {activeConfigView === "mi-perfil" && (
