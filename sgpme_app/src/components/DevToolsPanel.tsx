@@ -131,8 +131,13 @@ function formatUptime(ms: number): string {
 
 function timeAgo(isoString: string | null): string {
   if (!isoString) return "Nunca";
-  const diff = Date.now() - new Date(isoString).getTime();
+  // Ensure the string is parsed as UTC (append Z if no timezone info present)
+  const normalized = /[Zz]$|[+-]\d{2}:\d{2}$/.test(isoString)
+    ? isoString
+    : isoString + "Z";
+  const diff = Date.now() - new Date(normalized).getTime();
   const seconds = Math.floor(diff / 1000);
+  if (seconds < 0) return "ahora";
   if (seconds < 60) return `hace ${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `hace ${minutes}m`;
