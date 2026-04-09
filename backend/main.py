@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 import asyncio
 import time
@@ -13,6 +14,9 @@ from starlette.responses import JSONResponse
 
 # Cargar variables de entorno
 load_dotenv()
+
+# Bounded thread pool for request logging — prevents unbounded thread creation under load
+_log_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="reqlog")
 
 
 @asynccontextmanager
@@ -238,14 +242,15 @@ async def request_logging_middleware(request: Request, call_next):
         duration_ms = round((time.time() - start) * 1000, 2)
         path = request.url.path
 
-        skip_paths = ['/docs', '/openapi.json', '/redoc', '/favicon.ico']
+        skip_paths = ['/docs', '/openapi.json', '/redoc', '/favicon.ico',
+                      '/dev/system-status', '/dev/users-diagnostic', '/maintenance/status']
         if not any(path.startswith(sp) for sp in skip_paths):
             auth_header = request.headers.get('authorization', '')
             client_host = request.client.host if request.client else None
-            # Fire-and-forget in thread pool — response is returned immediately
-            loop = asyncio.get_event_loop()
+            # Bounded thread pool — prevents memory growth under high request load
+            loop = asyncio.get_running_loop()
             loop.run_in_executor(
-                None,
+                _log_executor,
                 _log_request_sync,
                 request.method, path, status_code, duration_ms,
                 auth_header, error_detail, client_host,
