@@ -47,20 +47,8 @@ export const usePresencias = () => {
   const [presencias, setPresencias] = useState<Presencia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
+  const { marcaSeleccionada } = useMarcaGlobal();
   const abortRef = useRef<AbortController | null>(null);
-
-  const filterByMarcas = useCallback(
-    (data: Presencia[]) => {
-      if (!marcaSeleccionada && marcasPermitidas.length > 0) {
-        return data.filter((p) =>
-          p.agencia ? marcasPermitidas.includes(p.agencia) : false,
-        );
-      }
-      return data;
-    },
-    [marcaSeleccionada, marcasPermitidas],
-  );
 
   const cargarPresencias = useCallback(async () => {
     const cacheKey = `presencias:${marcaSeleccionada || "all"}`;
@@ -68,7 +56,7 @@ export const usePresencias = () => {
     // Return stale data immediately if available
     const stale = getStale<Presencia[]>(cacheKey);
     if (stale) {
-      setPresencias(filterByMarcas(stale));
+      setPresencias(stale);
       setCargando(false);
     }
 
@@ -109,7 +97,7 @@ export const usePresencias = () => {
 
       if (!controller.signal.aborted && Array.isArray(data)) {
         setCache(cacheKey, data, url);
-        setPresencias(filterByMarcas(data));
+        setPresencias(data);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
@@ -117,7 +105,7 @@ export const usePresencias = () => {
     } finally {
       if (!controller.signal.aborted) setCargando(false);
     }
-  }, [marcaSeleccionada, marcasPermitidas, filterByMarcas]);
+  }, [marcaSeleccionada]);
 
   const crearPresencia = async (presenciaData: Record<string, unknown>) => {
     try {
