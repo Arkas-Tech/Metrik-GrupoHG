@@ -57,6 +57,8 @@ class EventoRequest(BaseModel):
     presupuesto_real: Optional[float] = None
     observaciones: Optional[str] = None
     datos_confirmacion: Optional[str] = None  # JSON string
+
+class EventoResponse(BaseModel):
     id: int
     nombre: str
     descripcion: Optional[str]
