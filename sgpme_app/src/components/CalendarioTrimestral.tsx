@@ -37,11 +37,20 @@ const MESES = [
 
 const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 
-const COLORES_ESTADO = {
-  Realizado: "bg-green-100 text-green-800 border-green-300",
-  Confirmado: "bg-blue-100 text-blue-800 border-blue-300",
-  Prospectado: "bg-purple-100 text-purple-800 border-purple-300",
-  Cancelado: "bg-red-100 text-red-800 border-red-300",
+const obtenerColorAgencia = (marca: string | string[]): { bg: string; text: string; border: string } => {
+  const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
+  if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white", border: "border-red-700" };
+  if (m.includes("kia")) return { bg: "bg-black", text: "text-white", border: "border-gray-800" };
+  if (m.includes("gwm")) return { bg: "bg-gray-300", text: "text-gray-800", border: "border-gray-400" };
+  if (m.includes("subaru")) return { bg: "bg-blue-600", text: "text-white", border: "border-blue-700" };
+  if (m.includes("seminuevo")) return { bg: "bg-orange-700", text: "text-white", border: "border-orange-800" };
+  return { bg: "bg-gray-500", text: "text-white", border: "border-gray-600" };
+};
+
+const obtenerEmojiEstado = (estado: string): string => {
+  if (estado === "Prospectado") return "🔎 ";
+  if (estado === "Confirmado") return "✅ ";
+  return "";
 };
 
 const parsearFecha = (fechaString: string) => {
@@ -350,15 +359,7 @@ export default function CalendarioTrimestral({
                             {eventosDelDia.slice(0, 3).map((evento, idx) => (
                               <div
                                 key={idx}
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  evento.estado === "Realizado"
-                                    ? "bg-green-500"
-                                    : evento.estado === "Confirmado"
-                                      ? "bg-blue-500"
-                                      : evento.estado === "Prospectado"
-                                        ? "bg-purple-500"
-                                        : "bg-red-500"
-                                }`}
+                                className={`w-1.5 h-1.5 rounded-full ${obtenerColorAgencia(evento.marca).bg}`}
                                 title={evento.nombre}
                               />
                             ))}
@@ -397,12 +398,10 @@ export default function CalendarioTrimestral({
                     setEventosDelDiaSeleccionado([evento]);
                     setModalAbierto(true);
                   }}
-                  className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${
-                    COLORES_ESTADO[evento.estado as keyof typeof COLORES_ESTADO]
-                  }`}
+                  className={`flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer hover:shadow-md ${obtenerColorAgencia(evento.marca).bg} ${obtenerColorAgencia(evento.marca).text} ${obtenerColorAgencia(evento.marca).border}`}
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{evento.nombre}</div>
+                    <div className="font-medium text-sm">{obtenerEmojiEstado(evento.estado)}{evento.nombre}</div>
                     <div className="text-xs text-gray-600">
                       {formatearMarca(evento.marca)} • {evento.fechaInicio}
                     </div>

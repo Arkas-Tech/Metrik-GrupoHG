@@ -34,11 +34,20 @@ const MESES_CORTOS = [
   "Dic",
 ];
 
-const COLORES_ESTADO = {
-  Realizado: "bg-green-500",
-  Confirmado: "bg-blue-500",
-  Prospectado: "bg-purple-500",
-  Cancelado: "bg-red-500",
+const obtenerColorAgencia = (marca: string | string[]): { bg: string; text: string } => {
+  const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
+  if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white" };
+  if (m.includes("kia")) return { bg: "bg-black", text: "text-white" };
+  if (m.includes("gwm")) return { bg: "bg-gray-300", text: "text-gray-800" };
+  if (m.includes("subaru")) return { bg: "bg-blue-600", text: "text-white" };
+  if (m.includes("seminuevo")) return { bg: "bg-orange-700", text: "text-white" };
+  return { bg: "bg-gray-500", text: "text-white" };
+};
+
+const obtenerEmojiEstado = (estado: string): string => {
+  if (estado === "Prospectado") return "🔎 ";
+  if (estado === "Confirmado") return "✅ ";
+  return "";
 };
 
 const parsearFecha = (fechaString: string) => {
@@ -388,14 +397,10 @@ export default function CalendarioAnual({
                           className="flex items-center space-x-1 cursor-pointer hover:bg-gray-50 p-1 rounded text-xs"
                         >
                           <div
-                            className={`w-2 h-2 rounded-full shrink-0 ${
-                              COLORES_ESTADO[
-                                evento.estado as keyof typeof COLORES_ESTADO
-                              ]
-                            }`}
+                            className={`w-2 h-2 rounded-full shrink-0 ${obtenerColorAgencia(evento.marca).bg}`}
                           />
                           <span className="truncate text-gray-700">
-                            {evento.nombre}
+                            {obtenerEmojiEstado(evento.estado)}{evento.nombre}
                           </span>
                         </div>
                       ))}
@@ -427,26 +432,7 @@ export default function CalendarioAnual({
           })}
         </div>
       </div>
-      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-center space-x-6 text-xs text-gray-900">
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span>Realizado</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span>Confirmado</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-            <span>Prospectado</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span>Cancelado</span>
-          </div>
-        </div>
-      </div>
+
 
       <ModalEventosDia
         isOpen={modalAbierto}

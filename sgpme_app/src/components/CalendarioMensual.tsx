@@ -127,19 +127,20 @@ export default function CalendarioMensual({
     });
   };
 
-  const obtenerColorEvento = (evento: Evento) => {
-    switch (evento.estado) {
-      case "Realizado":
-        return "bg-green-500";
-      case "Confirmado":
-        return "bg-blue-500";
-      case "Prospectado":
-        return "bg-purple-500";
-      case "Cancelado":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
+  const obtenerColorAgencia = (marca: string | string[]): { bg: string; text: string } => {
+    const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
+    if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white" };
+    if (m.includes("kia")) return { bg: "bg-black", text: "text-white" };
+    if (m.includes("gwm")) return { bg: "bg-gray-300", text: "text-gray-800" };
+    if (m.includes("subaru")) return { bg: "bg-blue-600", text: "text-white" };
+    if (m.includes("seminuevo")) return { bg: "bg-orange-700", text: "text-white" };
+    return { bg: "bg-gray-500", text: "text-white" };
+  };
+
+  const obtenerEmojiEstado = (estado: string): string => {
+    if (estado === "Prospectado") return "🔎 ";
+    if (estado === "Confirmado") return "✅ ";
+    return "";
   };
 
   const nombreMes = fechaActual.toLocaleDateString("es-ES", {
@@ -309,12 +310,10 @@ export default function CalendarioMensual({
                   {eventosDelDia.slice(0, 3).map((evento, index) => (
                     <div
                       key={`${evento.id}-${index}`}
-                      className={`text-xs p-1 rounded text-white truncate ${obtenerColorEvento(
-                        evento,
-                      )}`}
+                      className={`text-xs p-1 rounded truncate ${obtenerColorAgencia(evento.marca).bg} ${obtenerColorAgencia(evento.marca).text}`}
                       title={evento.nombre}
                     >
-                      {evento.nombre}
+                      {obtenerEmojiEstado(evento.estado)}{evento.nombre}
                     </div>
                   ))}
                   {eventosDelDia.length > 3 && (
@@ -328,29 +327,7 @@ export default function CalendarioMensual({
           })}
         </div>
       </div>
-      <div className="bg-gray-50 p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-          Estado de Eventos:
-        </h4>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span className="text-sm text-gray-600">Realizado</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded"></div>
-            <span className="text-sm text-gray-600">Confirmado</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-purple-500 rounded"></div>
-            <span className="text-sm text-gray-600">Prospectado</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span className="text-sm text-gray-600">Cancelado</span>
-          </div>
-        </div>
-      </div>
+
 
       <ModalEventosDia
         isOpen={modalAbierto}
