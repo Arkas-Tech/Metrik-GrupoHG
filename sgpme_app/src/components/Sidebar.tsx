@@ -143,6 +143,8 @@ export default function Sidebar({
     },
   ];
 
+  const sidebarRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -150,6 +152,14 @@ export default function Sidebar({
         !userMenuRef.current.contains(e.target as Node)
       ) {
         setUserMenuOpen(false);
+        // also collapse sidebar if mouse is not over it
+        if (
+          sidebarRef.current &&
+          !sidebarRef.current.contains(e.target as Node)
+        ) {
+          setIsExpanded(false);
+          setAgenciaOpen(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -169,13 +179,14 @@ export default function Sidebar({
 
   return (
     <aside
+      ref={sidebarRef}
       className={`fixed top-14 left-0 bottom-0 z-20 flex flex-col bg-gray-100 border-r border-gray-200 transition-all duration-200 ease-in-out ${
         isExpanded ? "w-52 shadow-lg" : "w-14"
       }`}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => {
+        if (userMenuOpen) return;
         setIsExpanded(false);
-        setUserMenuOpen(false);
         setAgenciaOpen(false);
       }}
     >
