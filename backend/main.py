@@ -30,13 +30,14 @@ async def lifespan(app):
                 if not result.fetchone():
                     conn.execute(text(f"ALTER TABLE embajadores ADD COLUMN {col} {coltype}"))
                     conn.commit()
-            # Eventos columns (horario, audiencia_esperada, demografia, nse)
+            # Eventos columns (horario, audiencia_esperada, demografia, nse, datos_confirmacion)
             for col, coltype in [
                 ("horario", "VARCHAR(200)"),
                 ("audiencia_esperada", "INTEGER"),
                 ("demografia", "TEXT"),
                 ("nse", "VARCHAR(50)"),
                 ("numero_autos", "INTEGER"),
+                ("datos_confirmacion", "TEXT"),
             ]:
                 result = conn.execute(text(
                     f"SELECT column_name FROM information_schema.columns "
