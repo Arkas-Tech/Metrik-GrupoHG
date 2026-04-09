@@ -136,7 +136,13 @@ export default function BriefTemplate({
               </div>
               <div className="flex items-center">
                 <MapPinIcon className="h-5 w-5 mr-2" />
-                <span>{evento.ubicacion}</span>
+                <span>{(() => {
+                  try {
+                    const p = JSON.parse(evento.ubicacion || "");
+                    if (p && typeof p.lat === "number") return p.address || evento.ubicacion;
+                  } catch {}
+                  return evento.ubicacion;
+                })()}</span>
               </div>
               <div className="flex items-center">
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">

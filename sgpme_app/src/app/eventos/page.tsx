@@ -18,6 +18,7 @@ import BriefTemplate from "@/components/BriefTemplate";
 import CalendarioTrimestral from "@/components/CalendarioTrimestral";
 import CalendarioAnual from "@/components/CalendarioAnual";
 import CalendarioMensual from "@/components/CalendarioMensual";
+import UbicacionDisplay from "@/components/UbicacionDisplay";
 import { Evento, FiltrosEvento, BriefEvento } from "@/types";
 import {
   eventoPerteneceAMarca,
@@ -1212,9 +1213,19 @@ export default function EventosPage() {
                                         <span className="text-gray-600">
                                           Ubicación:
                                         </span>{" "}
-                                        <span className="text-gray-900">
-                                          {evento.ubicacion}
-                                        </span>
+                                        {(() => {
+                                          try {
+                                            const p = JSON.parse(evento.ubicacion || "");
+                                            if (p && typeof p.lat === "number") {
+                                              return <UbicacionDisplay value={p} />;
+                                            }
+                                          } catch {}
+                                          return (
+                                            <span className="text-gray-900">
+                                              {evento.ubicacion || "Sin ubicación"}
+                                            </span>
+                                          );
+                                        })()}
                                       </div>
                                       {evento.numeroAutos != null &&
                                         evento.numeroAutos > 0 && (

@@ -734,7 +734,10 @@ export function useEventos() {
         ) as HTMLElement;
 
         if (!briefElement) {
-          showToast("No se encontró el contenido del brief para exportar", "error");
+          showToast(
+            "No se encontró el contenido del brief para exportar",
+            "error",
+          );
           return false;
         }
 
@@ -870,7 +873,8 @@ export function useEventos() {
           addSpace(3);
           addText(`Objetivo: ${evento.objetivo || "No especificado"}`, 12);
           addText(`Audiencia: ${evento.audiencia || "No especificado"}`, 12);
-          addText(`Ubicación: ${evento.ubicacion || "No especificado"}`, 12);
+          const ubicacionTexto1 = (() => { try { const p = JSON.parse(evento.ubicacion || ""); if (p && typeof p.lat === "number") return p.address || evento.ubicacion; } catch {} return evento.ubicacion || "No especificado"; })();
+          addText(`Ubicación: ${ubicacionTexto1}`, 12);
           addText(
             `Presupuesto Estimado: ${new Intl.NumberFormat("es-MX", {
               style: "currency",
@@ -1138,7 +1142,10 @@ export function useEventos() {
       } catch (err) {
         console.error("Error al exportar PDF:", err);
         setError(err instanceof Error ? err.message : "Error al exportar PDF");
-        showToast("Error al generar el PDF. Por favor, inténtalo de nuevo.", "error");
+        showToast(
+          "Error al generar el PDF. Por favor, inténtalo de nuevo.",
+          "error",
+        );
         return false;
       }
     },
@@ -1222,7 +1229,8 @@ export function useEventos() {
         addField("Responsable", evento.responsable);
         addField("Marca/Agencia", marcaTexto);
         addField("Horario", evento.horario || "");
-        addField("Ubicación", evento.ubicacion || "");
+        const ubicacionTexto2 = (() => { try { const p = JSON.parse(evento.ubicacion || ""); if (p && typeof p.lat === "number") return p.address || evento.ubicacion || ""; } catch {} return evento.ubicacion || ""; })();
+        addField("Ubicación", ubicacionTexto2);
         addSpace(5);
 
         // Fechas
@@ -1334,7 +1342,10 @@ export function useEventos() {
         return true;
       } catch (err) {
         console.error("Error al exportar PDF del evento:", err);
-        showToast("Error al generar el PDF. Por favor, inténtalo de nuevo.", "error");
+        showToast(
+          "Error al generar el PDF. Por favor, inténtalo de nuevo.",
+          "error",
+        );
         return false;
       }
     },

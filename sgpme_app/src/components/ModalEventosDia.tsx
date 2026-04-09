@@ -173,7 +173,13 @@ export default function ModalEventosDia({
                                 </div>
                                 <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
                                   <span>
-                                    📍 {evento.ubicacion || "Sin ubicación"}
+                                    📍 {(() => {
+                                      try {
+                                        const p = JSON.parse(evento.ubicacion || "");
+                                        if (p && typeof p.lat === "number") return p.address || "Sin ubicación";
+                                      } catch {}
+                                      return evento.ubicacion || "Sin ubicación";
+                                    })()}
                                   </span>
                                   <span>🏢 {formatearMarca(evento.marca)}</span>
                                   <span>
