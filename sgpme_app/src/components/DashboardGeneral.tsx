@@ -4042,15 +4042,30 @@ export default function DashboardGeneral({
               <h2 className="text-2xl font-bold text-gray-900">
                 Presencia tradicional
               </h2>
-              <button
-                onClick={() => {
-                  /* Ver todos - navegar a vista completa */
-                }}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-500 transition-colors"
-              >
-                VER TODOS
-                <CopyPlus className="h-4 w-4 text-red-500" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push("/presencias")}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-500 transition-colors"
+                >
+                  VER TODOS
+                </button>
+                <button
+                  onClick={() => {
+                    setSubcategoriaPresenciaModal(subcategoriaPresenciaFiltro);
+                    setPresenciaEditando(null);
+                    setModalFormularioPresencia(true);
+                  }}
+                  disabled={subcategoriaPresenciaFiltro === "all"}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    subcategoriaPresenciaFiltro === "all"
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-red-500 text-white hover:bg-red-600 shadow-sm"
+                  }`}
+                >
+                  <CopyPlus className="h-5 w-5" />
+                  Agregar
+                </button>
+              </div>
             </div>
 
             {cargandoPresencias && presencias.length === 0 ? (
