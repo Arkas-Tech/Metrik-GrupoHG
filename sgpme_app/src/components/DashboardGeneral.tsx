@@ -4083,12 +4083,12 @@ export default function DashboardGeneral({
                   }
 
                   return (
-                    <div className="relative">
-                      {/* Navigation Arrows */}
+                    <div className="relative px-10">
+                      {/* Navigation Arrows — centered on image area (h-48=192px → top-24=96px) */}
                       <button
                         onClick={() => navegarPresencia(carouselKey, "prev")}
                         disabled={idx === 0}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        className="absolute left-0 top-24 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                         title="Anterior"
                       >
                         <ChevronLeftIcon className="h-6 w-6 text-gray-700" />
@@ -4096,7 +4096,7 @@ export default function DashboardGeneral({
                       <button
                         onClick={() => navegarPresencia(carouselKey, "next")}
                         disabled={idx + 4 >= todasPresencias.length}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        className="absolute right-0 top-24 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                         title="Siguiente"
                       >
                         <ChevronRightIcon className="h-6 w-6 text-gray-700" />
