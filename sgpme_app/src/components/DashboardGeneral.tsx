@@ -4068,7 +4068,7 @@ export default function DashboardGeneral({
               </div>
             </div>
 
-            {cargandoPresencias && presencias.length === 0 ? (
+            {(cargandoPresencias || cargandoSubcategorias) && presenciaTradicionalData.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
                 <p className="text-sm">Cargando presencias...</p>
@@ -4085,11 +4085,6 @@ export default function DashboardGeneral({
                 >
                   Reintentar
                 </button>
-              </div>
-            ) : cargandoSubcategorias ? (
-              <div className="text-center py-8 text-gray-400">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
-                <p className="text-sm">Cargando presencias...</p>
               </div>
             ) : subcategoriasMediosTradicionales.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -4132,11 +4127,7 @@ export default function DashboardGeneral({
                 {(() => {
                   const todasPresencias =
                     subcategoriaPresenciaFiltro === "all"
-                      ? (presencias || []).filter((p) =>
-                          marcaActual === "TODAS"
-                            ? true
-                            : p.marca === marcaActual,
-                        )
+                      ? presenciaTradicionalData
                       : presenciasPorSubcategoria(subcategoriaPresenciaFiltro);
 
                   const carouselKey =
