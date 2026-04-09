@@ -98,6 +98,7 @@ import {
   CopyPlus,
   Eye,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   CreditCardIcon,
@@ -4200,7 +4201,7 @@ export default function DashboardGeneral({
                                 )}
                               </div>
 
-                              {/* Action buttons — Edit + Preview */}
+                              {/* Action buttons — Edit + Preview + Delete */}
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
@@ -4221,6 +4222,21 @@ export default function DashboardGeneral({
                                   title="Ver detalle"
                                 >
                                   <Eye className="h-4 w-4 text-gray-600" />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (
+                                      !confirm(
+                                        `¿Eliminar "${presencia.nombre}"? Esta acción no se puede deshacer.`,
+                                      )
+                                    )
+                                      return;
+                                    await eliminarPresencia(presencia.id);
+                                  }}
+                                  className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center hover:bg-red-50 transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-400" />
                                 </button>
                               </div>
 
