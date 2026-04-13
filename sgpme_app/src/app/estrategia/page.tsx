@@ -13,6 +13,7 @@ import {
   FiltrosPanel,
 } from "@/components";
 import Sidebar from "@/components/Sidebar";
+import FiltroPeriodoGlobal from "@/components/FiltroPeriodoGlobal";
 import Image from "next/image";
 import {
   ChevronLeftIcon,
@@ -333,6 +334,9 @@ export default function ProyeccionesPage() {
               readOnly
             />
           </div>
+        </div>
+        <div className="ml-auto pr-4 shrink-0">
+          <FiltroPeriodoGlobal />
         </div>
       </header>
 

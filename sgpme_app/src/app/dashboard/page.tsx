@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import DashboardGeneral from "@/components/DashboardGeneral";
 import Sidebar from "@/components/Sidebar";
+import FiltroPeriodoGlobal from "@/components/FiltroPeriodoGlobal";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -115,6 +116,9 @@ export default function Dashboard() {
               readOnly
             />
           </div>
+        </div>
+        <div className="ml-auto pr-4 shrink-0">
+          <FiltroPeriodoGlobal />
         </div>
       </header>
 

@@ -17,6 +17,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import Sidebar from "@/components/Sidebar";
+import FiltroPeriodoGlobal from "@/components/FiltroPeriodoGlobal";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
 import { fetchConToken } from "@/lib/auth-utils";
@@ -107,9 +108,7 @@ const MetricasPage = () => {
   const [mesSeleccionado, setMesSeleccionado] = useState<number | undefined>(
     periodoMes,
   );
-  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(
-    periodoAño,
-  );
+  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(periodoAño);
 
   // Sincronizar con el período global del header
   useEffect(() => {
@@ -393,6 +392,9 @@ const MetricasPage = () => {
               />
             </div>
           </div>
+          <div className="ml-auto pr-4 shrink-0">
+            <FiltroPeriodoGlobal />
+          </div>
         </header>
 
         <Sidebar
@@ -515,6 +517,9 @@ const MetricasPage = () => {
             />
           </div>
         </div>
+        <div className="ml-auto pr-4 shrink-0">
+          <FiltroPeriodoGlobal />
+        </div>
       </header>
 
       <Sidebar
@@ -543,7 +548,24 @@ const MetricasPage = () => {
                   title="Controlado por el filtro de período del header"
                   className="px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed min-w-[130px]"
                 >
-                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesSeleccionado !== undefined ? mesSeleccionado - 1 : new Date().getMonth()] ?? "—"}
+                  {[
+                    "Enero",
+                    "Febrero",
+                    "Marzo",
+                    "Abril",
+                    "Mayo",
+                    "Junio",
+                    "Julio",
+                    "Agosto",
+                    "Septiembre",
+                    "Octubre",
+                    "Noviembre",
+                    "Diciembre",
+                  ][
+                    mesSeleccionado !== undefined
+                      ? mesSeleccionado - 1
+                      : new Date().getMonth()
+                  ] ?? "—"}
                 </div>
                 <div
                   title="Controlado por el filtro de período del header"

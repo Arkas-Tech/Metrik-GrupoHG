@@ -28,6 +28,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import Sidebar from "@/components/Sidebar";
+import FiltroPeriodoGlobal from "@/components/FiltroPeriodoGlobal";
 import Image from "next/image";
 import GestionPerfilCoordinador from "@/components/GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "@/components/CambiarContrasenaCoordinador";
@@ -760,6 +761,9 @@ function FacturasPageContent() {
               readOnly
             />
           </div>
+        </div>
+        <div className="ml-auto pr-4 shrink-0">
+          <FiltroPeriodoGlobal />
         </div>
       </header>
 
