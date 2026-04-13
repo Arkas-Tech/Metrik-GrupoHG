@@ -321,6 +321,8 @@ export default function DashboardGeneral({
       string,
       {
         previewFieldId?: string;
+        inicioPresenciaFieldId?: string;
+        finPresenciaFieldId?: string;
         secciones: Array<{
           nombre: string;
           activo: boolean;
@@ -1548,11 +1550,59 @@ export default function DashboardGeneral({
     return { pisos, cotizaciones, solicitudes, ventas };
   }, [funnelPisosData, agenciaSeleccionada, marcasPermitidas]);
 
-  // Datos para Presencia Tradicional — filtra solo por marca/agencia.
-  // En el dashboard se muestran TODAS las presencias sin importar fechas.
-  const presenciaTradicionalData = presencias.filter((presencia) =>
-    filtraPorMarca(presencia.marca),
-  );
+  // Datos para Presencia Tradicional — filtra por marca/agencia y,
+  // si el template tiene configurados campos de inicio/fin, también por el período global.
+  const presenciaTradicionalData = presencias.filter((presencia) => {
+    if (!filtraPorMarca(presencia.marca)) return false;
+
+    const tmpl = templatesCache[presencia.tipo];
+    const inicioId = tmpl?.inicioPresenciaFieldId;
+    const finId = tmpl?.finPresenciaFieldId;
+
+    // Si el template no tiene campos de período configurados, incluir siempre
+    if (!inicioId && !finId) return true;
+
+    // Parsear datos_extra_json
+    let datosExtra: Record<string, unknown> = {};
+    if (presencia.datos_extra_json) {
+      try {
+        datosExtra = JSON.parse(presencia.datos_extra_json);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // Extraer año y mes de una cadena de fecha "YYYY-MM-DD" o "DD/MM/YYYY"
+    const parseFechaYearMonth = (val: unknown): { year: number; month: number } | null => {
+      if (!val || typeof val !== "string") return null;
+      // ISO format YYYY-MM-DD
+      const iso = val.match(/^(\d{4})-(\d{2})/);
+      if (iso) return { year: parseInt(iso[1]), month: parseInt(iso[2]) };
+      // DD/MM/YYYY
+      const dmy = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (dmy) return { year: parseInt(dmy[3]), month: parseInt(dmy[2]) };
+      return null;
+    };
+
+    const inicioFecha = inicioId ? parseFechaYearMonth(datosExtra[inicioId]) : null;
+    const finFecha = finId ? parseFechaYearMonth(datosExtra[finId]) : null;
+
+    // Si no hay ninguna fecha válida, incluir (no filtrar algo sin info)
+    if (!inicioFecha && !finFecha) return true;
+
+    // Verificar que al menos uno de los meses del período solape con la presencia
+    return mesesPeriodo.some((m) => {
+      const periodoAnio = añoSeleccionado;
+      const periodoMesVal = m;
+
+      // Fecha como número: año*12 + mes-1 (para comparación ordinal)
+      const periodoOrd = periodoAnio * 12 + periodoMesVal - 1;
+      const inicioOrd = inicioFecha ? inicioFecha.year * 12 + inicioFecha.month - 1 : -Infinity;
+      const finOrd = finFecha ? finFecha.year * 12 + finFecha.month - 1 : Infinity;
+
+      return periodoOrd >= inicioOrd && periodoOrd <= finOrd;
+    });
+  });
 
   // Presencias por subcategoría (comparación case-insensitive)
   const presenciasPorSubcategoria = (subcategoria: string) =>

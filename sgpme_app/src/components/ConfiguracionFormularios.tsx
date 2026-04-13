@@ -56,6 +56,10 @@ export interface FormTemplateData {
   subcategoria: string;
   secciones: SeccionConfig[];
   previewFieldId?: string;
+  /** ID del campo de fecha que indica el inicio de la presencia (para filtro de período) */
+  inicioPresenciaFieldId?: string;
+  /** ID del campo de fecha que indica el fin de la presencia (para filtro de período) */
+  finPresenciaFieldId?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -896,6 +900,67 @@ export default function ConfiguracionFormularios({
                           </option>
                         ))}
                       </select>
+                    </div>
+                  );
+                })()}
+
+                {/* Inicio / Fin de presencia (para filtro de período) */}
+                {(() => {
+                  const dateFields = template.secciones
+                    .filter((s) => s.activo)
+                    .flatMap((s) => s.campos.filter((c) => c.tipo === "fecha"));
+                  if (dateFields.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl">
+                      <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">
+                        Período de presencia (filtro global)
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-orange-800 shrink-0 w-36">
+                          Inicio de presencia:
+                        </span>
+                        <select
+                          value={template.inicioPresenciaFieldId ?? ""}
+                          onChange={(e) =>
+                            setTemplate((prev) =>
+                              prev
+                                ? { ...prev, inicioPresenciaFieldId: e.target.value || undefined }
+                                : prev,
+                            )
+                          }
+                          className="flex-1 px-3 py-1.5 border border-orange-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="">— No configurado —</option>
+                          {dateFields.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.etiqueta}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-orange-800 shrink-0 w-36">
+                          Fin de presencia:
+                        </span>
+                        <select
+                          value={template.finPresenciaFieldId ?? ""}
+                          onChange={(e) =>
+                            setTemplate((prev) =>
+                              prev
+                                ? { ...prev, finPresenciaFieldId: e.target.value || undefined }
+                                : prev,
+                            )
+                          }
+                          className="flex-1 px-3 py-1.5 border border-orange-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          <option value="">— No configurado —</option>
+                          {dateFields.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.etiqueta}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   );
                 })()}
