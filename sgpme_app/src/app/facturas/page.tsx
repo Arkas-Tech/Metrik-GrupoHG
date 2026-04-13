@@ -7,6 +7,7 @@ import { useProveedoresAPI as useProveedores } from "@/hooks/useProveedoresAPI";
 import { useEventos } from "@/hooks/useEventos";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
 import {
   Factura,
   Proveedor,
@@ -42,6 +43,7 @@ function FacturasPageContent() {
     loading: authLoading,
   } = useAuth();
   const { filtraPorMarca } = useMarcaGlobal();
+  const { mes: periodoMes, año: periodoAño } = usePeriodo();
   // Función para obtener la vista inicial basada en parámetros de URL
   const getInitialView = () => {
     if (typeof window !== "undefined") {
@@ -99,9 +101,18 @@ function FacturasPageContent() {
   const [filtros, setFiltros] = useState<FiltrosFactura>({
     estado: "Todas",
     busqueda: "",
-    mes: mesActual,
-    año: añoActual,
+    mes: MESES[periodoMes - 1],
+    año: periodoAño,
   });
+
+  // Sincronizar filtros de período con el filtro global del header
+  useEffect(() => {
+    setFiltros((prev) => ({
+      ...prev,
+      mes: MESES[periodoMes - 1],
+      año: periodoAño,
+    }));
+  }, [periodoMes, periodoAño]);
   const [activeConfigView, setActiveConfigView] = useState("");
 
   // Estados para popup de comprobante de pago

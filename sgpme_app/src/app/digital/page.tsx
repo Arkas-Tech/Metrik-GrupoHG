@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
 import {
   ArrowTrendingUpIcon,
   CalendarIcon,
@@ -77,6 +78,7 @@ const MetricasPage = () => {
     loading: authLoading,
   } = useAuth();
   const { marcaSeleccionada, filtraPorMarca } = useMarcaGlobal();
+  const { mes: periodoMes, año: periodoAño } = usePeriodo();
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva-presencia"
   >("dashboard");
@@ -103,11 +105,17 @@ const MetricasPage = () => {
   >([]);
 
   const [mesSeleccionado, setMesSeleccionado] = useState<number | undefined>(
-    undefined,
+    periodoMes,
   );
   const [anioSeleccionado, setAnioSeleccionado] = useState<number>(
-    new Date().getFullYear(),
+    periodoAño,
   );
+
+  // Sincronizar con el período global del header
+  useEffect(() => {
+    setMesSeleccionado(periodoMes);
+    setAnioSeleccionado(periodoAño);
+  }, [periodoMes, periodoAño]);
 
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
 
@@ -531,45 +539,21 @@ const MetricasPage = () => {
                 <label className="text-sm font-medium text-gray-900">
                   Filtrar por período:
                 </label>
-                <select
-                  value={mesSeleccionado ?? ""}
-                  onChange={(e) =>
-                    setMesSeleccionado(
-                      e.target.value === ""
-                        ? undefined
-                        : Number(e.target.value),
-                    )
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
+                <div
+                  title="Controlado por el filtro de período del header"
+                  className="px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed min-w-[130px]"
                 >
-                  <option value="">Todos los meses</option>
-                  <option value={1}>Enero</option>
-                  <option value={2}>Febrero</option>
-                  <option value={3}>Marzo</option>
-                  <option value={4}>Abril</option>
-                  <option value={5}>Mayo</option>
-                  <option value={6}>Junio</option>
-                  <option value={7}>Julio</option>
-                  <option value={8}>Agosto</option>
-                  <option value={9}>Septiembre</option>
-                  <option value={10}>Octubre</option>
-                  <option value={11}>Noviembre</option>
-                  <option value={12}>Diciembre</option>
-                </select>
-                <select
-                  value={anioSeleccionado}
-                  onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900"
+                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mesSeleccionado !== undefined ? mesSeleccionado - 1 : new Date().getMonth()] ?? "—"}
+                </div>
+                <div
+                  title="Controlado por el filtro de período del header"
+                  className="px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed"
                 >
-                  {Array.from(
-                    { length: 5 },
-                    (_, i) => new Date().getFullYear() - i,
-                  ).map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
+                  {anioSeleccionado}
+                </div>
+                <span className="text-xs text-blue-600">
+                  📅 Controlado por el filtro del header
+                </span>
               </div>
             </div>
 

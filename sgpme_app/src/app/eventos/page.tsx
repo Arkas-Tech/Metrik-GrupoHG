@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuthUnified";
 import { useEventos } from "@/hooks/useEventos";
 import { useFacturasAPI as useFacturas } from "@/hooks/useFacturasAPI";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
 import FormularioEvento from "@/components/FormularioEvento";
 import FormularioBrief from "@/components/FormularioBrief";
 import BriefTemplate from "@/components/BriefTemplate";
@@ -56,6 +57,16 @@ export default function EventosPage() {
   } = useEventos();
   const { facturas } = useFacturas();
   const { marcaSeleccionada, marcasPermitidas } = useMarcaGlobal();
+  const { mes: periodoMes, año: periodoAño } = usePeriodo();
+
+  // Sincronizar filtros de eventos con el período global del header
+  useEffect(() => {
+    setFiltros((prev) => ({
+      ...prev,
+      mes: String(periodoMes),
+      año: periodoAño,
+    }));
+  }, [periodoMes, periodoAño]);
 
   const [vistaActual, setVistaActual] = useState<
     | "dashboard"
@@ -74,8 +85,8 @@ export default function EventosPage() {
   >("mensual");
   const [filtros, setFiltros] = useState<FiltrosEvento>({
     estado: "Todos",
-    mes: String(new Date().getMonth() + 1),
-    año: new Date().getFullYear(),
+    mes: String(periodoMes),
+    año: periodoAño,
   });
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -655,65 +666,49 @@ export default function EventosPage() {
                 </div>
               </div>
 
-              {/* Sección de Filtros */}
+              {/* Sección de Filtros — Mes y Año controlados por el filtro global del header */}
               <div className="bg-white rounded-lg shadow mb-6 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-1">
                   Filtros
                 </h3>
+                <p className="text-xs text-blue-600 mb-4">
+                  📅 Mes y año controlados por el filtro global del header
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Año
                     </label>
-                    <select
-                      value={filtros.año ?? ""}
-                      onChange={(e) =>
-                        setFiltros({
-                          ...filtros,
-                          año:
-                            e.target.value === ""
-                              ? null
-                              : parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"
+                    <div
+                      title="Controlado por el filtro de período del header"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed"
                     >
-                      <option value="">Todos</option>
-                      {Array.from(
-                        { length: 5 },
-                        (_, i) => new Date().getFullYear() - 2 + i,
-                      ).map((año) => (
-                        <option key={año} value={año}>
-                          {año}
-                        </option>
-                      ))}
-                    </select>
+                      {filtros.año ?? "—"}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Mes
                     </label>
-                    <select
-                      value={filtros.mes}
-                      onChange={(e) =>
-                        setFiltros({ ...filtros, mes: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900"
+                    <div
+                      title="Controlado por el filtro de período del header"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed"
                     >
-                      <option value="">Todos</option>
-                      <option value="1">Enero</option>
-                      <option value="2">Febrero</option>
-                      <option value="3">Marzo</option>
-                      <option value="4">Abril</option>
-                      <option value="5">Mayo</option>
-                      <option value="6">Junio</option>
-                      <option value="7">Julio</option>
-                      <option value="8">Agosto</option>
-                      <option value="9">Septiembre</option>
-                      <option value="10">Octubre</option>
-                      <option value="11">Noviembre</option>
-                      <option value="12">Diciembre</option>
-                    </select>
+                      {[
+                        "Enero",
+                        "Febrero",
+                        "Marzo",
+                        "Abril",
+                        "Mayo",
+                        "Junio",
+                        "Julio",
+                        "Agosto",
+                        "Septiembre",
+                        "Octubre",
+                        "Noviembre",
+                        "Diciembre",
+                      ][parseInt(filtros.mes || "0") - 1] || "—"}
+                    </div>
                   </div>
                 </div>
               </div>

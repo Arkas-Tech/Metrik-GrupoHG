@@ -5,6 +5,8 @@ import { FiltrosProyeccion, MESES, AÑOS } from "@/types";
 interface FiltrosPanelProps {
   filtros: FiltrosProyeccion;
   onFiltrosChange: (filtros: FiltrosProyeccion) => void;
+  /** Si true, los controles de mes y año son de solo lectura (controlados por filtro global) */
+  disabled?: boolean;
 }
 
 const TRIMESTRES = {
@@ -17,6 +19,7 @@ const TRIMESTRES = {
 export default function FiltrosPanel({
   filtros,
   onFiltrosChange,
+  disabled = false,
 }: FiltrosPanelProps) {
   const mesesSeleccionados = filtros.meses || [];
 
@@ -89,7 +92,12 @@ export default function FiltrosPanel({
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
-        {tieneFiltrosActivos && (
+        {disabled && (
+          <span className="text-xs text-blue-600 font-medium">
+            📅 Controlado por header
+          </span>
+        )}
+        {!disabled && tieneFiltrosActivos && (
           <button
             onClick={limpiarFiltros}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -99,7 +107,9 @@ export default function FiltrosPanel({
         )}
       </div>
 
-      <div className="space-y-6">
+      <div
+        className={`space-y-6 ${disabled ? "pointer-events-none opacity-60 select-none" : ""}`}
+      >
         {/* Año */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

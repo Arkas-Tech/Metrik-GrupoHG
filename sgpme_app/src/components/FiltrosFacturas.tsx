@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Factura, FiltrosFactura, MESES, AÑOS } from "@/types";
 import { useCategorias } from "@/hooks/useCategorias";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
 import DateInput from "./DateInput";
 
 interface FiltrosFacturasProps {
@@ -19,6 +20,7 @@ export default function FiltrosFacturas({
 }: FiltrosFacturasProps) {
   const { nombresCategorias, loading: loadingCategorias } = useCategorias();
   const { filtraPorMarca } = useMarcaGlobal();
+  const { etiquetaPeriodo } = usePeriodo();
 
   // Obtener mes y año actual
   const mesActual = MESES[new Date().getMonth()];
@@ -209,19 +211,12 @@ export default function FiltrosFacturas({
             >
               Mes
             </label>
-            <select
-              id="mes"
-              value={filtros.mes || ""}
-              onChange={(e) => handleFiltroChange("mes", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            <div
+              title="Controlado por el filtro de período del header"
+              className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed select-none"
             >
-              <option value="">Todos los meses</option>
-              {MESES.map((mes) => (
-                <option key={mes} value={mes}>
-                  {mes}
-                </option>
-              ))}
-            </select>
+              {filtros.mes || etiquetaPeriodo}
+            </div>
           </div>
           <div>
             <label
@@ -230,24 +225,12 @@ export default function FiltrosFacturas({
             >
               Año
             </label>
-            <select
-              id="año"
-              value={filtros.año || ""}
-              onChange={(e) =>
-                handleFiltroChange(
-                  "año",
-                  e.target.value ? parseInt(e.target.value) : undefined,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            <div
+              title="Controlado por el filtro de período del header"
+              className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-400 text-sm cursor-not-allowed select-none"
             >
-              <option value="">Todos los años</option>
-              {AÑOS.map((año) => (
-                <option key={año} value={año}>
-                  {año}
-                </option>
-              ))}
-            </select>
+              {filtros.año || new Date().getFullYear()}
+            </div>
           </div>
         </div>
         {mostrarFiltrosAvanzados && (

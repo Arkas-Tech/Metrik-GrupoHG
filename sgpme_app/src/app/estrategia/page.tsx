@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useProyecciones } from "@/hooks/useProyecciones";
 import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo, MESES_COMPLETOS } from "@/contexts/PeriodoContext";
 import { FiltrosProyeccion, Proyeccion } from "@/types";
 import {
   FormularioProyeccion,
@@ -32,6 +33,7 @@ export default function ProyeccionesPage() {
     tienePermiso,
   } = useAuth();
   const { filtraPorMarca } = useMarcaGlobal();
+  const { mes: periodoMes, año: periodoAño, mesesDelPeriodo } = usePeriodo();
   const [vistaActual, setVistaActual] = useState<
     "dashboard" | "nueva" | "editar"
   >("dashboard");
@@ -91,10 +93,19 @@ export default function ProyeccionesPage() {
   const añoActual = fechaActual.getFullYear();
 
   const [filtros, setFiltros] = useState<FiltrosProyeccion>({
-    meses: [mesActual],
-    año: añoActual,
+    meses: [MESES_COMPLETOS[periodoMes - 1]],
+    año: periodoAño,
   });
   const [errorVisible, setErrorVisible] = useState<string | null>(null);
+
+  // Sincronizar filtros de estrategia con el período global del header
+  useEffect(() => {
+    setFiltros((prev) => ({
+      ...prev,
+      meses: mesesDelPeriodo.map((m) => MESES_COMPLETOS[m - 1]),
+      año: periodoAño,
+    }));
+  }, [periodoMes, periodoAño, mesesDelPeriodo]);
 
   const {
     proyecciones,
@@ -375,6 +386,7 @@ export default function ProyeccionesPage() {
                       <FiltrosPanel
                         filtros={filtros}
                         onFiltrosChange={setFiltros}
+                        disabled={true}
                       />
                     </div>
                   </div>
@@ -410,6 +422,7 @@ export default function ProyeccionesPage() {
                     <FiltrosPanel
                       filtros={filtros}
                       onFiltrosChange={setFiltros}
+                      disabled={true}
                     />
                   </div>
                   <div className="w-full">

@@ -11,6 +11,7 @@ import GestionAccesos from "./GestionAccesos";
 import GestionPerfilCoordinador from "./GestionPerfilCoordinador";
 import CambiarContrasenaCoordinador from "./CambiarContrasenaCoordinador";
 import DevToolsPanel from "./DevToolsPanel";
+import FiltroPeriodoGlobal from "./FiltroPeriodoGlobal";
 
 interface LayoutDashboardProps {
   children: React.ReactNode;
@@ -100,6 +101,7 @@ export default function LayoutDashboard({
             </div>
 
             <div className="flex items-center space-x-4">
+              <FiltroPeriodoGlobal />
               <div className="flex items-center text-sm text-gray-700">
                 <span className="mr-2 font-medium">
                   {usuario?.nombre || usuarioLegacy.nombre}

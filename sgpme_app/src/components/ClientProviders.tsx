@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AuthProvider as AuthBackendProvider } from "@/hooks/useAuthBackend";
 import { AuthConfigProvider } from "@/hooks/useAuthUnified";
 import { MarcaProvider } from "@/contexts/MarcaContext";
+import { PeriodoProvider } from "@/contexts/PeriodoContext";
 import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import MaintenanceGuard from "@/components/MaintenanceGuard";
@@ -28,10 +29,12 @@ export default function ClientProviders({
         <AuthProvider>
           <AuthBackendProvider>
             <MarcaProvider>
-              <DevToolsProvider>
-                {children}
-                <ToastNotification />
-              </DevToolsProvider>
+              <PeriodoProvider>
+                <DevToolsProvider>
+                  {children}
+                  <ToastNotification />
+                </DevToolsProvider>
+              </PeriodoProvider>
             </MarcaProvider>
           </AuthBackendProvider>
         </AuthProvider>

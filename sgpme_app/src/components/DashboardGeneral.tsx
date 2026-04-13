@@ -20,6 +20,7 @@ import { fetchConToken } from "@/lib/auth-utils";
 import { invalidateCacheByPrefix } from "@/lib/dataCache";
 import { showToast } from "@/lib/toast";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
 
 const MESES_ORDEN = [
   "Enero",
@@ -242,6 +243,14 @@ export default function DashboardGeneral({
 }: DashboardGeneralProps) {
   const router = useRouter();
   const { filtraPorMarca, marcasPermitidas } = useMarcaGlobal();
+  const {
+    año: añoSeleccionado,
+    mes: mesSeleccionado,
+    quarter: quarterSeleccionado,
+    mesesDelPeriodo: mesesPeriodo,
+    setMes: setFiltroMes,
+    setTipoPeriodo,
+  } = usePeriodo();
   const { facturas } = useFacturas();
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
   const {
@@ -256,18 +265,7 @@ export default function DashboardGeneral({
   const { proveedores } = useProveedores();
   const { eventos } = useEventos();
 
-  const [añoSeleccionado, setAñoSeleccionado] = useState<number>(
-    new Date().getFullYear(),
-  );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<
-    "YTD" | "Mes" | "Q"
-  >("YTD");
-  const [mesSeleccionado, setMesSeleccionado] = useState<number>(
-    new Date().getMonth() + 1,
-  );
-  const [quarterSeleccionado, setQuarterSeleccionado] = useState<1 | 2 | 3 | 4>(
-    1,
-  );
+  // Año, mes, quarter y mesesPeriodo vienen del PeriodoContext global (ver arriba)
   const [presenciaIndices, setPresenciaIndices] = useState<
     Record<string, number>
   >({});
@@ -305,9 +303,13 @@ export default function DashboardGeneral({
   >([]);
 
   // Filtro global de mes — afecta Funnel, Desplazamiento, Eventos, Campañas, Embajadores, Presencia
-  const [filtroMesGlobal, setFiltroMesGlobal] = useState<number>(
-    new Date().getMonth() + 1,
-  );
+  // Viene del contexto global de período (mes seleccionado)
+  const filtroMesGlobal = mesSeleccionado;
+  // Al hacer click en un mes del selector, cambia el tipo a "Mes" y actualiza el mes en el contexto global
+  const setFiltroMesGlobal = (mes: number) => {
+    setTipoPeriodo("Mes");
+    setFiltroMes(mes);
+  };
 
   // Estados para gráfica de gastos
   const [periodoGraficaGastos, setPeriodoGraficaGastos] = useState<
@@ -1115,18 +1117,7 @@ export default function DashboardGeneral({
     });
   }, [presupuestosFiltrados, facturasFiltradas]);
 
-  // Calcular meses permitidos según el período seleccionado
-  const mesesPeriodo = useMemo(() => {
-    if (periodoSeleccionado === "YTD") {
-      const mesActual = new Date().getMonth() + 1;
-      return Array.from({ length: mesActual }, (_, i) => i + 1);
-    } else if (periodoSeleccionado === "Q") {
-      const inicio = (quarterSeleccionado - 1) * 3 + 1;
-      return [inicio, inicio + 1, inicio + 2];
-    } else {
-      return [mesSeleccionado];
-    }
-  }, [periodoSeleccionado, mesSeleccionado, quarterSeleccionado]);
+  // mesesPeriodo viene del PeriodoContext global
 
   // Filtrar proyecciones según período
   const proyeccionesFiltradas = useMemo(() => {
@@ -1593,67 +1584,7 @@ export default function DashboardGeneral({
           </div>
 
           <div className="mt-4 sm:mt-0 flex gap-3 items-center">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300">
-              <Calendar className="h-4 w-4 text-red-500 shrink-0" />
-              <select
-                id="año-selector"
-                value={añoSeleccionado}
-                onChange={(e) => setAñoSeleccionado(parseInt(e.target.value))}
-                className="appearance-none bg-transparent text-sm font-medium text-gray-700 cursor-pointer focus:outline-none"
-              >
-                {AÑOS.map((año) => (
-                  <option key={año} value={año}>
-                    {año}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-300">
-              <Calendar className="h-4 w-4 text-red-500 shrink-0" />
-              <select
-                id="periodo-selector"
-                value={periodoSeleccionado}
-                onChange={(e) =>
-                  setPeriodoSeleccionado(e.target.value as "YTD" | "Mes" | "Q")
-                }
-                className="appearance-none bg-transparent text-sm font-medium text-gray-700 cursor-pointer focus:outline-none"
-              >
-                <option value="YTD">YTD</option>
-                <option value="Q">Trimestre</option>
-                <option value="Mes">Mes</option>
-              </select>
-            </div>
-            {periodoSeleccionado === "Q" && (
-              <select
-                id="quarter-selector"
-                value={quarterSeleccionado}
-                onChange={(e) =>
-                  setQuarterSeleccionado(
-                    parseInt(e.target.value) as 1 | 2 | 3 | 4,
-                  )
-                }
-                className="px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
-              >
-                <option value={1}>Q1 (Ene – Mar)</option>
-                <option value={2}>Q2 (Abr – Jun)</option>
-                <option value={3}>Q3 (Jul – Sep)</option>
-                <option value={4}>Q4 (Oct – Dic)</option>
-              </select>
-            )}
-            {periodoSeleccionado === "Mes" && (
-              <select
-                id="mes-selector"
-                value={mesSeleccionado}
-                onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
-                className="px-4 py-2 bg-white rounded-full border border-gray-300 text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
-              >
-                {MESES_ORDEN.map((mes, idx) => (
-                  <option key={idx} value={idx + 1}>
-                    {mes}
-                  </option>
-                ))}
-              </select>
-            )}
+            {/* El filtro de período se maneja desde el header global */}
           </div>
         </div>
         {/* Métricas de presupuesto y gráfica ocultas temporalmente */}
@@ -4246,7 +4177,9 @@ export default function DashboardGeneral({
                                   {presencia.nombre}
                                 </h4>
                                 <p className="text-gray-500 text-xs line-clamp-1">
-                                  {presencia.agencia || presencia.marca || "Sin agencia"}
+                                  {presencia.agencia ||
+                                    presencia.marca ||
+                                    "Sin agencia"}
                                 </p>
                               </div>
                             </div>
