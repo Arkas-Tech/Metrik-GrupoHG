@@ -246,10 +246,8 @@ export default function DashboardGeneral({
   const {
     año: añoSeleccionado,
     mes: mesSeleccionado,
-    quarter: quarterSeleccionado,
     mesesDelPeriodo: mesesPeriodo,
-    setMes: setFiltroMes,
-    setTipoPeriodo,
+    setMesesSeleccionados,
   } = usePeriodo();
   const { facturas } = useFacturas();
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
@@ -305,10 +303,9 @@ export default function DashboardGeneral({
   // Filtro global de mes — afecta Funnel, Desplazamiento, Eventos, Campañas, Embajadores, Presencia
   // Viene del contexto global de período (mes seleccionado)
   const filtroMesGlobal = mesSeleccionado;
-  // Al hacer click en un mes del selector, cambia el tipo a "Mes" y actualiza el mes en el contexto global
+  // Al hacer click en un mes del selector de la barra, selecciona ese único mes en el contexto global
   const setFiltroMesGlobal = (mes: number) => {
-    setTipoPeriodo("Mes");
-    setFiltroMes(mes);
+    setMesesSeleccionados([mes]);
   };
 
   // Estados para gráfica de gastos

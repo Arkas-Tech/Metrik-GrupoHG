@@ -8,28 +8,27 @@ import React, {
   ReactNode,
 } from "react";
 
+// Mantenido por compatibilidad con DashboardGeneral
 export type TipoPeriodo = "YTD" | "Mes" | "Q" | "Personalizado";
 
 export interface PeriodoContextType {
-  tipoPeriodo: TipoPeriodo;
-  setTipoPeriodo: (tipo: TipoPeriodo) => void;
-  mes: number; // 1-12 (usado cuando tipoPeriodo === "Mes" o "Personalizado")
-  setMes: (mes: number) => void;
+  /** Meses seleccionados como array de números 1-12 */
+  mesesSeleccionados: number[];
+  setMesesSeleccionados: (meses: number[]) => void;
   año: number;
   setAño: (año: number) => void;
-  quarter: 1 | 2 | 3 | 4; // usado cuando tipoPeriodo === "Q"
-  setQuarter: (q: 1 | 2 | 3 | 4) => void;
-  mesInicio: number; // usado cuando tipoPeriodo === "Personalizado"
-  setMesInicio: (mes: number) => void;
-  mesFin: number; // usado cuando tipoPeriodo === "Personalizado"
-  setMesFin: (mes: number) => void;
-  /** Array de meses (1-12) incluidos en el período seleccionado */
+  // --- Compatibilidad con código existente ---
+  /** Primer mes seleccionado (compat con páginas de un solo mes) */
+  mes: number;
+  setMes: (mes: number) => void;
+  setTipoPeriodo: (tipo: TipoPeriodo) => void;
+  /** Alias de mesesSeleccionados */
   mesesDelPeriodo: number[];
-  /** Etiqueta legible del período actual, ej: "Abr 2026" o "YTD 2026" */
+  /** Etiqueta legible del período, ej: "Abril", "Q2", "YTD", "Todos" */
   etiquetaPeriodo: string;
 }
 
-const MESES_NOMBRES = [
+export const MESES_NOMBRES = [
   "Ene",
   "Feb",
   "Mar",
@@ -44,7 +43,7 @@ const MESES_NOMBRES = [
   "Dic",
 ];
 
-const MESES_COMPLETOS = [
+export const MESES_COMPLETOS = [
   "Enero",
   "Febrero",
   "Marzo",
@@ -59,6 +58,20 @@ const MESES_COMPLETOS = [
   "Diciembre",
 ];
 
+const Q_MESES: Record<number, number[]> = {
+  1: [1, 2, 3],
+  2: [4, 5, 6],
+  3: [7, 8, 9],
+  4: [10, 11, 12],
+};
+
+function arraysIguales(a: number[], b: number[]) {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.every((v, i) => v === sb[i]);
+}
+
 const PeriodoContext = createContext<PeriodoContextType | undefined>(undefined);
 
 export function PeriodoProvider({ children }: { children: ReactNode }) {
@@ -66,68 +79,70 @@ export function PeriodoProvider({ children }: { children: ReactNode }) {
   const mesActual = ahora.getMonth() + 1;
   const añoActual = ahora.getFullYear();
 
-  const [tipoPeriodo, setTipoPeriodo] = useState<TipoPeriodo>("Mes");
-  const [mes, setMes] = useState<number>(mesActual);
+  const [mesesSeleccionados, setMesesSeleccionados] = useState<number[]>([
+    mesActual,
+  ]);
   const [año, setAño] = useState<number>(añoActual);
-  const [quarter, setQuarter] = useState<1 | 2 | 3 | 4>(
-    Math.ceil(mesActual / 3) as 1 | 2 | 3 | 4,
-  );
-  const [mesInicio, setMesInicio] = useState<number>(1);
-  const [mesFin, setMesFin] = useState<number>(mesActual);
 
-  const mesesDelPeriodo = useMemo<number[]>(() => {
-    switch (tipoPeriodo) {
+  // Compatibilidad: primer mes seleccionado
+  const mes = useMemo(
+    () => mesesSeleccionados[0] ?? mesActual,
+    [mesesSeleccionados, mesActual],
+  );
+
+  const setMes = (m: number) => setMesesSeleccionados([m]);
+
+  // Compatibilidad con DashboardGeneral que usaba setTipoPeriodo
+  const setTipoPeriodo = (tipo: TipoPeriodo) => {
+    switch (tipo) {
       case "YTD":
-        return Array.from({ length: mesActual }, (_, i) => i + 1);
+        setMesesSeleccionados(
+          Array.from({ length: mesActual }, (_, i) => i + 1),
+        );
+        break;
       case "Mes":
-        return [mes];
+        // mantiene el mes actual seleccionado
+        setMesesSeleccionados([mesesSeleccionados[0] ?? mesActual]);
+        break;
       case "Q": {
-        const inicio = (quarter - 1) * 3 + 1;
-        return [inicio, inicio + 1, inicio + 2];
-      }
-      case "Personalizado": {
-        const result: number[] = [];
-        for (let m = mesInicio; m <= mesFin; m++) result.push(m);
-        return result;
+        const q = Math.ceil((mesesSeleccionados[0] ?? mesActual) / 3);
+        setMesesSeleccionados(Q_MESES[q]);
+        break;
       }
       default:
-        return [mes];
+        break;
     }
-  }, [tipoPeriodo, mes, quarter, mesInicio, mesFin, mesActual]);
+  };
 
   const etiquetaPeriodo = useMemo<string>(() => {
-    switch (tipoPeriodo) {
-      case "YTD":
-        return `YTD ${año}`;
-      case "Mes":
-        return `${MESES_COMPLETOS[mes - 1]} ${año}`;
-      case "Q":
-        return `Q${quarter} ${año}`;
-      case "Personalizado":
-        if (mesInicio === mesFin)
-          return `${MESES_NOMBRES[mesInicio - 1]} ${año}`;
-        return `${MESES_NOMBRES[mesInicio - 1]}–${MESES_NOMBRES[mesFin - 1]} ${año}`;
-      default:
-        return `${MESES_COMPLETOS[mes - 1]} ${año}`;
+    const sorted = [...mesesSeleccionados].sort((a, b) => a - b);
+    if (sorted.length === 12) return "Todos";
+    // YTD = meses 1..mesActual
+    const ytd = Array.from({ length: mesActual }, (_, i) => i + 1);
+    if (arraysIguales(sorted, ytd) && sorted.length > 1) return "YTD";
+    // Quarters
+    for (let q = 1; q <= 4; q++) {
+      if (arraysIguales(sorted, Q_MESES[q])) return `Q${q}`;
     }
-  }, [tipoPeriodo, mes, año, quarter, mesInicio, mesFin]);
+    // Un solo mes
+    if (sorted.length === 1) return MESES_COMPLETOS[sorted[0] - 1];
+    // Varios meses
+    if (sorted.length <= 3)
+      return sorted.map((m) => MESES_NOMBRES[m - 1]).join(", ");
+    return `${sorted.length} meses`;
+  }, [mesesSeleccionados, mesActual]);
 
   return (
     <PeriodoContext.Provider
       value={{
-        tipoPeriodo,
-        setTipoPeriodo,
-        mes,
-        setMes,
+        mesesSeleccionados,
+        setMesesSeleccionados,
         año,
         setAño,
-        quarter,
-        setQuarter,
-        mesInicio,
-        setMesInicio,
-        mesFin,
-        setMesFin,
-        mesesDelPeriodo,
+        mes,
+        setMes,
+        setTipoPeriodo,
+        mesesDelPeriodo: mesesSeleccionados,
         etiquetaPeriodo,
       }}
     >
@@ -143,5 +158,3 @@ export function usePeriodo(): PeriodoContextType {
   }
   return ctx;
 }
-
-export { MESES_COMPLETOS, MESES_NOMBRES };
