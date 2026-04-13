@@ -605,7 +605,11 @@ export default function ConfiguracionFormularios({
           ...(data.template?.secciones ?? []),
           ...DEFAULT_SECCIONES.filter((s) => !savedIds.has(s.id)),
         ];
-        setTemplate({ subcategoria: subcat, secciones: merged });
+        setTemplate({
+          ...data.template,
+          subcategoria: subcat,
+          secciones: merged,
+        });
       } else {
         // API not ready yet or error → show defaults so user can still configure
         setTemplate(fallback);
@@ -924,7 +928,11 @@ export default function ConfiguracionFormularios({
                           onChange={(e) =>
                             setTemplate((prev) =>
                               prev
-                                ? { ...prev, inicioPresenciaFieldId: e.target.value || undefined }
+                                ? {
+                                    ...prev,
+                                    inicioPresenciaFieldId:
+                                      e.target.value || undefined,
+                                  }
                                 : prev,
                             )
                           }
@@ -947,7 +955,11 @@ export default function ConfiguracionFormularios({
                           onChange={(e) =>
                             setTemplate((prev) =>
                               prev
-                                ? { ...prev, finPresenciaFieldId: e.target.value || undefined }
+                                ? {
+                                    ...prev,
+                                    finPresenciaFieldId:
+                                      e.target.value || undefined,
+                                  }
                                 : prev,
                             )
                           }
