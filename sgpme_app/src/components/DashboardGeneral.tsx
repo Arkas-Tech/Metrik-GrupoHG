@@ -1562,30 +1562,37 @@ export default function DashboardGeneral({
     // Si el template no tiene campos de período configurados, incluir siempre
     if (!inicioId && !finId) return true;
 
-    // Parsear datos_extra_json
-    let datosExtra: Record<string, unknown> = {};
+    // Parsear datos_extra_json — la estructura es { fieldValues: {[id]: string}, ... }
+    let fieldValues: Record<string, unknown> = {};
     if (presencia.datos_extra_json) {
       try {
-        datosExtra = JSON.parse(presencia.datos_extra_json);
+        const datosExtra = JSON.parse(presencia.datos_extra_json) as {
+          fieldValues?: Record<string, unknown>;
+        };
+        fieldValues = datosExtra.fieldValues ?? {};
       } catch {
         /* ignore */
       }
     }
 
-    // Extraer año y mes de una cadena de fecha "YYYY-MM-DD" o "DD/MM/YYYY"
-    const parseFechaYearMonth = (val: unknown): { year: number; month: number } | null => {
+    // Extraer año y mes — DateInput guarda en formato ISO YYYY-MM-DD
+    const parseFechaYearMonth = (
+      val: unknown,
+    ): { year: number; month: number } | null => {
       if (!val || typeof val !== "string") return null;
-      // ISO format YYYY-MM-DD
+      // ISO YYYY-MM-DD (formato guardado por DateInput)
       const iso = val.match(/^(\d{4})-(\d{2})/);
       if (iso) return { year: parseInt(iso[1]), month: parseInt(iso[2]) };
-      // DD/MM/YYYY
+      // DD/MM/YYYY por si hubiera algún valor ingresado manualmente
       const dmy = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (dmy) return { year: parseInt(dmy[3]), month: parseInt(dmy[2]) };
       return null;
     };
 
-    const inicioFecha = inicioId ? parseFechaYearMonth(datosExtra[inicioId]) : null;
-    const finFecha = finId ? parseFechaYearMonth(datosExtra[finId]) : null;
+    const inicioFecha = inicioId
+      ? parseFechaYearMonth(fieldValues[inicioId])
+      : null;
+    const finFecha = finId ? parseFechaYearMonth(fieldValues[finId]) : null;
 
     // Si no hay ninguna fecha válida, incluir (no filtrar algo sin info)
     if (!inicioFecha && !finFecha) return true;
@@ -1597,8 +1604,12 @@ export default function DashboardGeneral({
 
       // Fecha como número: año*12 + mes-1 (para comparación ordinal)
       const periodoOrd = periodoAnio * 12 + periodoMesVal - 1;
-      const inicioOrd = inicioFecha ? inicioFecha.year * 12 + inicioFecha.month - 1 : -Infinity;
-      const finOrd = finFecha ? finFecha.year * 12 + finFecha.month - 1 : Infinity;
+      const inicioOrd = inicioFecha
+        ? inicioFecha.year * 12 + inicioFecha.month - 1
+        : -Infinity;
+      const finOrd = finFecha
+        ? finFecha.year * 12 + finFecha.month - 1
+        : Infinity;
 
       return periodoOrd >= inicioOrd && periodoOrd <= finOrd;
     });
