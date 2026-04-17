@@ -172,21 +172,6 @@ export default function ModalEventosDia({
                                   </span>
                                 </div>
                                 <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600">
-                                  <span>
-                                    📍{" "}
-                                    {(() => {
-                                      try {
-                                        const p = JSON.parse(
-                                          evento.ubicacion || "",
-                                        );
-                                        if (p && typeof p.lat === "number")
-                                          return p.address || "Sin ubicación";
-                                      } catch {}
-                                      return (
-                                        evento.ubicacion || "Sin ubicación"
-                                      );
-                                    })()}
-                                  </span>
                                   <span>🏢 {formatearMarca(evento.marca)}</span>
                                   <span>
                                     💰{" "}
@@ -219,6 +204,40 @@ export default function ModalEventosDia({
                                       </span>
                                       <p className="text-gray-600">
                                         {evento.objetivo}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">
+                                        Ubicación:
+                                      </span>
+                                      <p className="text-gray-600">
+                                        {(() => {
+                                          try {
+                                            const p = JSON.parse(
+                                              evento.ubicacion || "",
+                                            );
+                                            if (
+                                              p &&
+                                              typeof p.lat === "number"
+                                            ) {
+                                              const mapsUrl = `https://www.google.com/maps?q=${p.lat},${p.lng}`;
+                                              const displayText =
+                                                p.address ||
+                                                `${p.lat}, ${p.lng}`;
+                                              return (
+                                                <a
+                                                  href={mapsUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-blue-600 hover:text-blue-800 underline"
+                                                >
+                                                  {displayText}
+                                                </a>
+                                              );
+                                            }
+                                          } catch {}
+                                          return evento.ubicacion || "Sin ubicación";
+                                        })()}
                                       </p>
                                     </div>
                                     <div>
