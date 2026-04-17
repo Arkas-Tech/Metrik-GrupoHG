@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { fetchConToken } from "@/lib/auth-utils";
 import { showToast } from "@/lib/toast";
+import { obtenerArrayMarcas } from "@/lib/evento-utils";
 import {
   getCached,
   getStale,
@@ -153,7 +154,7 @@ export function useEventos() {
         fechaInicio: evento.fecha_inicio,
         fechaFin: evento.fecha_fin,
         ubicacion: evento.ubicacion || "",
-        marca: evento.marca,
+        marca: obtenerArrayMarcas(evento.marca),
         responsable: evento.responsable || "",
         estado: evento.estado,
         objetivo: evento.objetivo || "",
@@ -315,7 +316,7 @@ export function useEventos() {
           fechaInicio: eventoCreado.fecha_inicio,
           fechaFin: eventoCreado.fecha_fin,
           ubicacion: eventoCreado.ubicacion || "",
-          marca: eventoCreado.marca,
+          marca: obtenerArrayMarcas(eventoCreado.marca),
           responsable: eventoCreado.responsable,
           estado: eventoCreado.estado,
           objetivo: eventoCreado.objetivo || "",
