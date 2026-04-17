@@ -1492,103 +1492,107 @@ export default function EventosPage() {
                                                 key={marca}
                                                 className="border border-gray-100 rounded p-2"
                                               >
-                                                <div className="flex items-center justify-between mb-1">
-                                                  <span className="text-xs font-medium text-gray-700">
-                                                    {marca}
-                                                  </span>
-                                                  {briefDeAgencia ? (
-                                                    <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                {briefDeAgencia ? (
+                                                  <div className="flex flex-col gap-1.5">
+                                                    <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 self-start">
                                                       ✓ Completado
                                                     </span>
-                                                  ) : (
-                                                    <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600">
-                                                      ⏳ Pendiente
+                                                    <span className="text-xs font-medium text-gray-700">
+                                                      {marca}
                                                     </span>
-                                                  )}
-                                                </div>
-                                                {briefDeAgencia ? (
-                                                  <div className="flex gap-2 flex-wrap">
-                                                    {usuario.tipo ===
-                                                    "auditor" ? (
+                                                    <div className="flex gap-2 flex-wrap mt-1">
+                                                      {usuario.tipo ===
+                                                      "auditor" ? (
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            manejarVerTemplate(
+                                                              evento,
+                                                              marca,
+                                                            );
+                                                          }}
+                                                          className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
+                                                        >
+                                                          📋 Ver Reporte
+                                                        </button>
+                                                      ) : (
+                                                        <>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setBriefMarcaSeleccionada(
+                                                                marca,
+                                                              );
+                                                              setEventoEditando(
+                                                                evento,
+                                                              );
+                                                              navegarA("brief");
+                                                            }}
+                                                            className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
+                                                          >
+                                                            ✏️ Editar
+                                                          </button>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              manejarVerPreview(
+                                                                evento,
+                                                                marca,
+                                                              );
+                                                            }}
+                                                            className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
+                                                          >
+                                                            👁️ Preview
+                                                          </button>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              manejarEliminarBrief(
+                                                                evento,
+                                                                marca,
+                                                              );
+                                                            }}
+                                                            className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors"
+                                                          >
+                                                            🗑️
+                                                          </button>
+                                                        </>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                      <span className="text-xs font-medium text-gray-700">
+                                                        {marca}
+                                                      </span>
+                                                      <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600">
+                                                        ⏳ Pendiente
+                                                      </span>
+                                                    </div>
+                                                    {(usuario.tipo ===
+                                                      "administrador" ||
+                                                      usuario.tipo ===
+                                                        "developer" ||
+                                                      usuario.tipo ===
+                                                        "coordinador") && (
                                                       <button
                                                         onClick={(e) => {
                                                           e.stopPropagation();
-                                                          manejarVerTemplate(
-                                                            evento,
+                                                          setBriefMarcaSeleccionada(
                                                             marca,
                                                           );
+                                                          setEventoEditando(
+                                                            evento,
+                                                          );
+                                                          navegarA("brief");
                                                         }}
-                                                        className="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
+                                                        className="px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
                                                       >
-                                                        📋 Ver Reporte
+                                                        ➕ Crear Reporte
                                                       </button>
-                                                    ) : (
-                                                      <>
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setBriefMarcaSeleccionada(
-                                                              marca,
-                                                            );
-                                                            setEventoEditando(
-                                                              evento,
-                                                            );
-                                                            navegarA("brief");
-                                                          }}
-                                                          className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors"
-                                                        >
-                                                          ✏️ Editar
-                                                        </button>
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            manejarVerPreview(
-                                                              evento,
-                                                              marca,
-                                                            );
-                                                          }}
-                                                          className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium transition-colors"
-                                                        >
-                                                          👁️ Preview
-                                                        </button>
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            manejarEliminarBrief(
-                                                              evento,
-                                                              marca,
-                                                            );
-                                                          }}
-                                                          className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors"
-                                                        >
-                                                          🗑️
-                                                        </button>
-                                                      </>
                                                     )}
                                                   </div>
-                                                ) : (
-                                                  (usuario.tipo ===
-                                                    "administrador" ||
-                                                    usuario.tipo ===
-                                                      "developer" ||
-                                                    usuario.tipo ===
-                                                      "coordinador") && (
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setBriefMarcaSeleccionada(
-                                                          marca,
-                                                        );
-                                                        setEventoEditando(
-                                                          evento,
-                                                        );
-                                                        navegarA("brief");
-                                                      }}
-                                                      className="px-3 py-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
-                                                    >
-                                                      ➕ Crear Reporte
-                                                    </button>
-                                                  )
                                                 )}
                                               </div>
                                             );
