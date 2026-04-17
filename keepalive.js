@@ -5,7 +5,7 @@
 const http = require("http");
 
 function ping() {
-  const req = http.get("http://localhost:8000/", (res) => {
+  const req = http.get("http://localhost:8080/", (res) => {
     res.resume(); // drain response so socket is released
   });
   req.on("error", () => {}); // silent — server may be starting up
