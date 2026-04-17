@@ -8,7 +8,7 @@ import time
 import traceback
 import models
 from database import engine, SessionLocal
-from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, conciliacion_bdc, diagramas_conversion, dev_tools, maintenance, funnel_pisos
+from routers import auth, marcas, admin, eventos, facturas, proyecciones, proveedores, campanas, presencia_tradicional, metricas, presupuesto, categorias, form_templates, desplazamiento, google_ads, meta_ads, embajadores, vendedores, conciliacion_bdc, diagramas_conversion, dev_tools, maintenance, funnel_pisos
 from jose import jwt, JWTError
 from starlette.responses import JSONResponse
 
@@ -25,6 +25,23 @@ async def lifespan(app):
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
+            # Vendedores table auto-create (SQLAlchemy handles it via create_all,
+            # but we also ensure the table exists for fresh installs)
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS vendedores (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR NOT NULL,
+                    marca VARCHAR,
+                    alcance INTEGER DEFAULT 0,
+                    leads INTEGER DEFAULT 0,
+                    ventas INTEGER DEFAULT 0,
+                    inversion_mensual FLOAT DEFAULT 0.0,
+                    publicaciones INTEGER DEFAULT 0,
+                    fecha_creacion TIMESTAMP DEFAULT NOW(),
+                    creado_por VARCHAR
+                )
+            """))
+            conn.commit()
             # Embajadores columns
             for col, coltype in [("imagenes_json", "TEXT"), ("cumplimiento_json", "TEXT")]:
                 result = conn.execute(text(
@@ -198,6 +215,7 @@ def _log_request_sync(method, path, status_code, duration_ms, auth_header, error
                     '/campanas': 'campana',
                     '/presupuesto': 'presupuesto',
                     '/embajadores': 'embajador',
+                    '/vendedores': 'vendedor',
                     '/presencia': 'presencia',
                     '/eventos': 'evento',
                     '/admin': 'admin',
@@ -277,6 +295,7 @@ app.include_router(desplazamiento.router)
 app.include_router(google_ads.router)
 app.include_router(meta_ads.router)
 app.include_router(embajadores.router)
+app.include_router(vendedores.router)
 app.include_router(conciliacion_bdc.router)
 app.include_router(diagramas_conversion.router)
 app.include_router(dev_tools.router)

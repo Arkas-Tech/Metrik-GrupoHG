@@ -35,6 +35,7 @@ interface SidebarProps {
     | "configuracion"
     | "presencias"
     | "embajadores"
+    | "vendedores"
     | "presupuesto"
     | "anuncios";
   onMenuClick: (item: string) => void;

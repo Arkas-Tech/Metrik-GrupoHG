@@ -267,6 +267,21 @@ class Embajadores(Base):
     creado_por = Column(String, nullable=True)
 
 
+class Vendedores(Base):
+    __tablename__ = 'vendedores'
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    marca = Column(String, nullable=True)
+    alcance = Column(Integer, default=0)        # reach / audiencia
+    leads = Column(Integer, default=0)
+    ventas = Column(Integer, default=0)
+    inversion_mensual = Column(Float, default=0.0)
+    publicaciones = Column(Integer, default=0)  # número de publicaciones
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    creado_por = Column(String, nullable=True)
+
+
 class PresenciaTradicional(Base):
     __tablename__ = 'presencia_tradicional'
 

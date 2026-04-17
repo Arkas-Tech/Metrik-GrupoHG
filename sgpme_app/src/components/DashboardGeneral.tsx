@@ -300,6 +300,20 @@ export default function DashboardGeneral({
     }>
   >([]);
 
+  // Vendedores
+  const [vendedoresDash, setVendedoresDash] = useState<
+    Array<{
+      id: number;
+      nombre: string;
+      marca: string | null;
+      alcance: number;
+      leads: number;
+      ventas: number;
+      inversion_mensual: number;
+      publicaciones: number;
+    }>
+  >([]);
+
   // Filtro global de mes — afecta Funnel, Desplazamiento, Eventos, Campañas, Embajadores, Presencia
   // Viene del contexto global de período (mes seleccionado)
   const filtroMesGlobal = mesSeleccionado;
@@ -1031,6 +1045,15 @@ export default function DashboardGeneral({
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setEmbajadoresDash(Array.isArray(data) ? data : []))
       .catch(() => setEmbajadoresDash([]));
+  }, []);
+
+  // Cargar vendedores
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    fetchConToken(`${API_URL}/vendedores/`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setVendedoresDash(Array.isArray(data) ? data : []))
+      .catch(() => setVendedoresDash([]));
   }, []);
 
   // Resetear índices cuando cambia la marca
@@ -4275,29 +4298,93 @@ export default function DashboardGeneral({
           </div>
         </div>
 
-        {/* Sección Asesores */}
+        {/* Sección Vendedores */}
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              👥 Asesores
-            </h2>
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <svg
-                className="h-16 w-16 mb-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="bg-[#1e293b] px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                Vendedores
+              </h2>
+              <button
+                onClick={() => router.push("/vendedores?from=dashboard")}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              <p className="text-lg font-medium">Próximamente</p>
-              <p className="text-sm">Gestión de asesores en desarrollo</p>
+                <CopyPlus className="h-6 w-6 text-red-500" />
+              </button>
             </div>
+
+            {(() => {
+              const vendFiltrados = vendedoresDash.filter((v) =>
+                filtraPorMarca(v.marca || ""),
+              );
+              if (vendFiltrados.length === 0) {
+                return (
+                  <div className="text-center py-10 text-gray-400">
+                    <p className="text-sm">No hay vendedores registrados.</p>
+                    <button
+                      onClick={() => router.push("/vendedores?from=dashboard")}
+                      className="mt-3 text-red-400 hover:underline text-sm font-medium"
+                    >
+                      Administrar vendedores →
+                    </button>
+                  </div>
+                );
+              }
+              const formatAlc = (n: number) => {
+                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+                return String(n);
+              };
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+                  {vendFiltrados.slice(0, 6).map((vend) => (
+                    <div
+                      key={vend.id}
+                      className="relative flex flex-col items-center py-8 px-6 border-r border-gray-600 last:border-r-0"
+                    >
+                      {/* Avatar placeholder */}
+                      <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center mb-4 overflow-hidden">
+                        <User className="w-10 h-10 text-white" />
+                      </div>
+
+                      {/* Nombre */}
+                      <p className="text-white font-medium text-sm mb-2">
+                        {vend.nombre}
+                      </p>
+
+                      {/* Badge de agencia */}
+                      {vend.marca && (
+                        <div className="bg-white/10 text-white text-xs px-3 py-1 rounded-full mb-6 border border-white/20">
+                          {vend.marca}
+                        </div>
+                      )}
+
+                      {/* Métricas */}
+                      <div className="w-full space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm">Alcance:</span>
+                          <span className="text-white font-bold text-sm">
+                            {formatAlc(vend.alcance)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm">Leads:</span>
+                          <span className="text-white font-bold text-sm">
+                            {new Intl.NumberFormat("es-MX").format(vend.leads)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-sm">Ventas:</span>
+                          <span className="text-white font-bold text-sm">
+                            {new Intl.NumberFormat("es-MX").format(vend.ventas)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
