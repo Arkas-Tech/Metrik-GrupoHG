@@ -7,11 +7,7 @@ import { useAuth } from "@/hooks/useAuthUnified";
 import { useMarcaGlobal } from "@/contexts/MarcaContext";
 import { usePeriodo, MESES_COMPLETOS } from "@/contexts/PeriodoContext";
 import { FiltrosProyeccion, Proyeccion } from "@/types";
-import {
-  FormularioProyeccion,
-  ListaProyecciones,
-  FiltrosPanel,
-} from "@/components";
+import { FormularioProyeccion, ListaProyecciones } from "@/components";
 import Sidebar from "@/components/Sidebar";
 import FiltroPeriodoGlobal from "@/components/FiltroPeriodoGlobal";
 import Image from "next/image";
@@ -351,101 +347,37 @@ export default function ProyeccionesPage() {
         <main className="px-4 sm:px-6 lg:px-8 pt-8">
           {vistaActual === "dashboard" && (
             <>
-              <div className="mb-8 flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Proyecciones Presupuestales
-                  </h2>
-                  <p className="text-gray-600 mb-6">
-                    {usuario?.tipo === "auditor"
-                      ? "Consulta y auditoría de proyecciones presupuestales"
-                      : "Gestión de presupuestos y proyecciones financieras"}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => router.push("/presupuesto")}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
-                  >
-                    <span>💰</span>
-                    <span>Gestionar Presupuestos</span>
-                  </button>
-                </div>
+              {/* Header con título y subtítulo */}
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Proyecciones Presupuestales
+                </h2>
+                <p className="text-gray-600">
+                  {usuario?.tipo === "auditor"
+                    ? "Consulta y auditoría de proyecciones presupuestales"
+                    : "Gestión de presupuestos y proyecciones financieras"}
+                </p>
               </div>
-              {tienePermiso("proyecciones", "crear") ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <div className="lg:col-span-1">
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <h3 className="text-lg font-semibold mb-4 text-gray-900">
-                        Nueva Proyección
-                      </h3>
-                      <button
-                        onClick={() => navegarA("nueva")}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                      >
-                        Crear Nueva Proyección
-                      </button>
-                    </div>
-                    <div className="mt-6">
-                      <FiltrosPanel
-                        filtros={filtros}
-                        onFiltrosChange={setFiltros}
-                        disabled={true}
-                      />
-                    </div>
-                  </div>
-                  <div className="lg:col-span-2">
-                    <ListaProyecciones
-                      proyecciones={proyeccionesFiltradas}
-                      onEditar={manejarEditarProyeccion}
-                      onEliminar={manejarEliminarProyeccion}
-                      onAprobar={manejarAprobarProyeccion}
-                      loading={loading}
-                      permisos={{
-                        editar: tienePermiso("proyecciones", "editar"),
-                        eliminar:
-                          isAdmin || tienePermiso("proyecciones", "eliminar"),
-                        aprobar: isAdmin,
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        🔍 Filtros de Búsqueda
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          👁️ Modo Auditor
-                        </span>
-                      </div>
-                    </div>
-                    <FiltrosPanel
-                      filtros={filtros}
-                      onFiltrosChange={setFiltros}
-                      disabled={true}
-                    />
-                  </div>
-                  <div className="w-full">
-                    <ListaProyecciones
-                      proyecciones={proyeccionesFiltradas}
-                      onEditar={manejarEditarProyeccion}
-                      onEliminar={manejarEliminarProyeccion}
-                      onAprobar={manejarAprobarProyeccion}
-                      loading={loading}
-                      permisos={{
-                        editar: tienePermiso("proyecciones", "editar"),
-                        eliminar:
-                          isAdmin || tienePermiso("proyecciones", "eliminar"),
-                        aprobar: isAdmin,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+
+              {/* Contenido principal */}
+              <div className="w-full">
+                <ListaProyecciones
+                  proyecciones={proyeccionesFiltradas}
+                  onEditar={manejarEditarProyeccion}
+                  onEliminar={manejarEliminarProyeccion}
+                  onAprobar={manejarAprobarProyeccion}
+                  onNuevaProyeccion={() => navegarA("nueva")}
+                  onGestionarPresupuestos={() => router.push("/presupuesto")}
+                  loading={loading}
+                  permisos={{
+                    editar: tienePermiso("proyecciones", "editar"),
+                    eliminar:
+                      isAdmin || tienePermiso("proyecciones", "eliminar"),
+                    aprobar: isAdmin,
+                    crear: tienePermiso("proyecciones", "crear"),
+                  }}
+                />
+              </div>
             </>
           )}
 
