@@ -79,7 +79,7 @@ module.exports = {
       exec_mode: "fork",
       interpreter: "node",
       autorestart: true,
-      max_memory_restart: "30M",
+      max_memory_restart: "100M",
       error_file: "/dev/null",
       out_file: "/dev/null",
     },
