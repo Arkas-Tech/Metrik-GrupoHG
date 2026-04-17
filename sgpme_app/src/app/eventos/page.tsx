@@ -1422,6 +1422,50 @@ export default function EventosPage() {
                                     </div>
                                     <div className="space-y-3">
                                       <h4 className="font-medium text-gray-900 flex items-center">
+                                        ⚙️ Acciones
+                                      </h4>
+                                      <div className="flex flex-col gap-2">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            exportarEventoPDF(evento.id);
+                                          }}
+                                          className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors text-left"
+                                        >
+                                          ⬇️ Descargar PDF
+                                        </button>
+                                        {tienePermiso(
+                                          "proyecciones",
+                                          "editar",
+                                        ) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              manejarEditarEvento(evento);
+                                            }}
+                                            className="px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors text-left"
+                                          >
+                                            ✏️ Editar Evento
+                                          </button>
+                                        )}
+                                        {tienePermiso(
+                                          "proyecciones",
+                                          "eliminar",
+                                        ) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              manejarEliminarEvento(evento.id);
+                                            }}
+                                            className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors text-left"
+                                          >
+                                            🗑️ Eliminar
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                      <h4 className="font-medium text-gray-900 flex items-center">
                                         📄 Reportes del Evento
                                         {(() => {
                                           const marcas = obtenerArrayMarcas(
@@ -1549,50 +1593,6 @@ export default function EventosPage() {
                                               </div>
                                             );
                                           },
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                      <h4 className="font-medium text-gray-900 flex items-center">
-                                        ⚙️ Acciones
-                                      </h4>
-                                      <div className="flex flex-col gap-2">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            exportarEventoPDF(evento.id);
-                                          }}
-                                          className="px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-xs font-medium transition-colors text-left"
-                                        >
-                                          ⬇️ Descargar PDF
-                                        </button>
-                                        {tienePermiso(
-                                          "proyecciones",
-                                          "editar",
-                                        ) && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              manejarEditarEvento(evento);
-                                            }}
-                                            className="px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors text-left"
-                                          >
-                                            ✏️ Editar Evento
-                                          </button>
-                                        )}
-                                        {tienePermiso(
-                                          "proyecciones",
-                                          "eliminar",
-                                        ) && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              manejarEliminarEvento(evento.id);
-                                            }}
-                                            className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors text-left"
-                                          >
-                                            🗑️ Eliminar
-                                          </button>
                                         )}
                                       </div>
                                     </div>
