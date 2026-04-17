@@ -363,14 +363,14 @@ export default function BriefTemplate({
           </div>
 
           <div className="space-y-6">
-            {descripcionEvento && (
+            {evento.descripcion && (
               <div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-3">
                   Descripción del Evento
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-600 leading-relaxed">
-                    {descripcionEvento}
+                    {evento.descripcion}
                   </p>
                 </div>
               </div>
@@ -525,6 +525,19 @@ export default function BriefTemplate({
               </div>
             </div>
           )}
+        {descripcionEvento && (
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+              <DocumentTextIcon className="h-7 w-7 mr-3 text-blue-600" />
+              Desarrollo del evento
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-6">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {descripcionEvento}
+              </p>
+            </div>
+          </div>
+        )}
         {imagenes && imagenes.length > 0 && (
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
