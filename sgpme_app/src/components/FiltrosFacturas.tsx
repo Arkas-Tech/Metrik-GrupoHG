@@ -48,6 +48,21 @@ export default function FiltrosFacturas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sincronizar mes y año cuando el filtro global del header cambie
+  useEffect(() => {
+    if (
+      filtrosExternos?.mes !== undefined ||
+      filtrosExternos?.año !== undefined
+    ) {
+      setFiltros((prev) => ({
+        ...prev,
+        mes: filtrosExternos.mes,
+        año: filtrosExternos.año,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrosExternos?.mes, filtrosExternos?.año]);
+
   const [mostrarFiltrosAvanzados, setMostrarFiltrosAvanzados] = useState(false);
 
   const handleFiltroChange = (
