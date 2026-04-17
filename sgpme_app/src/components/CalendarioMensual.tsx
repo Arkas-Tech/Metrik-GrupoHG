@@ -130,6 +130,11 @@ export default function CalendarioMensual({
   const obtenerColorAgencia = (
     marca: string | string[],
   ): { bg: string; text: string } => {
+    // Si es un evento multiagencia (2 o más agencias), usar color lila
+    if (Array.isArray(marca) && marca.length >= 2) {
+      return { bg: "bg-purple-500", text: "text-white" };
+    }
+
     const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
     if (m.includes("toyota")) return { bg: "bg-red-600", text: "text-white" };
     if (m.includes("kia")) return { bg: "bg-black", text: "text-white" };

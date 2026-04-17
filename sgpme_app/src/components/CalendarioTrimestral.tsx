@@ -40,6 +40,15 @@ const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
 const obtenerColorAgencia = (
   marca: string | string[],
 ): { bg: string; text: string; border: string } => {
+  // Si es un evento multiagencia (2 o más agencias), usar color lila
+  if (Array.isArray(marca) && marca.length >= 2) {
+    return {
+      bg: "bg-purple-500",
+      text: "text-white",
+      border: "border-purple-600",
+    };
+  }
+
   const m = (Array.isArray(marca) ? marca[0] : marca)?.toLowerCase() || "";
   if (m.includes("toyota"))
     return { bg: "bg-red-600", text: "text-white", border: "border-red-700" };
