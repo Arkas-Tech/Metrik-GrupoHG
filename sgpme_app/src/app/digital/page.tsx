@@ -91,7 +91,6 @@ const MetricasPage = () => {
   );
   const [modalMetricaOpen, setModalMetricaOpen] = useState(false);
   const [metricaEditando, setMetricaEditando] = useState<Metrica | null>(null);
-  const [historialExpanded, setHistorialExpanded] = useState(false);
 
   // Embajadores
   const [embajadoresDig, setEmbajadoresDig] = useState<
@@ -105,6 +104,26 @@ const MetricasPage = () => {
       marca: string | null;
     }>
   >([]);
+
+  // Conciliación BDC para el funnel
+  interface LeadEstado {
+    estado: string;
+    bdc: number;
+    mkt: number;
+  }
+  interface Conciliacion {
+    id: number;
+    marca: string;
+    semana_inicio: string;
+    semana_fin: string;
+    mes: number;
+    anio: number;
+    leads_activos: LeadEstado[];
+    leads_cerrados: LeadEstado[];
+  }
+  const [conciliacionesBDC, setConciliacionesBDC] = useState<Conciliacion[]>(
+    [],
+  );
 
   const [mesSeleccionado, setMesSeleccionado] = useState<number | undefined>(
     periodoMes,
@@ -143,6 +162,27 @@ const MetricasPage = () => {
       .then((data) => setEmbajadoresDig(Array.isArray(data) ? data : []))
       .catch(() => setEmbajadoresDig([]));
   }, []);
+
+  // Cargar datos de conciliación BDC
+  useEffect(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+    fetchConToken(`${API_URL}/conciliacion-bdc/?anio=${anioSeleccionado}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const parsed = (data as Record<string, unknown>[]).map((r) => ({
+          id: r.id as number,
+          marca: r.marca as string,
+          semana_inicio: r.semana_inicio as string,
+          semana_fin: r.semana_fin as string,
+          mes: r.mes as number,
+          anio: r.anio as number,
+          leads_activos: JSON.parse((r.leads_activos as string) || "[]"),
+          leads_cerrados: JSON.parse((r.leads_cerrados as string) || "[]"),
+        }));
+        setConciliacionesBDC(parsed);
+      })
+      .catch(() => setConciliacionesBDC([]));
+  }, [anioSeleccionado]);
 
   useEffect(() => {
     if (usuario) {
@@ -198,24 +238,13 @@ const MetricasPage = () => {
     setActiveConfigView(item);
   };
 
-  const metricasDelMes = metricasDb.filter(
-    (m) =>
-      (mesSeleccionado === undefined || m.mes === mesSeleccionado) &&
-      m.anio === anioSeleccionado,
+  // Calcular métricas del funnel basadas en conciliación BDC
+  const conciliacionesDelMes = conciliacionesBDC.filter(
+    (c) =>
+      (mesSeleccionado === undefined || c.mes === mesSeleccionado) &&
+      c.anio === anioSeleccionado &&
+      (!c.marca || filtraPorMarca(c.marca)),
   );
-
-  const metricaActual =
-    metricasDelMes.length > 0
-      ? {
-          leads: metricasDelMes.reduce((sum, m) => sum + (m.leads || 0), 0),
-          citas: metricasDelMes.reduce((sum, m) => sum + (m.citas || 0), 0),
-          pisos: metricasDelMes.reduce((sum, m) => sum + (m.pisos || 0), 0),
-          utilidades: metricasDelMes.reduce(
-            (sum, m) => sum + (m.utilidades || 0),
-            0,
-          ),
-        }
-      : null;
 
   const mesAnterior =
     mesSeleccionado === undefined
@@ -230,33 +259,56 @@ const MetricasPage = () => {
         ? anioSeleccionado - 1
         : anioSeleccionado;
 
-  const metricasDelMesAnterior = metricasDb.filter(
-    (m) =>
-      (mesAnterior === undefined || m.mes === mesAnterior) &&
-      m.anio === anioAnterior,
+  const conciliacionesMesAnterior = conciliacionesBDC.filter(
+    (c) =>
+      (mesAnterior === undefined || c.mes === mesAnterior) &&
+      c.anio === anioAnterior &&
+      (!c.marca || filtraPorMarca(c.marca)),
   );
 
-  const metricaMesAnterior =
-    metricasDelMesAnterior.length > 0
-      ? {
-          leads: metricasDelMesAnterior.reduce(
-            (sum, m) => sum + (m.leads || 0),
-            0,
-          ),
-          citas: metricasDelMesAnterior.reduce(
-            (sum, m) => sum + (m.citas || 0),
-            0,
-          ),
-          pisos: metricasDelMesAnterior.reduce(
-            (sum, m) => sum + (m.pisos || 0),
-            0,
-          ),
-          utilidades: metricasDelMesAnterior.reduce(
-            (sum, m) => sum + (m.utilidades || 0),
-            0,
-          ),
-        }
-      : null;
+  // Calcular totales del mes actual
+  const calcularMetricasBDC = (conciliaciones: Conciliacion[]) => {
+    let totalLeadsActivos = 0;
+    let totalLeadsCerrados = 0;
+    let totalCitasAgendadas = 0;
+    let totalCitasCumplidas = 0;
+    let totalVentas = 0;
+
+    for (const c of conciliaciones) {
+      // Sumar todos los leads activos
+      totalLeadsActivos += c.leads_activos.reduce(
+        (sum, l) => sum + (l.bdc || 0),
+        0,
+      );
+      // Sumar todos los leads cerrados
+      totalLeadsCerrados += c.leads_cerrados.reduce(
+        (sum, l) => sum + (l.bdc || 0),
+        0,
+      );
+      // Citas agendadas
+      const citasAgendadas = c.leads_activos.find(
+        (l) => l.estado === "Cita agendada",
+      );
+      totalCitasAgendadas += citasAgendadas?.bdc || 0;
+      // Citas cumplidas
+      const citasCumplidas = c.leads_activos.find(
+        (l) => l.estado === "Cita cumplida",
+      );
+      totalCitasCumplidas += citasCumplidas?.bdc || 0;
+      // Ventas
+      const ventas = c.leads_activos.find((l) => l.estado === "Ventas");
+      totalVentas += ventas?.bdc || 0;
+    }
+
+    return {
+      leads: totalLeadsActivos + totalLeadsCerrados,
+      citas: totalCitasAgendadas + totalCitasCumplidas,
+      ventas: totalVentas,
+    };
+  };
+
+  const metricaActual = calcularMetricasBDC(conciliacionesDelMes);
+  const metricaMesAnterior = calcularMetricasBDC(conciliacionesMesAnterior);
 
   const calcularCambio = (
     actual: number,
@@ -271,38 +323,38 @@ const MetricasPage = () => {
   };
 
   const leadsCambio = calcularCambio(
-    metricaActual?.leads || 0,
-    metricaMesAnterior?.leads,
+    metricaActual.leads,
+    metricaMesAnterior.leads,
   );
   const citasCambio = calcularCambio(
-    metricaActual?.citas || 0,
-    metricaMesAnterior?.citas,
+    metricaActual.citas,
+    metricaMesAnterior.citas,
   );
-  const utilidadesCambio = calcularCambio(
-    metricaActual?.utilidades || 0,
-    metricaMesAnterior?.utilidades,
+  const ventasCambio = calcularCambio(
+    metricaActual.ventas,
+    metricaMesAnterior.ventas,
   );
 
   const metrics: MetricCard[] = [
     {
       title: "Leads",
-      value: (metricaActual?.leads || 0).toLocaleString(),
+      value: metricaActual.leads.toLocaleString(),
       change: leadsCambio.valor,
       changeType: leadsCambio.tipo,
       icon: ArrowTrendingUpIcon,
     },
     {
       title: "Citas",
-      value: (metricaActual?.citas || 0).toLocaleString(),
+      value: metricaActual.citas.toLocaleString(),
       change: citasCambio.valor,
       changeType: citasCambio.tipo,
       icon: CalendarIcon,
     },
     {
       title: "Ventas",
-      value: (metricaActual?.utilidades || 0).toLocaleString(),
-      change: utilidadesCambio.valor,
-      changeType: utilidadesCambio.tipo,
+      value: metricaActual.ventas.toLocaleString(),
+      change: ventasCambio.valor,
+      changeType: ventasCambio.tipo,
       icon: CurrencyDollarIcon,
     },
   ];
@@ -583,17 +635,6 @@ const MetricasPage = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Funnel</h2>
-                {!isAuditor && (
-                  <button
-                    onClick={() => {
-                      setMetricaEditando(null);
-                      setModalMetricaOpen(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    + Registrar Métricas
-                  </button>
-                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {metrics.map((metric, index) => {
@@ -627,129 +668,6 @@ const MetricasPage = () => {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 mb-8">
-              <button
-                onClick={() => setHistorialExpanded(!historialExpanded)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Historial de Métricas
-                </h3>
-                {historialExpanded ? (
-                  <ChevronUpIcon className="w-5 h-5 text-gray-500" />
-                ) : (
-                  <ChevronDownIcon className="w-5 h-5 text-gray-500" />
-                )}
-              </button>
-
-              {historialExpanded && (
-                <div className="px-6 pb-6 border-t border-gray-200">
-                  <div className="mt-4 overflow-x-auto">
-                    {metricasDb.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">
-                        No hay métricas registradas
-                      </p>
-                    ) : (
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                              Período
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                              Agencia
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                              Leads
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                              Citas
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                              Ventas
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                              Creado por
-                            </th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                              Acciones
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {metricasDb.slice(0, 10).map((metrica) => (
-                            <tr key={metrica.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                {new Date(
-                                  0,
-                                  metrica.mes - 1,
-                                ).toLocaleDateString("es-MX", {
-                                  month: "short",
-                                })}{" "}
-                                {metrica.anio}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                {metrica.marca && (
-                                  <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded capitalize">
-                                    {metrica.marca}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                                {metrica.leads.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                                {metrica.citas.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                                {metrica.utilidades.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
-                                {metrica.creado_por_nombre ||
-                                  metrica.creado_por}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                {!isAuditor && (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        setMetricaEditando(metrica);
-                                        setModalMetricaOpen(true);
-                                      }}
-                                      className="text-blue-600 hover:text-blue-800 font-medium mr-3"
-                                    >
-                                      Editar
-                                    </button>
-                                    <button
-                                      onClick={async () => {
-                                        if (
-                                          confirm("¿Eliminar esta métrica?")
-                                        ) {
-                                          await eliminarMetrica(metrica.id);
-                                        }
-                                      }}
-                                      className="text-red-600 hover:text-red-800 font-medium"
-                                    >
-                                      Eliminar
-                                    </button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {metricasDb.length > 10 && (
-                      <p className="text-xs text-gray-500 text-center mt-4">
-                        Mostrando las últimas 10 métricas de {metricasDb.length}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Sección Conciliación con BDC */}
