@@ -663,41 +663,50 @@ export default function ListaProyecciones({
 
                   {/* Num proyecciones - alineado con columna Proyección */}
                   <div className="flex-1 text-center">
-                    <span className="text-sm text-gray-600">
+                    <p
+                      className="text-sm font-light"
+                      style={{ color: "#202429" }}
+                    >
                       {grupo.proyecciones.length} proyección
                       {grupo.proyecciones.length !== 1 ? "es" : ""}
-                    </span>
+                    </p>
                   </div>
 
                   {/* Presupuesto - alineado con columna Reembolso */}
                   <div className="flex-1 text-center">
-                    <span className="text-sm text-gray-600">
-                      Presupuesto:{" "}
-                      <span
-                        className="text-lg font-semibold"
-                        style={{ color: "#005117" }}
-                      >
-                        {formatearMonto(presupuestoTotalAgencia)}
-                      </span>
-                    </span>
+                    <p
+                      className="text-sm font-light"
+                      style={{ color: "#202429" }}
+                    >
+                      Presupuesto
+                    </p>
+                    <p
+                      className="text-lg font-semibold"
+                      style={{ color: "#005117" }}
+                    >
+                      {formatearMonto(presupuestoTotalAgencia)}
+                    </p>
                   </div>
 
                   {/* Proyección - alineada con columna Estado */}
                   <div className="flex-1 text-center">
-                    <span className="text-sm text-gray-600">
-                      Proyección:{" "}
-                      <span
-                        className="text-lg font-semibold"
-                        style={{
-                          color:
-                            grupo.total > presupuestoTotalAgencia
-                              ? "#9c0e11"
-                              : "#005117",
-                        }}
-                      >
-                        {formatearMonto(grupo.total)}
-                      </span>
-                    </span>
+                    <p
+                      className="text-sm font-light"
+                      style={{ color: "#202429" }}
+                    >
+                      Proyección
+                    </p>
+                    <p
+                      className="text-lg font-semibold"
+                      style={{
+                        color:
+                          grupo.total > presupuestoTotalAgencia
+                            ? "#9c0e11"
+                            : "#005117",
+                      }}
+                    >
+                      {formatearMonto(grupo.total)}
+                    </p>
                   </div>
                 </div>
 
@@ -792,14 +801,20 @@ export default function ListaProyecciones({
                           </div>
 
                           {/* Projection Card */}
-                          <div className="border-2 border-black rounded-2xl overflow-hidden">
+                          <div
+                            className="border-2 rounded-2xl overflow-hidden"
+                            style={{ borderColor: "#202429" }}
+                          >
                             {/* Main projection row */}
                             <div
                               className="flex items-center cursor-pointer bg-white py-2"
                               onClick={() => toggleProyeccion(proyeccion.id)}
                             >
                               {/* Month and partidas */}
-                              <div className="flex-1 px-6 border-r-2 border-black text-center">
+                              <div
+                                className="flex-1 px-6 border-r-2 text-center"
+                                style={{ borderColor: "#202429" }}
+                              >
                                 <p className="text-lg font-semibold text-gray-900">
                                   {proyeccion.mes} {proyeccion.año}
                                 </p>
@@ -809,7 +824,10 @@ export default function ListaProyecciones({
                               </div>
 
                               {/* Presupuesto */}
-                              <div className="flex-1 px-6 border-r-2 border-black text-center">
+                              <div
+                                className="flex-1 px-6 border-r-2 text-center"
+                                style={{ borderColor: "#202429" }}
+                              >
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Presupuesto
                                 </p>
@@ -822,7 +840,10 @@ export default function ListaProyecciones({
                               </div>
 
                               {/* Proyección */}
-                              <div className="flex-1 px-6 border-r-2 border-black text-center">
+                              <div
+                                className="flex-1 px-6 border-r-2 text-center"
+                                style={{ borderColor: "#202429" }}
+                              >
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Proyección
                                 </p>
@@ -840,7 +861,10 @@ export default function ListaProyecciones({
                               </div>
 
                               {/* Reembolso */}
-                              <div className="flex-1 px-6 border-r-2 border-black text-center">
+                              <div
+                                className="flex-1 px-6 border-r-2 text-center"
+                                style={{ borderColor: "#202429" }}
+                              >
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Reembolso
                                 </p>
@@ -867,7 +891,10 @@ export default function ListaProyecciones({
 
                             {/* Expanded Projection - Partidas */}
                             {isProyeccionExpandida && (
-                              <div className="border-t-2 border-black bg-gray-50 px-6 py-4">
+                              <div
+                                className="border-t-2 bg-gray-50 px-6 py-4"
+                                style={{ borderColor: "#202429" }}
+                              >
                                 <h6 className="font-medium text-gray-900 mb-4 text-sm">
                                   Detalles de Partidas
                                 </h6>
@@ -963,7 +990,8 @@ export default function ListaProyecciones({
                                       return (
                                         <div
                                           key={categoria}
-                                          className="bg-white border-2 border-black rounded-2xl mb-2"
+                                          className="bg-white border-2 rounded-2xl mb-2"
+                                          style={{ borderColor: "#202429" }}
                                         >
                                           {/* Category Row */}
                                           <div
@@ -1046,7 +1074,10 @@ export default function ListaProyecciones({
 
                                           {/* Expanded Category - Subcategories */}
                                           {isCategoriaExpandida && (
-                                            <div className="border-t-2 border-black">
+                                            <div
+                                              className="border-t-2"
+                                              style={{ borderColor: "#202429" }}
+                                            >
                                               {Object.entries(
                                                 porSubcategoria,
                                               ).map(
@@ -1068,7 +1099,10 @@ export default function ListaProyecciones({
                                                   return (
                                                     <div
                                                       key={keySubcat}
-                                                      className="border-t-2 border-black"
+                                                      className="border-t-2"
+                                                      style={{
+                                                        borderColor: "#202429",
+                                                      }}
                                                     >
                                                       {/* Subcategory Row */}
                                                       <div
@@ -1081,7 +1115,13 @@ export default function ListaProyecciones({
                                                           );
                                                         }}
                                                       >
-                                                        <div className="flex-shrink-0 pr-4 border-r-2 border-black flex items-center gap-2">
+                                                        <div
+                                                          className="flex-shrink-0 pr-4 border-r-2 flex items-center gap-2"
+                                                          style={{
+                                                            borderColor:
+                                                              "#202429",
+                                                          }}
+                                                        >
                                                           <span className="text-xs">
                                                             {isSubcategoriaExpandida
                                                               ? "▼"
@@ -1115,7 +1155,11 @@ export default function ListaProyecciones({
                                                             (partida) => (
                                                               <div
                                                                 key={partida.id}
-                                                                className="px-4 py-2 pl-16 border-t-2 border-black"
+                                                                className="px-4 py-2 pl-16 border-t-2"
+                                                                style={{
+                                                                  borderColor:
+                                                                    "#202429",
+                                                                }}
                                                               >
                                                                 <div className="flex justify-between items-center">
                                                                   <span className="text-sm text-gray-600">
