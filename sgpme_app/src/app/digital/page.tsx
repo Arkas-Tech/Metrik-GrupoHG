@@ -579,19 +579,10 @@ const MetricasPage = () => {
                       key={index}
                       className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
                     >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <IconComponent className="w-6 h-6 text-blue-600" />
-                          </div>
+                      <div className="flex items-center mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <IconComponent className="w-6 h-6 text-blue-600" />
                         </div>
-                        <span
-                          className={`text-sm font-medium ${getChangeColor(
-                            metric.changeType,
-                          )}`}
-                        >
-                          {metric.change}
-                        </span>
                       </div>
                       <h3 className="text-lg font-semibold text-gray-700 mb-1">
                         {metric.title}
