@@ -18,6 +18,7 @@ interface CalendarioMensualProps {
   onCrearBrief?: (eventoId: string) => void;
   onVerBrief?: (eventoId: string) => void;
   onDescargarEventoPDF?: (eventoId: string) => void;
+  onEditarEvento?: (eventoId: string) => void;
 }
 
 export default function CalendarioMensual({
@@ -26,6 +27,7 @@ export default function CalendarioMensual({
   onCrearBrief,
   onVerBrief,
   onDescargarEventoPDF,
+  onEditarEvento,
 }: CalendarioMensualProps) {
   const { filtraPorMarca } = useMarcaGlobal();
   const [fechaActual, setFechaActual] = useState(new Date());
@@ -345,6 +347,7 @@ export default function CalendarioMensual({
         onCrearBrief={onCrearBrief}
         onVerBrief={onVerBrief}
         onDescargarEventoPDF={onDescargarEventoPDF}
+        onEditarEvento={onEditarEvento}
       />
     </div>
   );

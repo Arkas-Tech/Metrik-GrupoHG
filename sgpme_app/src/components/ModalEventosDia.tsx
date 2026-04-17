@@ -7,6 +7,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DocumentTextIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import { Evento } from "@/types";
 import { formatearMarca } from "@/lib/evento-utils";
@@ -19,6 +20,7 @@ interface ModalEventosDiaProps {
   onCrearBrief?: (eventoId: string) => void;
   onVerBrief?: (eventoId: string) => void;
   onDescargarEventoPDF?: (eventoId: string) => void;
+  onEditarEvento?: (eventoId: string) => void;
 }
 
 const COLORES_ESTADO = {
@@ -51,6 +53,7 @@ export default function ModalEventosDia({
   onCrearBrief,
   onVerBrief,
   onDescargarEventoPDF,
+  onEditarEvento,
 }: ModalEventosDiaProps) {
   const [expandedEventoId, setExpandedEventoId] = useState<string | null>(null);
 
@@ -236,7 +239,9 @@ export default function ModalEventosDia({
                                               );
                                             }
                                           } catch {}
-                                          return evento.ubicacion || "Sin ubicación";
+                                          return (
+                                            evento.ubicacion || "Sin ubicación"
+                                          );
                                         })()}
                                       </p>
                                     </div>
@@ -471,8 +476,20 @@ export default function ModalEventosDia({
                                 </div>
                               </div>
 
-                              {onDescargarEventoPDF && (
-                                <div className="mt-3">
+                              <div className="mt-3 flex gap-2">
+                                {onEditarEvento && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditarEvento(evento.id.toString());
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium transition-colors"
+                                  >
+                                    <PencilIcon className="h-3.5 w-3.5" />
+                                    Editar
+                                  </button>
+                                )}
+                                {onDescargarEventoPDF && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -484,8 +501,8 @@ export default function ModalEventosDia({
                                   >
                                     ⬇️ Descargar PDF del Evento
                                   </button>
-                                </div>
-                              )}
+                                )}
+                              </div>
 
                               {evento.descripcion && (
                                 <div className="mt-4">

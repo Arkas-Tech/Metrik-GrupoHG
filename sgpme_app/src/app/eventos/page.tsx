@@ -601,6 +601,13 @@ export default function EventosPage() {
                         onDescargarEventoPDF={(eventoId) =>
                           exportarEventoPDF(eventoId)
                         }
+                        onEditarEvento={(eventoId) => {
+                          const evento = eventos.find((e) => e.id === eventoId);
+                          if (evento) {
+                            setEventoEditando(evento);
+                            navegarA("editar");
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -632,6 +639,13 @@ export default function EventosPage() {
                         onDescargarEventoPDF={(eventoId) =>
                           exportarEventoPDF(eventoId)
                         }
+                        onEditarEvento={(eventoId) => {
+                          const evento = eventos.find((e) => e.id === eventoId);
+                          if (evento) {
+                            setEventoEditando(evento);
+                            navegarA("editar");
+                          }
+                        }}
                       />
                     </div>
                   )}
@@ -663,6 +677,13 @@ export default function EventosPage() {
                         onDescargarEventoPDF={(eventoId) =>
                           exportarEventoPDF(eventoId)
                         }
+                        onEditarEvento={(eventoId) => {
+                          const evento = eventos.find((e) => e.id === eventoId);
+                          if (evento) {
+                            setEventoEditando(evento);
+                            navegarA("editar");
+                          }
+                        }}
                       />
                     </div>
                   )}

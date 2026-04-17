@@ -18,6 +18,7 @@ interface CalendarioTrimestralProps {
   onCrearBrief?: (eventoId: string) => void;
   onVerBrief?: (eventoId: string) => void;
   onDescargarEventoPDF?: (eventoId: string) => void;
+  onEditarEvento?: (eventoId: string) => void;
 }
 
 const MESES = [
@@ -89,6 +90,7 @@ export default function CalendarioTrimestral({
   onCrearBrief,
   onVerBrief,
   onDescargarEventoPDF,
+  onEditarEvento,
 }: CalendarioTrimestralProps) {
   const añoActual = new Date().getFullYear();
   const [año, setAño] = useState(añoActual);
@@ -448,6 +450,7 @@ export default function CalendarioTrimestral({
         onCrearBrief={onCrearBrief}
         onVerBrief={onVerBrief}
         onDescargarEventoPDF={onDescargarEventoPDF}
+        onEditarEvento={onEditarEvento}
       />
     </div>
   );
