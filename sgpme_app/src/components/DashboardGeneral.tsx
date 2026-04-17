@@ -1781,84 +1781,7 @@ export default function DashboardGeneral({
         {/* Resumen financiero y proyección por categoría — layout de 2 columnas */}
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-            {/* ── COLUMNA IZQUIERDA: Proyección por categoría (fondo gris) ── */}
-            <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
-              <h4 className="text-base font-semibold text-gray-900 mb-4">
-                Proyección por categoría
-              </h4>
-              {datosGraficaPie.length > 0 ? (
-                <div className="flex flex-col gap-6">
-                  {/* Leyenda en recuadro */}
-                  <div className="bg-white rounded-2xl p-4 shadow-sm">
-                    <div className="space-y-2.5">
-                      {datosGraficaPie.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2.5">
-                          <div
-                            className="w-3 h-3 rounded-full shrink-0"
-                            style={{
-                              backgroundColor:
-                                COLORES_PIE[idx % COLORES_PIE.length],
-                            }}
-                          />
-                          <span className="text-xs text-gray-700">
-                            {item.nombre}:{" "}
-                            <span className="font-semibold">
-                              {formatearMiles(item.valor)}
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pie chart */}
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={datosGraficaPie}
-                          dataKey="valor"
-                          nameKey="nombre"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={90}
-                          innerRadius={0}
-                        >
-                          {datosGraficaPie.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORES_PIE[index % COLORES_PIE.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value: number | undefined) =>
-                            formatearMiles(value ?? 0)
-                          }
-                          contentStyle={{
-                            backgroundColor: "transparent",
-                            border: "none",
-                            boxShadow: "none",
-                          }}
-                          labelStyle={{
-                            color: "#111827",
-                            fontWeight: "600",
-                            fontSize: "14px",
-                          }}
-                          itemStyle={{ color: "#374151", fontSize: "13px" }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-gray-500">
-                  <p>No hay datos de proyecciones para el período seleccionado</p>
-                </div>
-              )}
-            </div>
-
-            {/* ── COLUMNA DERECHA: Resumen financiero y presupuestal (fondo blanco) ── */}
+            {/* ── COLUMNA IZQUIERDA: Resumen financiero y presupuestal (fondo blanco) ── */}
             <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
               {/* Header: título + subtítulo */}
               <div className="inline-block mb-0">
@@ -1890,10 +1813,15 @@ export default function DashboardGeneral({
                         base100 > 0 ? (proyeccion / base100) * 100 : 0;
                       const porcentajePresupuesto =
                         base100 > 0 ? (presupuesto / base100) * 100 : 0;
-                      const gastoHastaPresupuesto = Math.min(gasto, presupuesto);
+                      const gastoHastaPresupuesto = Math.min(
+                        gasto,
+                        presupuesto,
+                      );
                       const gastoSobrante = Math.max(0, gasto - presupuesto);
                       const porcentajeGastoVerde =
-                        base100 > 0 ? (gastoHastaPresupuesto / base100) * 100 : 0;
+                        base100 > 0
+                          ? (gastoHastaPresupuesto / base100) * 100
+                          : 0;
                       const porcentajeGastoRojo =
                         base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
 
@@ -1993,6 +1921,85 @@ export default function DashboardGeneral({
                   {formatearMiles(reembolsosData)}
                 </span>
               </div>
+            </div>
+
+            {/* ── COLUMNA DERECHA: Proyección por categoría (fondo gris) ── */}
+            <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+              <h4 className="text-base font-semibold text-gray-900 mb-4">
+                Proyección por categoría
+              </h4>
+              {datosGraficaPie.length > 0 ? (
+                <div className="flex flex-col lg:flex-row gap-6 items-center">
+                  {/* Leyenda en recuadro más compacto */}
+                  <div className="bg-white rounded-2xl p-3 shadow-sm shrink-0 w-full lg:w-auto lg:max-w-[200px]">
+                    <div className="space-y-2">
+                      {datosGraficaPie.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{
+                              backgroundColor:
+                                COLORES_PIE[idx % COLORES_PIE.length],
+                            }}
+                          />
+                          <span className="text-[10px] text-gray-700 leading-tight">
+                            {item.nombre}:{" "}
+                            <span className="font-semibold">
+                              {formatearMiles(item.valor)}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pie chart */}
+                  <div className="flex-1 h-64 w-full min-w-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={datosGraficaPie}
+                          dataKey="valor"
+                          nameKey="nombre"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={90}
+                          innerRadius={0}
+                        >
+                          {datosGraficaPie.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORES_PIE[index % COLORES_PIE.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number | undefined) =>
+                            formatearMiles(value ?? 0)
+                          }
+                          contentStyle={{
+                            backgroundColor: "transparent",
+                            border: "none",
+                            boxShadow: "none",
+                          }}
+                          labelStyle={{
+                            color: "#111827",
+                            fontWeight: "600",
+                            fontSize: "14px",
+                          }}
+                          itemStyle={{ color: "#374151", fontSize: "13px" }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-48 flex items-center justify-center text-gray-500">
+                  <p>
+                    No hay datos de proyecciones para el período seleccionado
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
