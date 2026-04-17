@@ -31,6 +31,7 @@ import FormularioMetricaSimple from "@/components/FormularioMetricaSimple";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import ConciliacionBDCSection from "@/components/ConciliacionBDCSection";
 import DiagramasConversionSection from "@/components/DiagramasConversionSection";
+import { User, CopyPlus } from "lucide-react";
 
 interface MetricCard {
   title: string;
@@ -757,349 +758,376 @@ const MetricasPage = () => {
             {/* Sección Diagramas de Conversión */}
             <DiagramasConversionSection />
 
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Campañas Digitales
+            {/* Sección Campañas Digitales */}
+            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+              <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+                <h2 className="text-xl font-bold text-gray-900 mb-10">
+                  Campañas digitales
                 </h2>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Meta */}
-                <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-blue-900">Meta</h3>
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-7 h-7 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-4xl mx-auto">
+                  {/* Meta */}
+                  <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                    {/* Logo flotante */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                      <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <svg
+                          className="w-9 h-9 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Leads totales:
-                      </span>
-                      <span className="text-lg font-bold text-blue-900">
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasMeta.leads,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Inversión:
-                      </span>
-                      <span className="text-lg font-bold text-blue-900">
-                        $
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasMeta.inversion,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        CxC:
-                      </span>
-                      <span className="text-lg font-bold text-blue-900">
-                        {metricasMeta.cxc.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/campanas?plataforma=meta")}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Ver campañas
-                  </button>
-                </div>
 
-                {/* Google */}
-                <div className="bg-linear-to-br from-red-50 to-red-100 rounded-lg p-6 border-2 border-red-200 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-red-900">Google</h3>
-                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-7 h-7 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Leads totales:
-                      </span>
-                      <span className="text-lg font-bold text-red-900">
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasGoogle.leads,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Inversión:
-                      </span>
-                      <span className="text-lg font-bold text-red-900">
-                        $
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasGoogle.inversion,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        CxC:
-                      </span>
-                      <span className="text-lg font-bold text-red-900">
-                        {metricasGoogle.cxc.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/campanas?plataforma=google")}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Ver campañas
-                  </button>
-                </div>
+                    {/* Nombre */}
+                    <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                      META
+                    </h3>
 
-                {/* TikTok */}
-                <div className="bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
-                    <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-7 h-7 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
-                      </svg>
+                    {/* Métricas */}
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Leads totales:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX").format(
+                            metricasMeta.leads,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Inversión:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(metricasMeta.inversion)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          CxC:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {metricasMeta.cxc.toFixed(2)}%
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Botón */}
+                    <button
+                      onClick={() => router.push("/campanas?plataforma=meta")}
+                      className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                    >
+                      Ver campañas
+                    </button>
                   </div>
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Leads totales:
-                      </span>
-                      <span className="text-lg font-bold text-gray-900">
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasTikTok.leads,
-                        )}
-                      </span>
+
+                  {/* Google */}
+                  <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                    {/* Logo flotante */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-gray-200">
+                        <svg className="w-10 h-10" viewBox="0 0 24 24">
+                          <path
+                            fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Inversión:
-                      </span>
-                      <span className="text-lg font-bold text-gray-900">
-                        $
-                        {new Intl.NumberFormat("es-MX").format(
-                          metricasTikTok.inversion,
-                        )}
-                      </span>
+
+                    {/* Nombre */}
+                    <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                      GOOGLE
+                    </h3>
+
+                    {/* Métricas */}
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Leads totales:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX").format(
+                            metricasGoogle.leads,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Inversión:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(metricasGoogle.inversion)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          CxC:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {metricasGoogle.cxc.toFixed(2)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        CxC:
-                      </span>
-                      <span className="text-lg font-bold text-gray-900">
-                        {metricasTikTok.cxc.toFixed(2)}%
-                      </span>
-                    </div>
+
+                    {/* Botón */}
+                    <button
+                      onClick={() => router.push("/campanas?plataforma=google")}
+                      className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                    >
+                      Ver campañas
+                    </button>
                   </div>
-                  <button
-                    onClick={() => router.push("/campanas?plataforma=tiktok")}
-                    className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Ver campañas
-                  </button>
+
+                  {/* TikTok */}
+                  <div className="rounded-3xl border border-gray-200 p-4 pt-12 relative max-w-[280px] mx-auto w-full">
+                    {/* Logo flotante */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center shadow-lg">
+                        <svg
+                          className="w-9 h-9 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Nombre */}
+                    <h3 className="text-lg font-bold text-gray-900 text-center mb-6">
+                      TIKTOK
+                    </h3>
+
+                    {/* Métricas */}
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Leads totales:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX").format(
+                            metricasTikTok.leads,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          Inversión:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          $
+                          {new Intl.NumberFormat("es-MX", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(metricasTikTok.inversion)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-700">
+                          CxC:
+                        </span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {metricasTikTok.cxc.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Botón */}
+                    <button
+                      onClick={() => router.push("/campanas?plataforma=tiktok")}
+                      className="w-full bg-gray-300 text-gray-700 px-4 py-2.5 rounded-full font-bold text-sm transition-all hover:bg-transparent hover:border-red-500 border border-transparent"
+                    >
+                      Ver campañas
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Sección Embajadores */}
-            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Embajadores
-                </h2>
-                <button
-                  onClick={() => router.push("/embajadores?from=digital")}
-                  className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-                >
-                  Ver todos →
-                </button>
-              </div>
+            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+              <div className="bg-[#1e293b] px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                    Proyecto Embajadores
+                  </h2>
+                  <button
+                    onClick={() => router.push("/embajadores?from=digital")}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <CopyPlus className="h-6 w-6 text-red-500" />
+                  </button>
+                </div>
 
-              {(() => {
-                const embFiltrados = embajadoresDig.filter((e) =>
-                  !e.marca ? true : filtraPorMarca(e.marca),
-                );
-                if (embFiltrados.length === 0) {
-                  return (
-                    <div className="text-center py-10 text-gray-400">
-                      <p className="text-sm">No hay embajadores registrados.</p>
-                      <button
-                        onClick={() => router.push("/embajadores?from=digital")}
-                        className="mt-3 text-purple-600 hover:underline text-sm font-medium"
-                      >
-                        Administrar embajadores →
-                      </button>
-                    </div>
+                {(() => {
+                  const embFiltrados = embajadoresDig.filter((e) =>
+                    !e.marca ? true : filtraPorMarca(e.marca),
                   );
-                }
-                const paletas = [
-                  {
-                    bg: "from-purple-50 to-purple-100",
-                    border: "border-purple-200",
-                    avatar: "bg-purple-600",
-                    text: "text-purple-900",
-                  },
-                  {
-                    bg: "from-pink-50 to-pink-100",
-                    border: "border-pink-200",
-                    avatar: "bg-pink-600",
-                    text: "text-pink-900",
-                  },
-                  {
-                    bg: "from-indigo-50 to-indigo-100",
-                    border: "border-indigo-200",
-                    avatar: "bg-indigo-600",
-                    text: "text-indigo-900",
-                  },
-                ];
-                const fmtAud = (n: number) => {
-                  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-                  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-                  return String(n);
-                };
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {embFiltrados.slice(0, 6).map((emb, idx) => {
-                      const p = paletas[idx % paletas.length];
-                      let plataformas: Array<{
-                        plataforma: string;
-                        usuario: string;
-                      }> = [];
-                      try {
-                        if (emb.plataformas_json)
-                          plataformas = JSON.parse(emb.plataformas_json);
-                      } catch {
-                        /* ignore */
-                      }
-                      return (
-                        <div
-                          key={emb.id}
-                          className={`bg-linear-to-br ${p.bg} rounded-lg p-6 border-2 ${p.border} hover:shadow-lg transition-shadow`}
+                  if (embFiltrados.length === 0) {
+                    return (
+                      <div className="text-center py-10 text-gray-400">
+                        <p className="text-sm">No hay embajadores registrados.</p>
+                        <button
+                          onClick={() => router.push("/embajadores?from=digital")}
+                          className="mt-3 text-purple-400 hover:underline text-sm font-medium"
                         >
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3
-                                className={`text-lg font-bold ${p.text} leading-tight`}
-                              >
-                                {emb.nombre}
-                              </h3>
-                              {emb.marca && (
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {emb.marca}
-                                </p>
+                          Administrar embajadores →
+                        </button>
+                      </div>
+                    );
+                  }
+                  const formatAud = (n: number) => {
+                    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+                    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+                    return String(n);
+                  };
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+                      {embFiltrados.slice(0, 6).map((emb) => {
+                        let plataformas: Array<{
+                          plataforma: string;
+                          usuario: string;
+                        }> = [];
+                        try {
+                          if (emb.plataformas_json)
+                            plataformas = JSON.parse(emb.plataformas_json);
+                        } catch {
+                          /* ignore */
+                        }
+
+                        // Obtener usuario de Instagram
+                        const instagramUser =
+                          plataformas.find(
+                            (p) => p.plataforma.toLowerCase() === "instagram",
+                          )?.usuario || "";
+                        const tiktokUser =
+                          plataformas.find(
+                            (p) => p.plataforma.toLowerCase() === "tiktok",
+                          )?.usuario || "";
+
+                        return (
+                          <div
+                            key={emb.id}
+                            className="relative flex flex-col items-center py-8 px-6 border-r border-gray-600 last:border-r-0"
+                          >
+                            {/* Foto de perfil o avatar placeholder */}
+                            <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center mb-4 overflow-hidden">
+                              <User className="w-10 h-10 text-white" />
+                            </div>
+
+                            {/* Usuario de Instagram */}
+                            <p className="text-white font-medium text-sm mb-2">
+                              @
+                              {instagramUser ||
+                                emb.nombre.toLowerCase().replace(/\s+/g, "")}
+                            </p>
+
+                            {/* Badge de agencia */}
+                            {emb.marca && (
+                              <div className="bg-white/10 text-white text-xs px-3 py-1 rounded-full mb-3 border border-white/20">
+                                {emb.marca}
+                              </div>
+                            )}
+
+                            {/* Iconos de redes sociales */}
+                            <div className="flex gap-3 mb-6">
+                              {instagramUser && (
+                                <a
+                                  href={`https://instagram.com/${instagramUser}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-white hover:text-red-400 transition-colors"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                                  </svg>
+                                </a>
+                              )}
+                              {tiktokUser && (
+                                <a
+                                  href={`https://tiktok.com/@${tiktokUser}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-white hover:text-red-400 transition-colors"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                                  </svg>
+                                </a>
                               )}
                             </div>
-                            <div
-                              className={`w-12 h-12 ${p.avatar} rounded-full flex items-center justify-center shrink-0`}
-                            >
-                              <svg
-                                className="w-7 h-7 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                              </svg>
+
+                            {/* Métricas */}
+                            <div className="w-full space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">
+                                  Presupuesto:
+                                </span>
+                                <span className="text-white font-bold text-sm">
+                                  $
+                                  {new Intl.NumberFormat("es-MX").format(
+                                    emb.presupuesto,
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">Leads:</span>
+                                <span className="text-white font-bold text-sm">
+                                  {new Intl.NumberFormat("es-MX").format(emb.leads)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-white text-sm">
+                                  Audiencia:
+                                </span>
+                                <span className="text-white font-bold text-sm">
+                                  {formatAud(emb.audiencia)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          {plataformas.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {plataformas.map((pl, i) => {
-                                const profileUrl = pl.usuario
-                                  ? buildProfileUrl(pl.plataforma, pl.usuario)
-                                  : null;
-                                const label = `${pl.plataforma}${pl.usuario ? ` · ${pl.usuario}` : ""}`;
-                                return profileUrl ? (
-                                  <a
-                                    key={i}
-                                    href={profileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-white/60 text-purple-700 text-xs px-2 py-0.5 rounded-full hover:bg-purple-100 hover:underline transition-colors cursor-pointer"
-                                  >
-                                    {label}
-                                  </a>
-                                ) : (
-                                  <span
-                                    key={i}
-                                    className="bg-white/60 text-gray-700 text-xs px-2 py-0.5 rounded-full"
-                                  >
-                                    {label}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">
-                                Presupuesto:
-                              </span>
-                              <span className={`text-base font-bold ${p.text}`}>
-                                $
-                                {new Intl.NumberFormat("es-MX").format(
-                                  emb.presupuesto,
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">
-                                Leads:
-                              </span>
-                              <span className={`text-base font-bold ${p.text}`}>
-                                {new Intl.NumberFormat("es-MX").format(
-                                  emb.leads,
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">
-                                Audiencia:
-                              </span>
-                              <span className={`text-base font-bold ${p.text}`}>
-                                {fmtAud(emb.audiencia)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </main>
