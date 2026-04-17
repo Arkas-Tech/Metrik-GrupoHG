@@ -36,8 +36,6 @@ import { User, CopyPlus } from "lucide-react";
 interface MetricCard {
   title: string;
   value: string;
-  change: string;
-  changeType: "positive" | "negative" | "neutral";
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -246,26 +244,6 @@ const MetricasPage = () => {
       (!c.marca || filtraPorMarca(c.marca)),
   );
 
-  const mesAnterior =
-    mesSeleccionado === undefined
-      ? undefined
-      : mesSeleccionado === 1
-        ? 12
-        : mesSeleccionado - 1;
-  const anioAnterior =
-    mesSeleccionado === undefined
-      ? anioSeleccionado - 1
-      : mesSeleccionado === 1
-        ? anioSeleccionado - 1
-        : anioSeleccionado;
-
-  const conciliacionesMesAnterior = conciliacionesBDC.filter(
-    (c) =>
-      (mesAnterior === undefined || c.mes === mesAnterior) &&
-      c.anio === anioAnterior &&
-      (!c.marca || filtraPorMarca(c.marca)),
-  );
-
   // Calcular totales del mes actual
   const calcularMetricasBDC = (conciliaciones: Conciliacion[]) => {
     let totalLeadsActivos = 0;
@@ -308,67 +286,24 @@ const MetricasPage = () => {
   };
 
   const metricaActual = calcularMetricasBDC(conciliacionesDelMes);
-  const metricaMesAnterior = calcularMetricasBDC(conciliacionesMesAnterior);
-
-  const calcularCambio = (
-    actual: number,
-    anterior: number | undefined,
-  ): { valor: string; tipo: "positive" | "negative" | "neutral" } => {
-    if (!anterior || anterior === 0) return { valor: "", tipo: "neutral" };
-    const cambio = ((actual - anterior) / anterior) * 100;
-    return {
-      valor: `${cambio > 0 ? "+" : ""}${cambio.toFixed(1)}%`,
-      tipo: cambio > 0 ? "positive" : cambio < 0 ? "negative" : "neutral",
-    };
-  };
-
-  const leadsCambio = calcularCambio(
-    metricaActual.leads,
-    metricaMesAnterior.leads,
-  );
-  const citasCambio = calcularCambio(
-    metricaActual.citas,
-    metricaMesAnterior.citas,
-  );
-  const ventasCambio = calcularCambio(
-    metricaActual.ventas,
-    metricaMesAnterior.ventas,
-  );
 
   const metrics: MetricCard[] = [
     {
       title: "Leads",
       value: metricaActual.leads.toLocaleString(),
-      change: leadsCambio.valor,
-      changeType: leadsCambio.tipo,
       icon: ArrowTrendingUpIcon,
     },
     {
       title: "Citas",
       value: metricaActual.citas.toLocaleString(),
-      change: citasCambio.valor,
-      changeType: citasCambio.tipo,
       icon: CalendarIcon,
     },
     {
       title: "Ventas",
       value: metricaActual.ventas.toLocaleString(),
-      change: ventasCambio.valor,
-      changeType: ventasCambio.tipo,
       icon: CurrencyDollarIcon,
     },
   ];
-
-  const getChangeColor = (changeType: string) => {
-    switch (changeType) {
-      case "positive":
-        return "text-green-600";
-      case "negative":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
 
   // Calcular métricas por plataforma
   const calcularMetricasPlataforma = (plataforma: string) => {
