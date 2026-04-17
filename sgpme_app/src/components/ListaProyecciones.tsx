@@ -526,33 +526,26 @@ export default function ListaProyecciones({
               <div key={grupo.agencia}>
                 {/* Agency Row */}
                 <div
-                  className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-8 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => toggleAgencia(grupo.agencia)}
                 >
-                  <div className="flex items-center gap-3">
-                    <h4 className="text-lg font-bold text-gray-900">{grupo.agencia}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-bold text-gray-900">{grupo.agencia}</h4>
                     {isAgenciaExpandida ? (
-                      <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                      <ChevronUpIcon className="h-4 w-4 text-gray-500" />
                     ) : (
-                      <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                      <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                     )}
                   </div>
-
-                  <div className="flex items-center gap-6 text-sm">
-                    <span className="text-gray-600">
-                      {grupo.proyecciones.length} proyección{grupo.proyecciones.length !== 1 ? "es" : ""}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Presupuesto:</span>
-                      <span className="font-semibold text-gray-900">{formatearMonto(presupuestoTotalAgencia)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Proyección:</span>
-                      <span className={`font-semibold ${grupo.total > presupuestoTotalAgencia ? "text-red-600" : "text-green-600"}`}>
-                        {formatearMonto(grupo.total)}
-                      </span>
-                    </div>
-                  </div>
+                  <span className="text-sm text-gray-600">
+                    {grupo.proyecciones.length} proyección{grupo.proyecciones.length !== 1 ? "es" : ""}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    Presupuesto: <span className="font-semibold text-gray-900">{formatearMonto(presupuestoTotalAgencia)}</span>
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    Proyección: <span className={`font-semibold ${grupo.total > presupuestoTotalAgencia ? "text-red-600" : "text-green-600"}`}>{formatearMonto(grupo.total)}</span>
+                  </span>
                 </div>
 
                 {/* Expanded Agency - Projections */}
@@ -571,89 +564,89 @@ export default function ListaProyecciones({
                       const isProyeccionExpandida = proyeccionesExpandidas.has(proyeccion.id);
 
                       return (
-                        <div key={proyeccion.id}>
-                          {/* Projection Card */}
-                          <div className="border border-gray-200 rounded-xl overflow-hidden">
-                            {/* Action buttons - outside the main card area */}
-                            <div className="flex justify-end gap-1 px-3 pt-2 pb-1 bg-white">
+                        <div key={proyeccion.id} className="relative">
+                          {/* Action buttons - positioned absolutely above the card */}
+                          <div className="flex justify-end gap-1.5 mb-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleProyeccion(proyeccion.id); }}
+                              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                              title="Ver detalles"
+                            >
+                              <EyeIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generarPDFProyeccion(proyeccion, presupuestosMensuales, nombresCategorias); }}
+                              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                              title="Descargar PDF"
+                            >
+                              <ArrowDownTrayIcon className="h-5 w-5" />
+                            </button>
+                            {permisos.aprobar && proyeccion.estado === "pendiente" && onAprobar && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); toggleProyeccion(proyeccion.id); }}
-                                className="p-1.5 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                title="Ver detalles"
+                                onClick={(e) => { e.stopPropagation(); onAprobar(proyeccion.id); }}
+                                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                title="Aprobar"
                               >
-                                <EyeIcon className="h-4 w-4" />
+                                <CheckCircleIcon className="h-5 w-5" />
                               </button>
+                            )}
+                            {permisos.editar && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); generarPDFProyeccion(proyeccion, presupuestosMensuales, nombresCategorias); }}
-                                className="p-1.5 rounded-full text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors"
-                                title="Descargar PDF"
+                                onClick={(e) => { e.stopPropagation(); onEditar(proyeccion); }}
+                                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                title="Editar"
                               >
-                                <ArrowDownTrayIcon className="h-4 w-4" />
+                                <PencilIcon className="h-5 w-5" />
                               </button>
-                              {permisos.aprobar && proyeccion.estado === "pendiente" && onAprobar && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onAprobar(proyeccion.id); }}
-                                  className="p-1.5 rounded-full text-gray-500 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                                  title="Aprobar"
-                                >
-                                  <CheckCircleIcon className="h-4 w-4" />
-                                </button>
-                              )}
-                              {permisos.editar && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onEditar(proyeccion); }}
-                                  className="p-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                  title="Editar"
-                                >
-                                  <PencilIcon className="h-4 w-4" />
-                                </button>
-                              )}
-                              {permisos.eliminar && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); onEliminar(proyeccion.id); }}
-                                  className="p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                  title="Eliminar"
-                                >
-                                  <XMarkIcon className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
+                            )}
+                            {permisos.eliminar && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onEliminar(proyeccion.id); }}
+                                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                title="Eliminar"
+                              >
+                                <XMarkIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
 
+                          {/* Projection Card */}
+                          <div className="border border-gray-300 rounded-lg overflow-hidden">
                             {/* Main projection row */}
                             <div
-                              className="flex items-center cursor-pointer bg-white px-4 pb-3"
+                              className="flex items-center cursor-pointer bg-white px-6 py-3"
                               onClick={() => toggleProyeccion(proyeccion.id)}
                             >
                               {/* Month and partidas */}
-                              <div className="flex-shrink-0 pr-4 border-r border-gray-200">
-                                <p className="font-semibold text-gray-900">{proyeccion.mes} {proyeccion.año}</p>
-                                <p className="text-sm text-gray-500">{(proyeccion.partidas || []).length} partidas</p>
+                              <div className="flex-shrink-0 w-32 pr-6 border-r border-gray-300">
+                                <p className="font-semibold text-gray-900 text-sm">{proyeccion.mes} {proyeccion.año}</p>
+                                <p className="text-xs text-gray-500">{(proyeccion.partidas || []).length} partidas</p>
                               </div>
 
                               {/* Presupuesto */}
-                              <div className="flex-1 px-4 border-r border-gray-200 text-center">
-                                <p className="text-xs text-gray-500">Presupuesto</p>
-                                <p className="font-semibold text-gray-900">{formatearMonto(presupuestoMensual)}</p>
+                              <div className="flex-1 px-6 border-r border-gray-300">
+                                <p className="text-xs text-gray-500 mb-0.5">Presupuesto</p>
+                                <p className="font-semibold text-gray-900 text-sm">{formatearMonto(presupuestoMensual)}</p>
                               </div>
 
                               {/* Proyección */}
-                              <div className="flex-1 px-4 border-r border-gray-200 text-center">
-                                <p className="text-xs text-gray-500">Proyección</p>
-                                <p className={`font-semibold ${proyeccion.montoTotal > presupuestoMensual ? "text-red-600" : "text-green-600"}`}>
+                              <div className="flex-1 px-6 border-r border-gray-300">
+                                <p className="text-xs text-gray-500 mb-0.5">Proyección</p>
+                                <p className={`font-semibold text-sm ${proyeccion.montoTotal > presupuestoMensual ? "text-red-600" : "text-green-600"}`}>
                                   {formatearMonto(proyeccion.montoTotal)}
                                 </p>
                               </div>
 
                               {/* Reembolso */}
-                              <div className="flex-1 px-4 border-r border-gray-200 text-center">
-                                <p className="text-xs text-gray-500">Reembolso</p>
-                                <p className="font-semibold text-gray-900">{formatearMonto(reembolsoTotal)}</p>
+                              <div className="flex-1 px-6 border-r border-gray-300">
+                                <p className="text-xs text-gray-500 mb-0.5">Reembolso</p>
+                                <p className="font-semibold text-gray-900 text-sm">{formatearMonto(reembolsoTotal)}</p>
                               </div>
 
                               {/* Estado */}
-                              <div className="flex-shrink-0 pl-4">
+                              <div className="flex-shrink-0 pl-6 w-28 text-right">
                                 <span
-                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${
                                     proyeccion.estado === "aprobada"
                                       ? "bg-green-100 text-green-700"
                                       : "bg-yellow-100 text-yellow-700"
@@ -666,8 +659,8 @@ export default function ListaProyecciones({
 
                             {/* Expanded Projection - Partidas */}
                             {isProyeccionExpandida && (
-                              <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                <h6 className="font-medium text-gray-900 mb-3">Detalle de Partidas</h6>
+                              <div className="border-t border-gray-300 bg-gray-50 px-6 py-4">
+                                <h6 className="font-medium text-gray-900 mb-4 text-sm">Detalles de Partidas</h6>
                                 <div className="space-y-2">
                                   {(() => {
                                     const partidasNormales = (proyeccion.partidas || []).filter((p) => !p.esReembolso);
@@ -712,51 +705,50 @@ export default function ListaProyecciones({
                                       });
 
                                       return (
-                                        <div key={categoria} className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+                                        <div key={categoria} className="bg-white border border-gray-200 rounded mb-2">
                                           {/* Category Row */}
                                           <div
-                                            className="flex items-center cursor-pointer hover:bg-gray-50 px-4 py-3"
+                                            className="flex items-center cursor-pointer hover:bg-gray-50 px-4 py-3 gap-4"
                                             onClick={(e) => { e.stopPropagation(); toggleCategoria(proyeccion.id, categoria); }}
                                           >
                                             {/* Category name and count */}
-                                            <div className="flex-shrink-0 pr-4 border-r border-gray-200 flex items-center gap-2">
-                                              <span className="text-sm">{isCategoriaExpandida ? "▼" : "▶"}</span>
-                                              <div>
-                                                <p className="font-medium text-gray-900">{categoria}</p>
-                                                <p className="text-xs text-gray-500">{partidasDeCategoria.length} partidas</p>
-                                              </div>
+                                            <div className="flex-shrink-0 w-48">
+                                              <p className="font-medium text-gray-900 text-sm">{categoria}</p>
+                                              <p className="text-xs text-gray-500">{partidasDeCategoria.length} partidas</p>
                                             </div>
 
                                             {/* Presupuesto */}
-                                            <div className="flex-1 px-4 border-r border-gray-200 text-center">
+                                            <div className="w-32">
                                               <p className="text-xs text-gray-500">Presupuesto</p>
-                                              <p className="font-medium text-gray-900">{formatearMonto(presupuesto)}</p>
+                                              <p className="font-medium text-gray-900 text-sm">{formatearMonto(presupuesto)}</p>
                                             </div>
 
                                             {/* Proyección */}
-                                            <div className="flex-1 px-4 border-r border-gray-200 text-center">
+                                            <div className="w-32">
                                               <p className="text-xs text-gray-500">Proyección</p>
-                                              <p className={`font-medium ${montoTotal > presupuesto ? "text-red-600" : "text-green-600"}`}>
+                                              <p className={`font-medium text-sm ${montoTotal > presupuesto ? "text-red-600" : "text-green-600"}`}>
                                                 {formatearMonto(montoTotal)}
                                               </p>
                                             </div>
 
                                             {/* Progress bar */}
-                                            <div className="flex-1 px-4">
-                                              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                <span>Proyección vs Presupuesto</span>
-                                                <span className={porcentaje > 100 ? "text-red-600 font-semibold" : ""}>
-                                                  {porcentaje.toFixed(1)}%
-                                                </span>
+                                            <div className="flex-1 flex items-center gap-3">
+                                              <div className="flex-1">
+                                                <div className="text-xs text-gray-500 mb-1">Proyección vs Presupuesto</div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                                  <div
+                                                    className={`h-2 rounded-full transition-all ${
+                                                      porcentaje === 100 ? "bg-yellow-500" : porcentaje > 100 ? "bg-red-500" : "bg-green-500"
+                                                    }`}
+                                                    style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                                                  ></div>
+                                                </div>
                                               </div>
-                                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                                <div
-                                                  className={`h-2 rounded-full transition-all ${
-                                                    porcentaje > 100 ? "bg-red-500" : porcentaje > 80 ? "bg-yellow-500" : "bg-green-500"
-                                                  }`}
-                                                  style={{ width: `${Math.min(porcentaje, 100)}%` }}
-                                                ></div>
-                                              </div>
+                                              <span className={`text-sm font-medium w-16 text-right ${
+                                                porcentaje === 100 ? "text-yellow-700" : porcentaje > 100 ? "text-red-600" : "text-gray-700"
+                                              }`}>
+                                                {porcentaje.toFixed(1)}%
+                                              </span>
                                             </div>
                                           </div>
 
