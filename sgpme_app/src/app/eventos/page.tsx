@@ -1044,17 +1044,17 @@ export default function EventosPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 table-fixed">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="w-8 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"></th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        <th className="w-12 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"></th>
+                        <th className="w-1/3 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                           Evento
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        <th className="w-1/5 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                           Marca
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        <th className="w-1/5 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                           <div className="flex items-center gap-2">
                             <span>Fecha</span>
                             <button
@@ -1100,7 +1100,7 @@ export default function EventosPage() {
                             </button>
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        <th className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                           Estado
                         </th>
                       </tr>
@@ -1207,8 +1207,8 @@ export default function EventosPage() {
                             {expandedRows.has(evento.id) && (
                               <tr className="bg-gray-50">
                                 <td colSpan={5} className="px-6 py-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="space-y-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
+                                    <div className="space-y-3 min-w-0">
                                       <h4 className="font-medium text-gray-900 flex items-center">
                                         📋 Información General
                                       </h4>
@@ -1420,7 +1420,7 @@ export default function EventosPage() {
                                           )}
                                       </div>
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 min-w-0">
                                       <h4 className="font-medium text-gray-900 flex items-center">
                                         ⚙️ Acciones
                                       </h4>
@@ -1464,7 +1464,7 @@ export default function EventosPage() {
                                         )}
                                       </div>
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 min-w-0">
                                       <h4 className="font-medium text-gray-900 flex items-center">
                                         📄 Reportes del Evento
                                         {(() => {
