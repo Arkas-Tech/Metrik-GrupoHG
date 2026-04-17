@@ -640,10 +640,11 @@ export default function ListaProyecciones({
               <div key={grupo.agencia}>
                 {/* Agency Row */}
                 <div
-                  className="flex items-center gap-8 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="flex items-center py-2.5 cursor-pointer hover:bg-gray-50 transition-colors pl-4"
                   onClick={() => toggleAgencia(grupo.agencia)}
                 >
-                  <div className="flex items-center gap-2">
+                  {/* Agencia + Flecha - alineada con columna Mes */}
+                  <div className="flex-1 flex items-center gap-2">
                     <h4
                       className="text-2xl font-semibold"
                       style={{ color: "#202429" }}
@@ -656,33 +657,48 @@ export default function ListaProyecciones({
                       <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                     )}
                   </div>
-                  <span className="text-sm text-gray-600">
-                    {grupo.proyecciones.length} proyección
-                    {grupo.proyecciones.length !== 1 ? "es" : ""}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    Presupuesto:{" "}
-                    <span
-                      className="text-lg font-semibold"
-                      style={{ color: "#005117" }}
-                    >
-                      {formatearMonto(presupuestoTotalAgencia)}
+
+                  {/* Espacio columna 2 (Presupuesto dentro) */}
+                  <div className="flex-1"></div>
+
+                  {/* Num proyecciones - alineado con columna Proyección */}
+                  <div className="flex-1 text-center">
+                    <span className="text-sm text-gray-600">
+                      {grupo.proyecciones.length} proyección
+                      {grupo.proyecciones.length !== 1 ? "es" : ""}
                     </span>
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    Proyección:{" "}
-                    <span
-                      className="text-lg font-semibold"
-                      style={{
-                        color:
-                          grupo.total > presupuestoTotalAgencia
-                            ? "#9c0e11"
-                            : "#005117",
-                      }}
-                    >
-                      {formatearMonto(grupo.total)}
+                  </div>
+
+                  {/* Presupuesto - alineado con columna Reembolso */}
+                  <div className="flex-1 text-center">
+                    <span className="text-sm text-gray-600">
+                      Presupuesto:{" "}
+                      <span
+                        className="text-lg font-semibold"
+                        style={{ color: "#005117" }}
+                      >
+                        {formatearMonto(presupuestoTotalAgencia)}
+                      </span>
                     </span>
-                  </span>
+                  </div>
+
+                  {/* Proyección - alineada con columna Estado */}
+                  <div className="flex-1 text-center">
+                    <span className="text-sm text-gray-600">
+                      Proyección:{" "}
+                      <span
+                        className="text-lg font-semibold"
+                        style={{
+                          color:
+                            grupo.total > presupuestoTotalAgencia
+                              ? "#9c0e11"
+                              : "#005117",
+                        }}
+                      >
+                        {formatearMonto(grupo.total)}
+                      </span>
+                    </span>
+                  </div>
                 </div>
 
                 {/* Expanded Agency - Projections */}
@@ -776,10 +792,10 @@ export default function ListaProyecciones({
                           </div>
 
                           {/* Projection Card */}
-                          <div className="border-2 border-black rounded-xl overflow-hidden">
+                          <div className="border-2 border-black rounded-2xl overflow-hidden">
                             {/* Main projection row */}
                             <div
-                              className="flex items-center cursor-pointer bg-white py-3"
+                              className="flex items-center cursor-pointer bg-white py-2"
                               onClick={() => toggleProyeccion(proyeccion.id)}
                             >
                               {/* Month and partidas */}
@@ -836,7 +852,7 @@ export default function ListaProyecciones({
                               {/* Estado */}
                               <div className="flex-1 px-6 text-center">
                                 <span
-                                  className={`inline-flex items-center px-3 py-1 rounded text-sm font-semibold ${
+                                  className={`inline-flex items-center px-6 py-1.5 rounded-full text-sm font-semibold ${
                                     proyeccion.estado === "aprobada"
                                       ? "bg-green-100 text-green-700"
                                       : "bg-yellow-100 text-yellow-700"
@@ -947,7 +963,7 @@ export default function ListaProyecciones({
                                       return (
                                         <div
                                           key={categoria}
-                                          className="bg-white border-2 border-black rounded mb-2"
+                                          className="bg-white border-2 border-black rounded-2xl mb-2"
                                         >
                                           {/* Category Row */}
                                           <div
