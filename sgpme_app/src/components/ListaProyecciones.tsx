@@ -644,7 +644,10 @@ export default function ListaProyecciones({
                   onClick={() => toggleAgencia(grupo.agencia)}
                 >
                   <div className="flex items-center gap-2">
-                    <h4 className="text-2xl font-semibold" style={{ color: '#202429' }}>
+                    <h4
+                      className="text-2xl font-semibold"
+                      style={{ color: "#202429" }}
+                    >
                       {grupo.agencia}
                     </h4>
                     {isAgenciaExpandida ? (
@@ -659,7 +662,10 @@ export default function ListaProyecciones({
                   </span>
                   <span className="text-sm text-gray-600">
                     Presupuesto:{" "}
-                    <span className="text-lg font-semibold" style={{ color: '#005117' }}>
+                    <span
+                      className="text-lg font-semibold"
+                      style={{ color: "#005117" }}
+                    >
                       {formatearMonto(presupuestoTotalAgencia)}
                     </span>
                   </span>
@@ -667,7 +673,12 @@ export default function ListaProyecciones({
                     Proyección:{" "}
                     <span
                       className="text-lg font-semibold"
-                      style={{ color: grupo.total > presupuestoTotalAgencia ? '#9c0e11' : '#005117' }}
+                      style={{
+                        color:
+                          grupo.total > presupuestoTotalAgencia
+                            ? "#9c0e11"
+                            : "#005117",
+                      }}
                     >
                       {formatearMonto(grupo.total)}
                     </span>
@@ -765,14 +776,14 @@ export default function ListaProyecciones({
                           </div>
 
                           {/* Projection Card */}
-                          <div className="border-2 border-gray-300 rounded-xl overflow-hidden">
+                          <div className="border-2 border-black rounded-xl overflow-hidden">
                             {/* Main projection row */}
                             <div
-                              className="flex items-center cursor-pointer bg-white px-6 py-3"
+                              className="flex items-center cursor-pointer bg-white py-3"
                               onClick={() => toggleProyeccion(proyeccion.id)}
                             >
                               {/* Month and partidas */}
-                              <div className="flex-shrink-0 w-32 pr-6 border-r-2 border-gray-300">
+                              <div className="flex-1 px-6 border-r-2 border-black text-center">
                                 <p className="text-lg font-semibold text-gray-900">
                                   {proyeccion.mes} {proyeccion.año}
                                 </p>
@@ -782,30 +793,38 @@ export default function ListaProyecciones({
                               </div>
 
                               {/* Presupuesto */}
-                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                              <div className="flex-1 px-6 border-r-2 border-black text-center">
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Presupuesto
                                 </p>
-                                <p className="text-lg font-semibold" style={{ color: '#005117' }}>
+                                <p
+                                  className="text-lg font-semibold"
+                                  style={{ color: "#005117" }}
+                                >
                                   {formatearMonto(presupuestoMensual)}
                                 </p>
                               </div>
 
                               {/* Proyección */}
-                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                              <div className="flex-1 px-6 border-r-2 border-black text-center">
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Proyección
                                 </p>
                                 <p
                                   className="text-lg font-semibold"
-                                  style={{ color: proyeccion.montoTotal > presupuestoMensual ? '#9c0e11' : '#005117' }}
+                                  style={{
+                                    color:
+                                      proyeccion.montoTotal > presupuestoMensual
+                                        ? "#9c0e11"
+                                        : "#005117",
+                                  }}
                                 >
                                   {formatearMonto(proyeccion.montoTotal)}
                                 </p>
                               </div>
 
                               {/* Reembolso */}
-                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                              <div className="flex-1 px-6 border-r-2 border-black text-center">
                                 <p className="text-lg font-semibold text-gray-900 mb-0.5">
                                   Reembolso
                                 </p>
@@ -815,7 +834,7 @@ export default function ListaProyecciones({
                               </div>
 
                               {/* Estado */}
-                              <div className="flex-shrink-0 pl-6 w-28 text-right">
+                              <div className="flex-1 px-6 text-center">
                                 <span
                                   className={`inline-flex items-center px-3 py-1 rounded text-sm font-semibold ${
                                     proyeccion.estado === "aprobada"
@@ -832,7 +851,7 @@ export default function ListaProyecciones({
 
                             {/* Expanded Projection - Partidas */}
                             {isProyeccionExpandida && (
-                              <div className="border-t border-gray-300 bg-gray-50 px-6 py-4">
+                              <div className="border-t-2 border-black bg-gray-50 px-6 py-4">
                                 <h6 className="font-medium text-gray-900 mb-4 text-sm">
                                   Detalles de Partidas
                                 </h6>
@@ -928,7 +947,7 @@ export default function ListaProyecciones({
                                       return (
                                         <div
                                           key={categoria}
-                                          className="bg-white border border-gray-200 rounded mb-2"
+                                          className="bg-white border-2 border-black rounded mb-2"
                                         >
                                           {/* Category Row */}
                                           <div
@@ -1011,7 +1030,7 @@ export default function ListaProyecciones({
 
                                           {/* Expanded Category - Subcategories */}
                                           {isCategoriaExpandida && (
-                                            <div className="border-t border-gray-200">
+                                            <div className="border-t-2 border-black">
                                               {Object.entries(
                                                 porSubcategoria,
                                               ).map(
@@ -1033,7 +1052,7 @@ export default function ListaProyecciones({
                                                   return (
                                                     <div
                                                       key={keySubcat}
-                                                      className="border-t border-gray-100"
+                                                      className="border-t-2 border-black"
                                                     >
                                                       {/* Subcategory Row */}
                                                       <div
@@ -1046,7 +1065,7 @@ export default function ListaProyecciones({
                                                           );
                                                         }}
                                                       >
-                                                        <div className="flex-shrink-0 pr-4 border-r border-gray-200 flex items-center gap-2">
+                                                        <div className="flex-shrink-0 pr-4 border-r-2 border-black flex items-center gap-2">
                                                           <span className="text-xs">
                                                             {isSubcategoriaExpandida
                                                               ? "▼"
@@ -1080,7 +1099,7 @@ export default function ListaProyecciones({
                                                             (partida) => (
                                                               <div
                                                                 key={partida.id}
-                                                                className="px-4 py-2 pl-16 border-t border-gray-100"
+                                                                className="px-4 py-2 pl-16 border-t-2 border-black"
                                                               >
                                                                 <div className="flex justify-between items-center">
                                                                   <span className="text-sm text-gray-600">
