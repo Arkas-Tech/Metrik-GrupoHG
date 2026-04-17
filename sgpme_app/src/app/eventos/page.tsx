@@ -13,7 +13,6 @@ import BriefTemplate from "@/components/BriefTemplate";
 import CalendarioTrimestral from "@/components/CalendarioTrimestral";
 import CalendarioAnual from "@/components/CalendarioAnual";
 import CalendarioMensual from "@/components/CalendarioMensual";
-import UbicacionDisplay from "@/components/UbicacionDisplay";
 import ModalConfirmacionEvento from "@/components/ModalConfirmacionEvento";
 import { Evento, FiltrosEvento, BriefEvento } from "@/types";
 import {
@@ -1234,8 +1233,17 @@ export default function EventosPage() {
                                                 p &&
                                                 typeof p.lat === "number"
                                               ) {
+                                                const mapsUrl = `https://www.google.com/maps?q=${p.lat},${p.lng}`;
+                                                const displayText = p.address || `${p.lat}, ${p.lng}`;
                                                 return (
-                                                  <UbicacionDisplay value={p} />
+                                                  <a
+                                                    href={mapsUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:text-blue-800 underline"
+                                                  >
+                                                    {displayText}
+                                                  </a>
                                                 );
                                               }
                                             } catch {}
