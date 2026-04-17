@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from starlette import status
 from models import Facturas, Proyecciones, FacturaArchivos, FacturaCotizaciones, Eventos, Campanas
 from database import SessionLocal
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from .auth import get_current_user
 from datetime import date
 import base64
@@ -222,6 +222,7 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
                            estado: Optional[str] = Query(None),
                            categoria: Optional[str] = Query(None),
                            autorizada: Optional[bool] = Query(None),
+                           anio: Optional[int] = Query(None, ge=2000, le=2100),
                            limit: Optional[int] = Query(None, ge=1),
                            offset: int = Query(0, ge=0)):
     if user is None:
@@ -244,7 +245,9 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
         query = query.filter(Facturas.categoria == categoria)
     if autorizada is not None:
         query = query.filter(Facturas.autorizada == autorizada)
-    
+    if anio:
+        query = query.filter(extract('year', Facturas.fecha_factura) == anio)
+
     query = query.offset(offset)
     if limit:
         query = query.limit(limit)
@@ -254,16 +257,34 @@ async def read_all_facturas(user: user_dependency, db: db_dependency,
     # Bulk load related data to avoid N+1 queries
     factura_ids = [f.id for f in facturas]
     
-    # Bulk load archivos
-    all_archivos = db.query(FacturaArchivos).filter(
+    # Bulk load archivos — excluir contenido_archivo (LargeBinary) para no transferir
+    # los PDFs/XMLs en cada listado; se descargan individualmente via /archivos/{id}/descargar
+    all_archivos = db.query(
+        FacturaArchivos.id,
+        FacturaArchivos.factura_id,
+        FacturaArchivos.nombre_archivo,
+        FacturaArchivos.tipo_archivo,
+        FacturaArchivos.tamaño_archivo,
+        FacturaArchivos.fecha_subida,
+        FacturaArchivos.seccion,
+    ).filter(
         FacturaArchivos.factura_id.in_(factura_ids)
     ).all() if factura_ids else []
     archivos_by_factura = {}
     for archivo in all_archivos:
         archivos_by_factura.setdefault(archivo.factura_id, []).append(archivo)
     
-    # Bulk load cotizaciones
-    all_cotizaciones = db.query(FacturaCotizaciones).filter(
+    # Bulk load cotizaciones — excluir contenido_archivo por la misma razón
+    all_cotizaciones = db.query(
+        FacturaCotizaciones.id,
+        FacturaCotizaciones.factura_id,
+        FacturaCotizaciones.proveedor,
+        FacturaCotizaciones.monto,
+        FacturaCotizaciones.nombre_archivo,
+        FacturaCotizaciones.tamaño_archivo,
+        FacturaCotizaciones.fecha_subida,
+        FacturaCotizaciones.observaciones,
+    ).filter(
         FacturaCotizaciones.factura_id.in_(factura_ids)
     ).all() if factura_ids else []
     cotizaciones_by_factura = {}

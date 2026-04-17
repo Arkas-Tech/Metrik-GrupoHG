@@ -63,14 +63,18 @@ interface CotizacionBackend {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-export function useFacturasAPI() {
+export function useFacturasAPI(año?: number) {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const cargarFacturas = useCallback(async () => {
-    const cacheKey = "facturas:all";
+    const cacheKey = año !== undefined ? `facturas:año:${año}` : "facturas:all";
+    const apiUrl =
+      año !== undefined
+        ? `${API_URL}/facturas/?anio=${año}`
+        : `${API_URL}/facturas/`;
 
     // Return stale data immediately if available
     const stale = getStale<Factura[]>(cacheKey);
@@ -94,7 +98,7 @@ export function useFacturasAPI() {
       const facturasTransformadas = await deduplicateRequest<Factura[]>(
         cacheKey,
         async () => {
-          const response = await fetchConToken(`${API_URL}/facturas/`, {
+          const response = await fetchConToken(apiUrl, {
             signal: controller.signal,
           });
           if (!response.ok)
@@ -187,7 +191,7 @@ export function useFacturasAPI() {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [año]);
 
   useEffect(() => {
     cargarFacturas();
@@ -204,11 +208,14 @@ export function useFacturasAPI() {
           f.id === id ? { ...f, ...cambios } : f,
         );
         invalidateCacheByPrefix("facturas:");
-        setCache("facturas:all", updated);
+        setCache(
+          año !== undefined ? `facturas:año:${año}` : "facturas:all",
+          updated,
+        );
         return updated;
       });
     },
-    [],
+    [año],
   );
 
   const guardarFactura = useCallback(

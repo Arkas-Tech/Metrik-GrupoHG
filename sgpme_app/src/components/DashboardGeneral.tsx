@@ -249,7 +249,7 @@ export default function DashboardGeneral({
     mesesDelPeriodo: mesesPeriodo,
     setMesesSeleccionados,
   } = usePeriodo();
-  const { facturas } = useFacturas();
+  const { facturas } = useFacturas(añoSeleccionado);
   const { campanas: campanasDb, cargarCampanas } = useCampanas();
   const {
     presencias,

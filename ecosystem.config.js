@@ -67,5 +67,21 @@ module.exports = {
       merge_logs: true,
       autorestart: true,
     },
+
+    // ═══════════════════════════════════════════
+    //  KEEP-ALIVE (mantiene el pool de conexiones
+    //  de PostgreSQL activo para evitar cold starts)
+    // ═══════════════════════════════════════════
+    {
+      name: "metrik-keepalive",
+      script: "/home/sgpme/app/keepalive.js",
+      cwd: "/home/sgpme/app",
+      exec_mode: "fork",
+      interpreter: "node",
+      autorestart: true,
+      max_memory_restart: "30M",
+      error_file: "/dev/null",
+      out_file: "/dev/null",
+    },
   ],
 };

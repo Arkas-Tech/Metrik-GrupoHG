@@ -20,8 +20,8 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<unknown>>();
 const inflightRequests = new Map<string, Promise<unknown>>();
 
-// Default TTL: 2 minutes (data is fresh for 2min, then background-refreshed)
-const DEFAULT_TTL_MS = 2 * 60 * 1000;
+// Default TTL: 5 minutes (data is fresh for 5min, then background-refreshed)
+const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Get cached data if available and not expired.
