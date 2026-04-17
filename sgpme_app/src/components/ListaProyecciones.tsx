@@ -69,8 +69,18 @@ const generarPDFProyeccion = async (
 
   const obtenerPresupuesto = (categoria: string): number => {
     const meses = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
     ];
     const mesNumero = meses.indexOf(proyeccion.mes) + 1;
     return presupuestosMensuales
@@ -106,13 +116,25 @@ const generarPDFProyeccion = async (
   yPos += 8;
   doc.text(`Periodo: ${proyeccion.mes} ${proyeccion.año}`, 20, yPos);
   yPos += 8;
-  doc.text(`Monto Total Proyectado: ${formatearMonto(proyeccion.montoTotal)}`, 20, yPos);
+  doc.text(
+    `Monto Total Proyectado: ${formatearMonto(proyeccion.montoTotal)}`,
+    20,
+    yPos,
+  );
   yPos += 8;
-  doc.text(`Fecha de Creación: ${new Date(proyeccion.fechaCreacion).toLocaleDateString("es-MX")}`, 20, yPos);
+  doc.text(
+    `Fecha de Creación: ${new Date(proyeccion.fechaCreacion).toLocaleDateString("es-MX")}`,
+    20,
+    yPos,
+  );
 
   if (proyeccion.fechaModificacion) {
     yPos += 8;
-    doc.text(`Última Modificación: ${new Date(proyeccion.fechaModificacion).toLocaleDateString("es-MX")}`, 20, yPos);
+    doc.text(
+      `Última Modificación: ${new Date(proyeccion.fechaModificacion).toLocaleDateString("es-MX")}`,
+      20,
+      yPos,
+    );
   }
 
   yPos += 15;
@@ -128,7 +150,9 @@ const generarPDFProyeccion = async (
   const partidasNormales = proyeccion.partidas.filter((p) => !p.esReembolso);
   const partidasReembolso = proyeccion.partidas.filter((p) => p.esReembolso);
 
-  const partidasPorCategoria: { [key: string]: { subcategoria: string; monto: number }[] } = {};
+  const partidasPorCategoria: {
+    [key: string]: { subcategoria: string; monto: number }[];
+  } = {};
   partidasNormales.forEach((partida) => {
     if (!partidasPorCategoria[partida.categoria]) {
       partidasPorCategoria[partida.categoria] = [];
@@ -142,8 +166,12 @@ const generarPDFProyeccion = async (
   Object.keys(partidasPorCategoria).forEach((categoria) => {
     const presupuesto = obtenerPresupuesto(categoria);
     const subcategorias = partidasPorCategoria[categoria] || [];
-    const montoTotalCategoria = subcategorias.reduce((sum, sub) => sum + sub.monto, 0);
-    const porcentaje = presupuesto > 0 ? (montoTotalCategoria / presupuesto) * 100 : 0;
+    const montoTotalCategoria = subcategorias.reduce(
+      (sum, sub) => sum + sub.monto,
+      0,
+    );
+    const porcentaje =
+      presupuesto > 0 ? (montoTotalCategoria / presupuesto) * 100 : 0;
 
     if (yPos > 250) {
       doc.addPage();
@@ -165,7 +193,11 @@ const generarPDFProyeccion = async (
       yPos += 6;
     } else {
       subcategorias.forEach((sub) => {
-        doc.text(`  • ${sub.subcategoria}: ${formatearMonto(sub.monto)}`, 20, yPos);
+        doc.text(
+          `  • ${sub.subcategoria}: ${formatearMonto(sub.monto)}`,
+          20,
+          yPos,
+        );
         yPos += 6;
       });
     }
@@ -175,7 +207,12 @@ const generarPDFProyeccion = async (
     doc.text(`Presupuesto: ${formatearMonto(presupuesto)}`, 110, yPos);
 
     if (presupuesto > 0) {
-      const color = porcentaje > 100 ? [220, 38, 38] : porcentaje > 80 ? [234, 179, 8] : [34, 197, 94];
+      const color =
+        porcentaje > 100
+          ? [220, 38, 38]
+          : porcentaje > 80
+            ? [234, 179, 8]
+            : [34, 197, 94];
       doc.setTextColor(color[0], color[1], color[2]);
       doc.text(`${porcentaje.toFixed(1)}%`, 170, yPos);
       doc.setTextColor(0, 0, 0);
@@ -201,7 +238,9 @@ const generarPDFProyeccion = async (
     doc.setTextColor(0, 0, 0);
     yPos += 10;
 
-    const reembolsosPorCategoria: { [key: string]: { subcategoria: string; monto: number }[] } = {};
+    const reembolsosPorCategoria: {
+      [key: string]: { subcategoria: string; monto: number }[];
+    } = {};
     partidasReembolso.forEach((partida) => {
       if (!reembolsosPorCategoria[partida.categoria]) {
         reembolsosPorCategoria[partida.categoria] = [];
@@ -215,8 +254,12 @@ const generarPDFProyeccion = async (
     Object.keys(reembolsosPorCategoria).forEach((categoria) => {
       const presupuesto = obtenerPresupuesto(categoria);
       const subcategorias = reembolsosPorCategoria[categoria];
-      const montoTotalCategoria = subcategorias.reduce((sum, sub) => sum + sub.monto, 0);
-      const porcentaje = presupuesto > 0 ? (montoTotalCategoria / presupuesto) * 100 : 0;
+      const montoTotalCategoria = subcategorias.reduce(
+        (sum, sub) => sum + sub.monto,
+        0,
+      );
+      const porcentaje =
+        presupuesto > 0 ? (montoTotalCategoria / presupuesto) * 100 : 0;
 
       if (yPos > 250) {
         doc.addPage();
@@ -231,7 +274,11 @@ const generarPDFProyeccion = async (
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       subcategorias.forEach((sub) => {
-        doc.text(`  • ${sub.subcategoria}: ${formatearMonto(sub.monto)}`, 20, yPos);
+        doc.text(
+          `  • ${sub.subcategoria}: ${formatearMonto(sub.monto)}`,
+          20,
+          yPos,
+        );
         yPos += 6;
       });
 
@@ -240,7 +287,12 @@ const generarPDFProyeccion = async (
       doc.text(`Presupuesto: ${formatearMonto(presupuesto)}`, 110, yPos);
 
       if (presupuesto > 0) {
-        const color = porcentaje > 100 ? [220, 38, 38] : porcentaje > 80 ? [234, 179, 8] : [34, 197, 94];
+        const color =
+          porcentaje > 100
+            ? [220, 38, 38]
+            : porcentaje > 80
+              ? [234, 179, 8]
+              : [34, 197, 94];
         doc.setTextColor(color[0], color[1], color[2]);
         doc.text(`${porcentaje.toFixed(1)}%`, 170, yPos);
         doc.setTextColor(0, 0, 0);
@@ -264,23 +316,40 @@ export default function ListaProyecciones({
   permisos = { editar: true, eliminar: true, aprobar: false, crear: false },
 }: ListaProyeccionesProps) {
   const { nombresCategorias } = useCategorias();
-  const [presupuestosMensuales, setPresupuestosMensuales] = useState<PresupuestoMensual[]>([]);
-  const [vistaAgrupacion, setVistaAgrupacion] = useState<"agencia" | "mes">("agencia");
-  const [filtroEstado, setFiltroEstado] = useState<"todas" | "pendiente" | "aprobada">("todas");
-  
+  const [presupuestosMensuales, setPresupuestosMensuales] = useState<
+    PresupuestoMensual[]
+  >([]);
+  const [vistaAgrupacion, setVistaAgrupacion] = useState<"agencia" | "mes">(
+    "agencia",
+  );
+  const [filtroEstado, setFiltroEstado] = useState<
+    "todas" | "pendiente" | "aprobada"
+  >("todas");
+
   // Estados para expandir agencias y proyecciones
-  const [agenciasExpandidas, setAgenciasExpandidas] = useState<Set<string>>(new Set());
-  const [proyeccionesExpandidas, setProyeccionesExpandidas] = useState<Set<string>>(new Set());
-  const [categoriasExpandidas, setCategoriasExpandidas] = useState<Record<string, string | null>>({});
-  const [subcategoriasExpandidas, setSubcategoriasExpandidas] = useState<Record<string, string | null>>({});
+  const [agenciasExpandidas, setAgenciasExpandidas] = useState<Set<string>>(
+    new Set(),
+  );
+  const [proyeccionesExpandidas, setProyeccionesExpandidas] = useState<
+    Set<string>
+  >(new Set());
+  const [categoriasExpandidas, setCategoriasExpandidas] = useState<
+    Record<string, string | null>
+  >({});
+  const [subcategoriasExpandidas, setSubcategoriasExpandidas] = useState<
+    Record<string, string | null>
+  >({});
 
   useEffect(() => {
     const fetchPresupuestos = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/presupuesto/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/presupuesto/`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setPresupuestosMensuales(data);
@@ -347,8 +416,18 @@ export default function ListaProyecciones({
     categoria: string,
   ): number => {
     const meses = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
     ];
     const mesNumero = meses.indexOf(mes) + 1;
     const presupuesto = presupuestosMensuales.find(
@@ -391,7 +470,10 @@ export default function ListaProyecciones({
   };
 
   const proyeccionesAgrupadas = agruparPorAgencia();
-  const montoTotalGeneral = proyecciones.reduce((total, p) => total + p.montoTotal, 0);
+  const montoTotalGeneral = proyecciones.reduce(
+    (total, p) => total + p.montoTotal,
+    0,
+  );
 
   if (loading) {
     return (
@@ -415,13 +497,15 @@ export default function ListaProyecciones({
         {/* Left side - Title and filters */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
-            Proyecciones por {vistaAgrupacion === "agencia" ? "agencia" : "mes"}:{" "}
+            Proyecciones por {vistaAgrupacion === "agencia" ? "agencia" : "mes"}
+            :{" "}
             <span className="text-gray-600 font-normal">
-              {proyeccionesFiltradas.length} en {proyeccionesAgrupadas.length} agencia
+              {proyeccionesFiltradas.length} en {proyeccionesAgrupadas.length}{" "}
+              agencia
               {proyeccionesAgrupadas.length !== 1 ? "s" : ""}
             </span>
           </h3>
-          
+
           <div className="flex items-center gap-4 mt-4">
             {/* Toggle agencia/mes */}
             <div className="flex items-center bg-gray-100 rounded-full p-1">
@@ -450,7 +534,11 @@ export default function ListaProyecciones({
             {/* Filtro de estado */}
             <select
               value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value as "todas" | "pendiente" | "aprobada")}
+              onChange={(e) =>
+                setFiltroEstado(
+                  e.target.value as "todas" | "pendiente" | "aprobada",
+                )
+              }
               className="px-4 py-2 border border-gray-300 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
             >
               <option value="todas">Todas</option>
@@ -464,8 +552,12 @@ export default function ListaProyecciones({
         <div className="flex flex-col items-end gap-3">
           {/* Monto total general */}
           <div className="bg-green-50 border border-green-200 rounded-2xl px-8 py-4 text-center">
-            <p className="text-sm text-green-700 font-medium">Monto total general:</p>
-            <p className="text-3xl font-bold text-green-700">{formatearMonto(montoTotalGeneral)}</p>
+            <p className="text-sm text-green-700 font-medium">
+              Monto total general:
+            </p>
+            <p className="text-3xl font-bold text-green-700">
+              {formatearMonto(montoTotalGeneral)}
+            </p>
           </div>
 
           {/* Gestionar presupuesto button */}
@@ -498,7 +590,8 @@ export default function ListaProyecciones({
           <div className="py-12 text-center">
             <div className="text-gray-400 text-6xl mb-4">📊</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No hay proyecciones {filtroEstado !== "todas" && `${filtroEstado}s`}
+              No hay proyecciones{" "}
+              {filtroEstado !== "todas" && `${filtroEstado}s`}
             </h3>
             <p className="text-gray-600">
               {filtroEstado === "todas"
@@ -509,16 +602,37 @@ export default function ListaProyecciones({
         ) : (
           proyeccionesAgrupadas.map((grupo) => {
             const meses = [
-              "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-              "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+              "Enero",
+              "Febrero",
+              "Marzo",
+              "Abril",
+              "Mayo",
+              "Junio",
+              "Julio",
+              "Agosto",
+              "Septiembre",
+              "Octubre",
+              "Noviembre",
+              "Diciembre",
             ];
-            
-            const presupuestoTotalAgencia = grupo.proyecciones.reduce((total, proyeccion) => {
-              const mesNumero = meses.indexOf(proyeccion.mes) + 1;
-              return total + presupuestosMensuales
-                .filter((p) => p.marca_nombre === grupo.agencia && p.mes === mesNumero && p.anio === proyeccion.año)
-                .reduce((sum, p) => sum + (p.monto || 0), 0);
-            }, 0);
+
+            const presupuestoTotalAgencia = grupo.proyecciones.reduce(
+              (total, proyeccion) => {
+                const mesNumero = meses.indexOf(proyeccion.mes) + 1;
+                return (
+                  total +
+                  presupuestosMensuales
+                    .filter(
+                      (p) =>
+                        p.marca_nombre === grupo.agencia &&
+                        p.mes === mesNumero &&
+                        p.anio === proyeccion.año,
+                    )
+                    .reduce((sum, p) => sum + (p.monto || 0), 0)
+                );
+              },
+              0,
+            );
 
             const isAgenciaExpandida = agenciasExpandidas.has(grupo.agencia);
 
@@ -530,7 +644,9 @@ export default function ListaProyecciones({
                   onClick={() => toggleAgencia(grupo.agencia)}
                 >
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-bold text-gray-900">{grupo.agencia}</h4>
+                    <h4 className="text-2xl font-semibold" style={{ color: '#202429' }}>
+                      {grupo.agencia}
+                    </h4>
                     {isAgenciaExpandida ? (
                       <ChevronUpIcon className="h-4 w-4 text-gray-500" />
                     ) : (
@@ -538,13 +654,23 @@ export default function ListaProyecciones({
                     )}
                   </div>
                   <span className="text-sm text-gray-600">
-                    {grupo.proyecciones.length} proyección{grupo.proyecciones.length !== 1 ? "es" : ""}
+                    {grupo.proyecciones.length} proyección
+                    {grupo.proyecciones.length !== 1 ? "es" : ""}
                   </span>
                   <span className="text-sm text-gray-600">
-                    Presupuesto: <span className="font-semibold text-gray-900">{formatearMonto(presupuestoTotalAgencia)}</span>
+                    Presupuesto:{" "}
+                    <span className="text-lg font-semibold" style={{ color: '#005117' }}>
+                      {formatearMonto(presupuestoTotalAgencia)}
+                    </span>
                   </span>
                   <span className="text-sm text-gray-600">
-                    Proyección: <span className={`font-semibold ${grupo.total > presupuestoTotalAgencia ? "text-red-600" : "text-green-600"}`}>{formatearMonto(grupo.total)}</span>
+                    Proyección:{" "}
+                    <span
+                      className="text-lg font-semibold"
+                      style={{ color: grupo.total > presupuestoTotalAgencia ? '#9c0e11' : '#005117' }}
+                    >
+                      {formatearMonto(grupo.total)}
+                    </span>
                   </span>
                 </div>
 
@@ -554,45 +680,70 @@ export default function ListaProyecciones({
                     {grupo.proyecciones.map((proyeccion) => {
                       const mesNumero = meses.indexOf(proyeccion.mes) + 1;
                       const presupuestoMensual = presupuestosMensuales
-                        .filter((p) => p.marca_nombre === grupo.agencia && p.mes === mesNumero && p.anio === proyeccion.año)
+                        .filter(
+                          (p) =>
+                            p.marca_nombre === grupo.agencia &&
+                            p.mes === mesNumero &&
+                            p.anio === proyeccion.año,
+                        )
                         .reduce((sum, p) => sum + (p.monto || 0), 0);
-                      
+
                       const reembolsoTotal = (proyeccion.partidas || [])
                         .filter((p) => p.esReembolso)
                         .reduce((sum, p) => sum + (p.monto || 0), 0);
 
-                      const isProyeccionExpandida = proyeccionesExpandidas.has(proyeccion.id);
+                      const isProyeccionExpandida = proyeccionesExpandidas.has(
+                        proyeccion.id,
+                      );
 
                       return (
                         <div key={proyeccion.id} className="relative">
                           {/* Action buttons - positioned absolutely above the card */}
                           <div className="flex justify-end gap-1.5 mb-1">
                             <button
-                              onClick={(e) => { e.stopPropagation(); toggleProyeccion(proyeccion.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleProyeccion(proyeccion.id);
+                              }}
                               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                               title="Ver detalles"
                             >
                               <EyeIcon className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); generarPDFProyeccion(proyeccion, presupuestosMensuales, nombresCategorias); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                generarPDFProyeccion(
+                                  proyeccion,
+                                  presupuestosMensuales,
+                                  nombresCategorias,
+                                );
+                              }}
                               className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                               title="Descargar PDF"
                             >
                               <ArrowDownTrayIcon className="h-5 w-5" />
                             </button>
-                            {permisos.aprobar && proyeccion.estado === "pendiente" && onAprobar && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onAprobar(proyeccion.id); }}
-                                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                                title="Aprobar"
-                              >
-                                <CheckCircleIcon className="h-5 w-5" />
-                              </button>
-                            )}
+                            {permisos.aprobar &&
+                              proyeccion.estado === "pendiente" &&
+                              onAprobar && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAprobar(proyeccion.id);
+                                  }}
+                                  className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                  title="Aprobar"
+                                >
+                                  <CheckCircleIcon className="h-5 w-5" />
+                                </button>
+                              )}
                             {permisos.editar && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); onEditar(proyeccion); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditar(proyeccion);
+                                }}
                                 className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                                 title="Editar"
                               >
@@ -601,7 +752,10 @@ export default function ListaProyecciones({
                             )}
                             {permisos.eliminar && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); onEliminar(proyeccion.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEliminar(proyeccion.id);
+                                }}
                                 className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                                 title="Eliminar"
                               >
@@ -611,48 +765,67 @@ export default function ListaProyecciones({
                           </div>
 
                           {/* Projection Card */}
-                          <div className="border border-gray-300 rounded-lg overflow-hidden">
+                          <div className="border-2 border-gray-300 rounded-xl overflow-hidden">
                             {/* Main projection row */}
                             <div
                               className="flex items-center cursor-pointer bg-white px-6 py-3"
                               onClick={() => toggleProyeccion(proyeccion.id)}
                             >
                               {/* Month and partidas */}
-                              <div className="flex-shrink-0 w-32 pr-6 border-r border-gray-300">
-                                <p className="font-semibold text-gray-900 text-sm">{proyeccion.mes} {proyeccion.año}</p>
-                                <p className="text-xs text-gray-500">{(proyeccion.partidas || []).length} partidas</p>
+                              <div className="flex-shrink-0 w-32 pr-6 border-r-2 border-gray-300">
+                                <p className="text-lg font-semibold text-gray-900">
+                                  {proyeccion.mes} {proyeccion.año}
+                                </p>
+                                <p className="text-sm font-light text-gray-500">
+                                  {(proyeccion.partidas || []).length} partidas
+                                </p>
                               </div>
 
                               {/* Presupuesto */}
-                              <div className="flex-1 px-6 border-r border-gray-300">
-                                <p className="text-xs text-gray-500 mb-0.5">Presupuesto</p>
-                                <p className="font-semibold text-gray-900 text-sm">{formatearMonto(presupuestoMensual)}</p>
+                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                                <p className="text-lg font-semibold text-gray-900 mb-0.5">
+                                  Presupuesto
+                                </p>
+                                <p className="text-lg font-semibold" style={{ color: '#005117' }}>
+                                  {formatearMonto(presupuestoMensual)}
+                                </p>
                               </div>
 
                               {/* Proyección */}
-                              <div className="flex-1 px-6 border-r border-gray-300">
-                                <p className="text-xs text-gray-500 mb-0.5">Proyección</p>
-                                <p className={`font-semibold text-sm ${proyeccion.montoTotal > presupuestoMensual ? "text-red-600" : "text-green-600"}`}>
+                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                                <p className="text-lg font-semibold text-gray-900 mb-0.5">
+                                  Proyección
+                                </p>
+                                <p
+                                  className="text-lg font-semibold"
+                                  style={{ color: proyeccion.montoTotal > presupuestoMensual ? '#9c0e11' : '#005117' }}
+                                >
                                   {formatearMonto(proyeccion.montoTotal)}
                                 </p>
                               </div>
 
                               {/* Reembolso */}
-                              <div className="flex-1 px-6 border-r border-gray-300">
-                                <p className="text-xs text-gray-500 mb-0.5">Reembolso</p>
-                                <p className="font-semibold text-gray-900 text-sm">{formatearMonto(reembolsoTotal)}</p>
+                              <div className="flex-1 px-6 border-r-2 border-gray-300">
+                                <p className="text-lg font-semibold text-gray-900 mb-0.5">
+                                  Reembolso
+                                </p>
+                                <p className="text-lg font-light text-gray-900">
+                                  {formatearMonto(reembolsoTotal)}
+                                </p>
                               </div>
 
                               {/* Estado */}
                               <div className="flex-shrink-0 pl-6 w-28 text-right">
                                 <span
-                                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${
+                                  className={`inline-flex items-center px-3 py-1 rounded text-sm font-semibold ${
                                     proyeccion.estado === "aprobada"
                                       ? "bg-green-100 text-green-700"
                                       : "bg-yellow-100 text-yellow-700"
                                   }`}
                                 >
-                                  {proyeccion.estado === "aprobada" ? "Aprobada" : "Pendiente"}
+                                  {proyeccion.estado === "aprobada"
+                                    ? "Aprobada"
+                                    : "Pendiente"}
                                 </span>
                               </div>
                             </div>
@@ -660,73 +833,143 @@ export default function ListaProyecciones({
                             {/* Expanded Projection - Partidas */}
                             {isProyeccionExpandida && (
                               <div className="border-t border-gray-300 bg-gray-50 px-6 py-4">
-                                <h6 className="font-medium text-gray-900 mb-4 text-sm">Detalles de Partidas</h6>
+                                <h6 className="font-medium text-gray-900 mb-4 text-sm">
+                                  Detalles de Partidas
+                                </h6>
                                 <div className="space-y-2">
                                   {(() => {
-                                    const partidasNormales = (proyeccion.partidas || []).filter((p) => !p.esReembolso);
-                                    const partidasPorCategoria: { [key: string]: typeof partidasNormales } = {};
-                                    
+                                    const partidasNormales = (
+                                      proyeccion.partidas || []
+                                    ).filter((p) => !p.esReembolso);
+                                    const partidasPorCategoria: {
+                                      [key: string]: typeof partidasNormales;
+                                    } = {};
+
                                     partidasNormales.forEach((partida) => {
-                                      if (!partidasPorCategoria[partida.categoria]) {
-                                        partidasPorCategoria[partida.categoria] = [];
+                                      if (
+                                        !partidasPorCategoria[partida.categoria]
+                                      ) {
+                                        partidasPorCategoria[
+                                          partida.categoria
+                                        ] = [];
                                       }
-                                      partidasPorCategoria[partida.categoria].push(partida);
+                                      partidasPorCategoria[
+                                        partida.categoria
+                                      ].push(partida);
                                     });
 
-                                    return Object.keys(partidasPorCategoria).map((categoria) => {
-                                      const partidasDeCategoria = partidasPorCategoria[categoria];
-                                      const montoTotal = partidasDeCategoria.reduce((sum, p) => sum + p.monto, 0);
-                                      const presupuesto = obtenerPresupuestoCategoria(
-                                        proyeccion.marca,
-                                        proyeccion.mes,
-                                        proyeccion.año,
-                                        categoria,
-                                      );
-                                      const porcentaje = presupuesto > 0 ? (montoTotal / presupuesto) * 100 : 0;
-                                      const isCategoriaExpandida = categoriasExpandidas[proyeccion.id] === categoria;
+                                    return Object.keys(
+                                      partidasPorCategoria,
+                                    ).map((categoria) => {
+                                      const partidasDeCategoria =
+                                        partidasPorCategoria[categoria];
+                                      const montoTotal =
+                                        partidasDeCategoria.reduce(
+                                          (sum, p) => sum + p.monto,
+                                          0,
+                                        );
+                                      const presupuesto =
+                                        obtenerPresupuestoCategoria(
+                                          proyeccion.marca,
+                                          proyeccion.mes,
+                                          proyeccion.año,
+                                          categoria,
+                                        );
+                                      const porcentaje =
+                                        presupuesto > 0
+                                          ? (montoTotal / presupuesto) * 100
+                                          : 0;
+                                      const isCategoriaExpandida =
+                                        categoriasExpandidas[proyeccion.id] ===
+                                        categoria;
 
                                       // Group by subcategory
-                                      const porSubcategoria: Record<string, typeof partidasDeCategoria> = {};
-                                      const subcategoriasOrdenadas = SUBCATEGORIAS_POR_CATEGORIA[categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA] || [];
-                                      
-                                      subcategoriasOrdenadas.forEach((subcategoria) => {
-                                        const partidasSubcat = partidasDeCategoria.filter((p) => p.subcategoria === subcategoria);
-                                        if (partidasSubcat.length > 0) {
-                                          porSubcategoria[subcategoria] = partidasSubcat;
-                                        }
-                                      });
-                                      
+                                      const porSubcategoria: Record<
+                                        string,
+                                        typeof partidasDeCategoria
+                                      > = {};
+                                      const subcategoriasOrdenadas =
+                                        SUBCATEGORIAS_POR_CATEGORIA[
+                                          categoria as keyof typeof SUBCATEGORIAS_POR_CATEGORIA
+                                        ] || [];
+
+                                      subcategoriasOrdenadas.forEach(
+                                        (subcategoria) => {
+                                          const partidasSubcat =
+                                            partidasDeCategoria.filter(
+                                              (p) =>
+                                                p.subcategoria === subcategoria,
+                                            );
+                                          if (partidasSubcat.length > 0) {
+                                            porSubcategoria[subcategoria] =
+                                              partidasSubcat;
+                                          }
+                                        },
+                                      );
+
                                       partidasDeCategoria.forEach((partida) => {
-                                        if (partida.subcategoria && !(partida.subcategoria in porSubcategoria)) {
-                                          porSubcategoria[partida.subcategoria] = partidasDeCategoria.filter(
-                                            (p) => p.subcategoria === partida.subcategoria
+                                        if (
+                                          partida.subcategoria &&
+                                          !(
+                                            partida.subcategoria in
+                                            porSubcategoria
+                                          )
+                                        ) {
+                                          porSubcategoria[
+                                            partida.subcategoria
+                                          ] = partidasDeCategoria.filter(
+                                            (p) =>
+                                              p.subcategoria ===
+                                              partida.subcategoria,
                                           );
                                         }
                                       });
 
                                       return (
-                                        <div key={categoria} className="bg-white border border-gray-200 rounded mb-2">
+                                        <div
+                                          key={categoria}
+                                          className="bg-white border border-gray-200 rounded mb-2"
+                                        >
                                           {/* Category Row */}
                                           <div
                                             className="flex items-center cursor-pointer hover:bg-gray-50 px-4 py-3 gap-4"
-                                            onClick={(e) => { e.stopPropagation(); toggleCategoria(proyeccion.id, categoria); }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleCategoria(
+                                                proyeccion.id,
+                                                categoria,
+                                              );
+                                            }}
                                           >
                                             {/* Category name and count */}
                                             <div className="flex-shrink-0 w-48">
-                                              <p className="font-medium text-gray-900 text-sm">{categoria}</p>
-                                              <p className="text-xs text-gray-500">{partidasDeCategoria.length} partidas</p>
+                                              <p className="font-medium text-gray-900 text-sm">
+                                                {categoria}
+                                              </p>
+                                              <p className="text-xs text-gray-500">
+                                                {partidasDeCategoria.length}{" "}
+                                                partidas
+                                              </p>
                                             </div>
 
                                             {/* Presupuesto */}
                                             <div className="w-32">
-                                              <p className="text-xs text-gray-500">Presupuesto</p>
-                                              <p className="font-medium text-gray-900 text-sm">{formatearMonto(presupuesto)}</p>
+                                              <p className="text-xs text-gray-500">
+                                                Presupuesto
+                                              </p>
+                                              <p className="font-medium text-gray-900 text-sm">
+                                                {formatearMonto(presupuesto)}
+                                              </p>
                                             </div>
 
                                             {/* Proyección */}
                                             <div className="w-32">
-                                              <p className="text-xs text-gray-500">Proyección</p>
-                                              <p className={`font-medium text-sm ${montoTotal > presupuesto ? "text-red-600" : "text-green-600"}`}>
+                                              <p className="text-xs text-gray-500">
+                                                Proyección
+                                              </p>
+                                              <p
+                                                className={`font-medium text-sm ${montoTotal > presupuesto ? "text-red-600" : "text-green-600"}`}
+                                              >
                                                 {formatearMonto(montoTotal)}
                                               </p>
                                             </div>
@@ -734,19 +977,33 @@ export default function ListaProyecciones({
                                             {/* Progress bar */}
                                             <div className="flex-1 flex items-center gap-3">
                                               <div className="flex-1">
-                                                <div className="text-xs text-gray-500 mb-1">Proyección vs Presupuesto</div>
+                                                <div className="text-xs text-gray-500 mb-1">
+                                                  Proyección vs Presupuesto
+                                                </div>
                                                 <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                                                   <div
                                                     className={`h-2 rounded-full transition-all ${
-                                                      porcentaje === 100 ? "bg-yellow-500" : porcentaje > 100 ? "bg-red-500" : "bg-green-500"
+                                                      porcentaje === 100
+                                                        ? "bg-yellow-500"
+                                                        : porcentaje > 100
+                                                          ? "bg-red-500"
+                                                          : "bg-green-500"
                                                     }`}
-                                                    style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                                                    style={{
+                                                      width: `${Math.min(porcentaje, 100)}%`,
+                                                    }}
                                                   ></div>
                                                 </div>
                                               </div>
-                                              <span className={`text-sm font-medium w-16 text-right ${
-                                                porcentaje === 100 ? "text-yellow-700" : porcentaje > 100 ? "text-red-600" : "text-gray-700"
-                                              }`}>
+                                              <span
+                                                className={`text-sm font-medium w-16 text-right ${
+                                                  porcentaje === 100
+                                                    ? "text-yellow-700"
+                                                    : porcentaje > 100
+                                                      ? "text-red-600"
+                                                      : "text-gray-700"
+                                                }`}
+                                              >
                                                 {porcentaje.toFixed(1)}%
                                               </span>
                                             </div>
@@ -755,50 +1012,96 @@ export default function ListaProyecciones({
                                           {/* Expanded Category - Subcategories */}
                                           {isCategoriaExpandida && (
                                             <div className="border-t border-gray-200">
-                                              {Object.entries(porSubcategoria).map(([subcategoria, partidasSubcat]) => {
-                                                const totalSubcategoria = partidasSubcat.reduce((sum, p) => sum + p.monto, 0);
-                                                const keySubcat = `${categoria}-${subcategoria}`;
-                                                const isSubcategoriaExpandida = subcategoriasExpandidas[proyeccion.id] === keySubcat;
+                                              {Object.entries(
+                                                porSubcategoria,
+                                              ).map(
+                                                ([
+                                                  subcategoria,
+                                                  partidasSubcat,
+                                                ]) => {
+                                                  const totalSubcategoria =
+                                                    partidasSubcat.reduce(
+                                                      (sum, p) => sum + p.monto,
+                                                      0,
+                                                    );
+                                                  const keySubcat = `${categoria}-${subcategoria}`;
+                                                  const isSubcategoriaExpandida =
+                                                    subcategoriasExpandidas[
+                                                      proyeccion.id
+                                                    ] === keySubcat;
 
-                                                return (
-                                                  <div key={keySubcat} className="border-t border-gray-100">
-                                                    {/* Subcategory Row */}
+                                                  return (
                                                     <div
-                                                      className="flex items-center cursor-pointer hover:bg-gray-50 px-4 py-2 pl-10"
-                                                      onClick={(e) => { e.stopPropagation(); toggleSubcategoria(proyeccion.id, keySubcat); }}
+                                                      key={keySubcat}
+                                                      className="border-t border-gray-100"
                                                     >
-                                                      <div className="flex-shrink-0 pr-4 border-r border-gray-200 flex items-center gap-2">
-                                                        <span className="text-xs">{isSubcategoriaExpandida ? "▼" : "▶"}</span>
-                                                        <div>
-                                                          <p className="text-sm text-gray-800">{subcategoria}</p>
-                                                          <p className="text-xs text-gray-500">{partidasSubcat.length} partidas</p>
+                                                      {/* Subcategory Row */}
+                                                      <div
+                                                        className="flex items-center cursor-pointer hover:bg-gray-50 px-4 py-2 pl-10"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          toggleSubcategoria(
+                                                            proyeccion.id,
+                                                            keySubcat,
+                                                          );
+                                                        }}
+                                                      >
+                                                        <div className="flex-shrink-0 pr-4 border-r border-gray-200 flex items-center gap-2">
+                                                          <span className="text-xs">
+                                                            {isSubcategoriaExpandida
+                                                              ? "▼"
+                                                              : "▶"}
+                                                          </span>
+                                                          <div>
+                                                            <p className="text-sm text-gray-800">
+                                                              {subcategoria}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                              {
+                                                                partidasSubcat.length
+                                                              }{" "}
+                                                              partidas
+                                                            </p>
+                                                          </div>
+                                                        </div>
+                                                        <div className="flex-1 text-right pr-4">
+                                                          <p className="font-medium text-gray-900">
+                                                            {formatearMonto(
+                                                              totalSubcategoria,
+                                                            )}
+                                                          </p>
                                                         </div>
                                                       </div>
-                                                      <div className="flex-1 text-right pr-4">
-                                                        <p className="font-medium text-gray-900">{formatearMonto(totalSubcategoria)}</p>
-                                                      </div>
-                                                    </div>
 
-                                                    {/* Expanded Subcategory - Individual items */}
-                                                    {isSubcategoriaExpandida && (
-                                                      <div className="bg-gray-50">
-                                                        {partidasSubcat.map((partida) => (
-                                                          <div key={partida.id} className="px-4 py-2 pl-16 border-t border-gray-100">
-                                                            <div className="flex justify-between items-center">
-                                                              <span className="text-sm text-gray-600">
-                                                                {partida.notas || "Sin notas"}
-                                                              </span>
-                                                              <span className="font-medium text-gray-900">
-                                                                {formatearMonto(partida.monto)}
-                                                              </span>
-                                                            </div>
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                );
-                                              })}
+                                                      {/* Expanded Subcategory - Individual items */}
+                                                      {isSubcategoriaExpandida && (
+                                                        <div className="bg-gray-50">
+                                                          {partidasSubcat.map(
+                                                            (partida) => (
+                                                              <div
+                                                                key={partida.id}
+                                                                className="px-4 py-2 pl-16 border-t border-gray-100"
+                                                              >
+                                                                <div className="flex justify-between items-center">
+                                                                  <span className="text-sm text-gray-600">
+                                                                    {partida.notas ||
+                                                                      "Sin notas"}
+                                                                  </span>
+                                                                  <span className="font-medium text-gray-900">
+                                                                    {formatearMonto(
+                                                                      partida.monto,
+                                                                    )}
+                                                                  </span>
+                                                                </div>
+                                                              </div>
+                                                            ),
+                                                          )}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                },
+                                              )}
                                             </div>
                                           )}
                                         </div>
@@ -809,15 +1112,26 @@ export default function ListaProyecciones({
 
                                 {/* Reembolsos section */}
                                 {(() => {
-                                  const partidasReembolso = (proyeccion.partidas || []).filter((p) => p.esReembolso);
-                                  if (partidasReembolso.length === 0) return null;
+                                  const partidasReembolso = (
+                                    proyeccion.partidas || []
+                                  ).filter((p) => p.esReembolso);
+                                  if (partidasReembolso.length === 0)
+                                    return null;
 
-                                  const reembolsosPorCategoria: { [key: string]: typeof partidasReembolso } = {};
+                                  const reembolsosPorCategoria: {
+                                    [key: string]: typeof partidasReembolso;
+                                  } = {};
                                   partidasReembolso.forEach((partida) => {
-                                    if (!reembolsosPorCategoria[partida.categoria]) {
-                                      reembolsosPorCategoria[partida.categoria] = [];
+                                    if (
+                                      !reembolsosPorCategoria[partida.categoria]
+                                    ) {
+                                      reembolsosPorCategoria[
+                                        partida.categoria
+                                      ] = [];
                                     }
-                                    reembolsosPorCategoria[partida.categoria].push(partida);
+                                    reembolsosPorCategoria[
+                                      partida.categoria
+                                    ].push(partida);
                                   });
 
                                   return (
@@ -826,38 +1140,77 @@ export default function ListaProyecciones({
                                         <span>💰</span> Reembolsos
                                       </h6>
                                       <div className="space-y-2">
-                                        {Object.keys(reembolsosPorCategoria).map((categoria) => {
-                                          const partidas = reembolsosPorCategoria[categoria];
-                                          const montoTotal = partidas.reduce((sum, p) => sum + p.monto, 0);
+                                        {Object.keys(
+                                          reembolsosPorCategoria,
+                                        ).map((categoria) => {
+                                          const partidas =
+                                            reembolsosPorCategoria[categoria];
+                                          const montoTotal = partidas.reduce(
+                                            (sum, p) => sum + p.monto,
+                                            0,
+                                          );
                                           const keyCategoria = `reembolso-${categoria}`;
-                                          const isCategoriaExpandida = categoriasExpandidas[proyeccion.id] === keyCategoria;
+                                          const isCategoriaExpandida =
+                                            categoriasExpandidas[
+                                              proyeccion.id
+                                            ] === keyCategoria;
 
                                           return (
-                                            <div key={keyCategoria} className="border border-amber-200 rounded-lg bg-amber-50 overflow-hidden">
+                                            <div
+                                              key={keyCategoria}
+                                              className="border border-amber-200 rounded-lg bg-amber-50 overflow-hidden"
+                                            >
                                               <div
                                                 className="flex items-center justify-between cursor-pointer hover:bg-amber-100 px-4 py-3"
-                                                onClick={(e) => { e.stopPropagation(); toggleCategoria(proyeccion.id, keyCategoria); }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleCategoria(
+                                                    proyeccion.id,
+                                                    keyCategoria,
+                                                  );
+                                                }}
                                               >
                                                 <div className="flex items-center gap-2">
-                                                  <span className="text-sm">{isCategoriaExpandida ? "▼" : "▶"}</span>
+                                                  <span className="text-sm">
+                                                    {isCategoriaExpandida
+                                                      ? "▼"
+                                                      : "▶"}
+                                                  </span>
                                                   <div>
-                                                    <p className="font-medium text-gray-900">{categoria}</p>
-                                                    <p className="text-xs text-gray-600">{partidas.length} partidas</p>
+                                                    <p className="font-medium text-gray-900">
+                                                      {categoria}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600">
+                                                      {partidas.length} partidas
+                                                    </p>
                                                   </div>
                                                 </div>
-                                                <p className="font-semibold text-gray-900">{formatearMonto(montoTotal)}</p>
+                                                <p className="font-semibold text-gray-900">
+                                                  {formatearMonto(montoTotal)}
+                                                </p>
                                               </div>
 
                                               {isCategoriaExpandida && (
                                                 <div className="border-t border-amber-200 bg-white">
                                                   {partidas.map((partida) => (
-                                                    <div key={partida.id} className="px-4 py-2 pl-10 border-t border-amber-100 first:border-t-0">
+                                                    <div
+                                                      key={partida.id}
+                                                      className="px-4 py-2 pl-10 border-t border-amber-100 first:border-t-0"
+                                                    >
                                                       <div className="flex justify-between items-center">
-                                                        <span className="text-sm text-gray-600">{partida.subcategoria}</span>
-                                                        <span className="font-medium text-gray-900">{formatearMonto(partida.monto)}</span>
+                                                        <span className="text-sm text-gray-600">
+                                                          {partida.subcategoria}
+                                                        </span>
+                                                        <span className="font-medium text-gray-900">
+                                                          {formatearMonto(
+                                                            partida.monto,
+                                                          )}
+                                                        </span>
                                                       </div>
                                                       {partida.notas && (
-                                                        <p className="text-xs text-gray-500 mt-1">{partida.notas}</p>
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                          {partida.notas}
+                                                        </p>
                                                       )}
                                                     </div>
                                                   ))}
