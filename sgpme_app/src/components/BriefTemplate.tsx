@@ -23,6 +23,7 @@ interface BriefTemplateProps {
   evento: Evento;
   brief: BriefEvento;
   onDescargarPDF: () => void;
+  onEditar?: () => void;
   isPreview?: boolean;
 }
 
@@ -30,6 +31,7 @@ export default function BriefTemplate({
   evento,
   brief,
   onDescargarPDF,
+  onEditar,
   isPreview = false,
 }: BriefTemplateProps) {
   const [facturasExpandidas, setFacturasExpandidas] = useState(false);
@@ -155,13 +157,24 @@ export default function BriefTemplate({
             </div>
           </div>
 
-          <button
-            onClick={onDescargarPDF}
-            className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-lg flex items-center gap-2 text-white"
-          >
-            <ArrowDownTrayIcon className="h-5 w-5" />
-            <span>Descargar PDF</span>
-          </button>
+          <div className="flex gap-2">
+            {onEditar && (
+              <button
+                onClick={onEditar}
+                className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-lg flex items-center gap-2 text-white"
+              >
+                <DocumentTextIcon className="h-5 w-5" />
+                <span>Editar</span>
+              </button>
+            )}
+            <button
+              onClick={onDescargarPDF}
+              className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-lg flex items-center gap-2 text-white"
+            >
+              <ArrowDownTrayIcon className="h-5 w-5" />
+              <span>Descargar PDF</span>
+            </button>
+          </div>
         </div>
       </div>
 

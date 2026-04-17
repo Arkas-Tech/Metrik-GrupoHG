@@ -1234,7 +1234,9 @@ export default function EventosPage() {
                                                 typeof p.lat === "number"
                                               ) {
                                                 const mapsUrl = `https://www.google.com/maps?q=${p.lat},${p.lng}`;
-                                                const displayText = p.address || `${p.lat}, ${p.lng}`;
+                                                const displayText =
+                                                  p.address ||
+                                                  `${p.lat}, ${p.lng}`;
                                                 return (
                                                   <a
                                                     href={mapsUrl}
@@ -2109,6 +2111,7 @@ export default function EventosPage() {
                     evento={eventoEditando}
                     brief={briefSeleccionado}
                     onDescargarPDF={manejarExportarBriefPDF}
+                    onEditar={() => navegarA("brief")}
                   />
                 </div>
               ) : null;
@@ -2135,6 +2138,7 @@ export default function EventosPage() {
                     evento={eventoEditando}
                     brief={briefSeleccionado}
                     onDescargarPDF={manejarExportarBriefPDF}
+                    onEditar={() => navegarA("brief")}
                     isPreview={true}
                   />
                 </div>
