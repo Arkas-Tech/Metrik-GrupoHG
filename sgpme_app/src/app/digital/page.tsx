@@ -994,9 +994,13 @@ const MetricasPage = () => {
                   if (embFiltrados.length === 0) {
                     return (
                       <div className="text-center py-10 text-gray-400">
-                        <p className="text-sm">No hay embajadores registrados.</p>
+                        <p className="text-sm">
+                          No hay embajadores registrados.
+                        </p>
                         <button
-                          onClick={() => router.push("/embajadores?from=digital")}
+                          onClick={() =>
+                            router.push("/embajadores?from=digital")
+                          }
                           className="mt-3 text-purple-400 hover:underline text-sm font-medium"
                         >
                           Administrar embajadores →
@@ -1107,9 +1111,13 @@ const MetricasPage = () => {
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <span className="text-white text-sm">Leads:</span>
+                                <span className="text-white text-sm">
+                                  Leads:
+                                </span>
                                 <span className="text-white font-bold text-sm">
-                                  {new Intl.NumberFormat("es-MX").format(emb.leads)}
+                                  {new Intl.NumberFormat("es-MX").format(
+                                    emb.leads,
+                                  )}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">

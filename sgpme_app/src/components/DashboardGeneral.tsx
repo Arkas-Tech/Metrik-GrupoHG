@@ -1778,220 +1778,222 @@ export default function DashboardGeneral({
           </div>
         )}
 
-        {/* Resumen financiero — full-bleed */}
+        {/* Resumen financiero y proyección por categoría — layout de 2 columnas */}
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-          {/* ── Sección 1: Análisis — fondo blanco (se funde con el bg de página) ── */}
-          <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
-            {/* Header: título + subtítulo */}
-            <div className="inline-block mb-0">
-              <h3 className="text-xl font-bold text-gray-900">
-                Resumen financiero y presupuestal
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Análisis detallado de proyecciones
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+            {/* ── COLUMNA IZQUIERDA: Proyección por categoría (fondo gris) ── */}
+            <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
+              <h4 className="text-base font-semibold text-gray-900 mb-4">
+                Proyección por categoría
+              </h4>
+              {datosGraficaPie.length > 0 ? (
+                <div className="flex flex-col gap-6">
+                  {/* Leyenda en recuadro */}
+                  <div className="bg-white rounded-2xl p-4 shadow-sm">
+                    <div className="space-y-2.5">
+                      {datosGraficaPie.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2.5">
+                          <div
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{
+                              backgroundColor:
+                                COLORES_PIE[idx % COLORES_PIE.length],
+                            }}
+                          />
+                          <span className="text-xs text-gray-700">
+                            {item.nombre}:{" "}
+                            <span className="font-semibold">
+                              {formatearMiles(item.valor)}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pie chart */}
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={datosGraficaPie}
+                          dataKey="valor"
+                          nameKey="nombre"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={90}
+                          innerRadius={0}
+                        >
+                          {datosGraficaPie.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORES_PIE[index % COLORES_PIE.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: number | undefined) =>
+                            formatearMiles(value ?? 0)
+                          }
+                          contentStyle={{
+                            backgroundColor: "transparent",
+                            border: "none",
+                            boxShadow: "none",
+                          }}
+                          labelStyle={{
+                            color: "#111827",
+                            fontWeight: "600",
+                            fontSize: "14px",
+                          }}
+                          itemStyle={{ color: "#374151", fontSize: "13px" }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-48 flex items-center justify-center text-gray-500">
+                  <p>No hay datos de proyecciones para el período seleccionado</p>
+                </div>
+              )}
             </div>
 
-            {/* Barra izquierda + 3 cifras a la derecha */}
-            <div className="flex flex-col sm:flex-row gap-8 items-end mb-6 mt-2">
-              {/* IZQUIERDA: label + barra */}
-              <div className="flex-1 min-w-0 flex flex-col gap-2">
-                <p className="text-base font-bold text-gray-900">
-                  Proyección vs. Gasto
+            {/* ── COLUMNA DERECHA: Resumen financiero y presupuestal (fondo blanco) ── */}
+            <div className="bg-white px-4 sm:px-6 lg:px-8 py-8">
+              {/* Header: título + subtítulo */}
+              <div className="inline-block mb-0">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Resumen financiero y presupuestal
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Análisis detallado de proyecciones
                 </p>
-                <div className="h-7 bg-gray-200 rounded-full relative overflow-hidden">
-                  {(() => {
-                    const { proyeccion, presupuesto, gasto } =
-                      datosBarraProgreso;
-                    const gastoSobrepasaPresupuesto =
-                      gasto > presupuesto && presupuesto > 0;
-                    const base100 = gastoSobrepasaPresupuesto
-                      ? proyeccion
-                      : presupuesto;
-                    const porcentajeProyeccion =
-                      base100 > 0 ? (proyeccion / base100) * 100 : 0;
-                    const porcentajePresupuesto =
-                      base100 > 0 ? (presupuesto / base100) * 100 : 0;
-                    const gastoHastaPresupuesto = Math.min(gasto, presupuesto);
-                    const gastoSobrante = Math.max(0, gasto - presupuesto);
-                    const porcentajeGastoVerde =
-                      base100 > 0 ? (gastoHastaPresupuesto / base100) * 100 : 0;
-                    const porcentajeGastoRojo =
-                      base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
-
-                    return (
-                      <>
-                        <div
-                          className="h-full bg-green-300 transition-all duration-500"
-                          style={{
-                            width: `${Math.min(porcentajeGastoVerde, 100)}%`,
-                          }}
-                        />
-                        {gastoSobrepasaPresupuesto && (
-                          <div
-                            className="absolute top-0 h-full bg-red-400 transition-all duration-500"
-                            style={{
-                              left: `${porcentajeGastoVerde}%`,
-                              width: `${Math.min(porcentajeGastoRojo, 100 - porcentajeGastoVerde)}%`,
-                            }}
-                          />
-                        )}
-                        {proyeccion > 0 && (
-                          <div
-                            className="absolute top-0 bottom-0 w-1.5 bg-blue-300 transition-all duration-500 z-10"
-                            style={{
-                              left: `${Math.min(porcentajeProyeccion, 100)}%`,
-                            }}
-                          />
-                        )}
-                        {gastoSobrepasaPresupuesto && (
-                          <div
-                            className="absolute top-0 bottom-0 w-1 bg-gray-500 transition-all duration-500 z-10"
-                            style={{
-                              left: `${Math.min(porcentajePresupuesto, 100)}%`,
-                            }}
-                          />
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
               </div>
 
-              {/* DERECHA: Total + 3 cifras alineadas con la barra */}
-              <div className="shrink-0 flex flex-col gap-2">
-                {/* Total de proyecciones centrado */}
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-orange-500">
-                    {formatearMiles(datosBarraProgreso.proyeccion)}
+              {/* Barra izquierda + 3 cifras a la derecha */}
+              <div className="flex flex-col sm:flex-row gap-8 items-end mb-6 mt-2">
+                {/* IZQUIERDA: label + barra */}
+                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                  <p className="text-base font-bold text-gray-900">
+                    Proyección vs. Gasto
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Total {proyeccionesFiltradas.length} proyección(es)
-                  </p>
+                  <div className="h-7 bg-gray-200 rounded-full relative overflow-hidden">
+                    {(() => {
+                      const { proyeccion, presupuesto, gasto } =
+                        datosBarraProgreso;
+                      const gastoSobrepasaPresupuesto =
+                        gasto > presupuesto && presupuesto > 0;
+                      const base100 = gastoSobrepasaPresupuesto
+                        ? proyeccion
+                        : presupuesto;
+                      const porcentajeProyeccion =
+                        base100 > 0 ? (proyeccion / base100) * 100 : 0;
+                      const porcentajePresupuesto =
+                        base100 > 0 ? (presupuesto / base100) * 100 : 0;
+                      const gastoHastaPresupuesto = Math.min(gasto, presupuesto);
+                      const gastoSobrante = Math.max(0, gasto - presupuesto);
+                      const porcentajeGastoVerde =
+                        base100 > 0 ? (gastoHastaPresupuesto / base100) * 100 : 0;
+                      const porcentajeGastoRojo =
+                        base100 > 0 ? (gastoSobrante / base100) * 100 : 0;
+
+                      return (
+                        <>
+                          <div
+                            className="h-full bg-green-300 transition-all duration-500"
+                            style={{
+                              width: `${Math.min(porcentajeGastoVerde, 100)}%`,
+                            }}
+                          />
+                          {gastoSobrepasaPresupuesto && (
+                            <div
+                              className="absolute top-0 h-full bg-red-400 transition-all duration-500"
+                              style={{
+                                left: `${porcentajeGastoVerde}%`,
+                                width: `${Math.min(porcentajeGastoRojo, 100 - porcentajeGastoVerde)}%`,
+                              }}
+                            />
+                          )}
+                          {proyeccion > 0 && (
+                            <div
+                              className="absolute top-0 bottom-0 w-1.5 bg-blue-300 transition-all duration-500 z-10"
+                              style={{
+                                left: `${Math.min(porcentajeProyeccion, 100)}%`,
+                              }}
+                            />
+                          )}
+                          {gastoSobrepasaPresupuesto && (
+                            <div
+                              className="absolute top-0 bottom-0 w-1 bg-gray-500 transition-all duration-500 z-10"
+                              style={{
+                                left: `${Math.min(porcentajePresupuesto, 100)}%`,
+                              }}
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
 
-                {/* 3 cifras alineadas horizontalmente */}
-                <div className="flex gap-6">
+                {/* DERECHA: Total + 3 cifras alineadas con la barra */}
+                <div className="shrink-0 flex flex-col gap-2">
+                  {/* Total de proyecciones centrado */}
                   <div className="text-center">
-                    <p className="text-lg font-bold text-green-600">
-                      {formatearMiles(datosBarraProgreso.gasto)}
-                    </p>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
-                      Gasto
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-blue-600">
+                    <p className="text-3xl font-bold text-orange-500">
                       {formatearMiles(datosBarraProgreso.proyeccion)}
                     </p>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
-                      Proyección
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Total {proyeccionesFiltradas.length} proyección(es)
                     </p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-orange-500">
-                      {formatearMiles(datosBarraProgreso.presupuesto)}
-                    </p>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
-                      Presupuesto
-                    </p>
+
+                  {/* 3 cifras alineadas horizontalmente */}
+                  <div className="flex gap-6">
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-green-600">
+                        {formatearMiles(datosBarraProgreso.gasto)}
+                      </p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                        Gasto
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-blue-600">
+                        {formatearMiles(datosBarraProgreso.proyeccion)}
+                      </p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                        Proyección
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-orange-500">
+                        {formatearMiles(datosBarraProgreso.presupuesto)}
+                      </p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mt-0.5">
+                        Presupuesto
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Reembolso */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Banknote className="h-4 w-4 text-green-700 shrink-0" />
-                <span className="text-sm font-semibold text-green-700">
-                  Reembolso
+              {/* Reembolso */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Banknote className="h-4 w-4 text-green-700 shrink-0" />
+                  <span className="text-sm font-semibold text-green-700">
+                    Reembolso
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">
+                  Total a reembolsar en el período
+                </p>
+                <span className="inline-block bg-green-100 text-green-700 text-xl font-bold px-6 py-2 rounded-full">
+                  {formatearMiles(reembolsosData)}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mb-2">
-                Total a reembolsar en el período
-              </p>
-              <span className="inline-block bg-green-100 text-green-700 text-xl font-bold px-6 py-2 rounded-full">
-                {formatearMiles(reembolsosData)}
-              </span>
             </div>
-          </div>
-
-          {/* ── Sección 2: Gráfica — fondo gris ── */}
-          <div className="bg-gray-100 px-4 sm:px-6 lg:px-8 py-8">
-            <h4 className="text-base font-semibold text-gray-900 mb-4">
-              Proyección por categoría
-            </h4>
-            {datosGraficaPie.length > 0 ? (
-              <div className="flex flex-col sm:flex-row gap-6 items-center">
-                {/* Leyenda en recuadro */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm shrink-0 w-full sm:w-auto">
-                  <div className="space-y-2.5">
-                    {datosGraficaPie.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2.5">
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{
-                            backgroundColor:
-                              COLORES_PIE[idx % COLORES_PIE.length],
-                          }}
-                        />
-                        <span className="text-xs text-gray-700">
-                          {item.nombre}:{" "}
-                          <span className="font-semibold">
-                            {formatearMiles(item.valor)}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pie chart */}
-                <div className="flex-1 h-64 min-w-0 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={datosGraficaPie}
-                        dataKey="valor"
-                        nameKey="nombre"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        innerRadius={0}
-                      >
-                        {datosGraficaPie.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORES_PIE[index % COLORES_PIE.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number | undefined) =>
-                          formatearMiles(value ?? 0)
-                        }
-                        contentStyle={{
-                          backgroundColor: "transparent",
-                          border: "none",
-                          boxShadow: "none",
-                        }}
-                        labelStyle={{
-                          color: "#111827",
-                          fontWeight: "600",
-                          fontSize: "14px",
-                        }}
-                        itemStyle={{ color: "#374151", fontSize: "13px" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ) : (
-              <div className="h-48 flex items-center justify-center text-gray-500">
-                <p>No hay datos de proyecciones para el período seleccionado</p>
-              </div>
-            )}
           </div>
         </div>
 
