@@ -555,7 +555,7 @@ export default function ListaProyecciones({
             <p className="text-sm text-green-700 font-light">
               Monto total general:
             </p>
-            <p className="text-3xl font-bold text-green-700">
+            <p className="text-3xl font-bold" style={{ color: "#005117" }}>
               {formatearMonto(montoTotalGeneral)}
             </p>
           </div>
@@ -564,7 +564,8 @@ export default function ListaProyecciones({
           {onGestionarPresupuestos && (
             <button
               onClick={onGestionarPresupuestos}
-              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-blue-50 hover:bg-blue-100 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
+              style={{ color: "#192c47" }}
             >
               <span>Gestionar presupuesto</span>
               <CircleStackIcon className="h-5 w-5" />
@@ -575,7 +576,8 @@ export default function ListaProyecciones({
           {permisos.crear && onNuevaProyeccion && (
             <button
               onClick={onNuevaProyeccion}
-              className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-red-50 hover:bg-red-100 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
+              style={{ color: "#9c0e11" }}
             >
               <span>Nueva proyección</span>
               <PlusCircleIcon className="h-5 w-5" />
