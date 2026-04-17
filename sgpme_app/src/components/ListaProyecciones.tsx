@@ -493,7 +493,7 @@ export default function ListaProyecciones({
   return (
     <div>
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-3">
         {/* Left side - Title and filters */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -551,8 +551,8 @@ export default function ListaProyecciones({
         {/* Right side - Monto total and buttons */}
         <div className="flex flex-col items-end gap-3">
           {/* Monto total general */}
-          <div className="bg-green-50 border border-green-200 rounded-2xl px-8 py-4 text-center">
-            <p className="text-sm text-green-700 font-medium">
+          <div className="bg-green-50 rounded-2xl px-8 py-4 text-center">
+            <p className="text-sm text-green-700 font-light">
               Monto total general:
             </p>
             <p className="text-3xl font-bold text-green-700">
@@ -564,7 +564,7 @@ export default function ListaProyecciones({
           {onGestionarPresupuestos && (
             <button
               onClick={onGestionarPresupuestos}
-              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-6 py-2.5 rounded-full font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <span>Gestionar presupuesto</span>
               <CircleStackIcon className="h-5 w-5" />
@@ -575,7 +575,7 @@ export default function ListaProyecciones({
           {permisos.crear && onNuevaProyeccion && (
             <button
               onClick={onNuevaProyeccion}
-              className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-6 py-2.5 rounded-full font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <span>Nueva proyección</span>
               <PlusCircleIcon className="h-5 w-5" />
