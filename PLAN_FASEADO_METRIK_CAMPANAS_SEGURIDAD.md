@@ -388,9 +388,9 @@ GitHub sin secretos vigentes, secretos rotados y operativos en entorno seguro.
 
 ## Estado de ejecución
 
-- Fase actual: `Fase 3 completada (pendiente aprobación)`
-- Última fase aprobada: `Fase 2`
-- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 4`
+- Fase actual: `Fase 4 completada (pendiente aprobación)`
+- Última fase aprobada: `Fase 3`
+- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 5`
 
 ---
 
@@ -645,3 +645,48 @@ Aprobación usuario: NO (pendiente)
 - [x] Validación técnica sin errores.
 - [x] Deploy a producción ejecutado y verificado.
 - [ ] Aprobación de usuario para continuar a Fase 4.
+
+---
+
+## Ejecución real — Fase 4 (Links y previews de anuncios Meta)
+
+### Registro de fase
+
+```text
+Fase: F4
+Fecha: 2026-04-30
+Rama: main
+Commits: 2623f33
+Archivos: backend/routers/meta_ads.py
+Pruebas ejecutadas: Sí
+Resultado: Completada (pendiente aprobación)
+Observaciones: Se expandió la cadena de extracción de URL destino para cubrir todos los tipos de creative. Ads Archive render queda como último fallback explícito.
+Aprobación usuario: NO (pendiente)
+```
+
+### Cambios quirúrgicos aplicados (solo alcance Fase 4)
+
+1. Se añadió `website_url` al request de fields de la API de Meta.
+2. Nueva cadena de prioridad para `dest_url` (8 niveles):
+   - `link_data.link` → CTA link de `link_data` → `video_data.link_description` → CTA de `video_data` → `template_data.link` → CTA de `template_data` → `photo_data.url` → `creative.object_url` → `creative.website_url` → post URL desde `effective_object_story_id` → Ads Archive render.
+3. Helper `_extract_cta_link` y `_is_useful` para mantener la lógica legible y evitar duplicar condiciones.
+4. El Ads Archive render solo se usa si ningún paso anterior devuelve URL útil.
+
+### Evidencia técnica de Fase 4
+
+1. Archivo modificado único: `backend/routers/meta_ads.py`.
+2. Sin errores de diagnóstico en el archivo modificado.
+3. Deploy backend: `git pull` en servidor, `chown`, `pm2 restart metrik-backend`. Resultado: `METRIK_API_OK`.
+
+### Riesgos residuales de Fase 4
+
+1. Anuncios de tipo lead-gen no redirigen a URL externa; pueden seguir sin `dest_url` útil (comportamiento correcto para ese formato).
+2. La calidad de preview de imagen queda sin cambios en esta fase; si un anuncio no tiene `image_hash` ni `image_url`, seguirá sin preview.
+
+### Checklist de salida Fase 4
+
+- [x] Cambios mínimos y acotados a extracción de URL destino en anuncios Meta.
+- [x] No se afectaron módulos fuera de alcance.
+- [x] Validación técnica sin errores.
+- [x] Deploy a producción ejecutado y verificado.
+- [ ] Aprobación de usuario para continuar a Fase 5.
