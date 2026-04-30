@@ -385,6 +385,25 @@ def list_meta_campaign_ads(
             except Exception:
                 pass
 
+    # Fetch best available thumbnails for video creatives
+    video_id_to_thumb: dict = {}
+    video_ids = {
+        (ad.get("creative") or {}).get("object_story_spec", {}).get("video_data", {}).get("video_id", "")
+        for ad in ads
+    }
+    video_ids = {vid for vid in video_ids if vid}
+    for video_id in video_ids:
+        try:
+            video_data = _meta_api(token, video_id, {"fields": "thumbnails"})
+            thumbs = (video_data.get("thumbnails") or {}).get("data") or []
+            if thumbs:
+                best = max(thumbs, key=lambda t: (t.get("width", 0) or 0) * (t.get("height", 0) or 0))
+                uri = best.get("uri", "")
+                if uri:
+                    video_id_to_thumb[video_id] = uri
+        except Exception:
+            pass
+
     results = []
     for ad in ads:
         creative = ad.get("creative") or {}
@@ -394,12 +413,16 @@ def list_meta_campaign_ads(
         oss = creative.get("object_story_spec") or {}
         link_data = oss.get("link_data") or {}
 
-        # Fallback image from object_story_spec if no hash match
+        # Fallback image chain if no hash match.
+        # IMPORTANT: prioritize creative.image_url first; link_data.picture is often a low-res preview.
         if not full_url:
+            video_id = (oss.get("video_data") or {}).get("video_id", "")
             full_url = (
-                link_data.get("picture")
-                or (oss.get("photo_data") or {}).get("url")
                 or creative.get("image_url")
+                or (oss.get("photo_data") or {}).get("url")
+                or video_id_to_thumb.get(video_id, "")
+                or link_data.get("picture")
+                or creative.get("thumbnail_url")
                 or ""
             )
 
@@ -414,7 +437,7 @@ def list_meta_campaign_ads(
         def _is_useful(url: str) -> bool:
             return bool(url) and url.startswith("http") and url.rstrip("/") not in _fb_roots
 
-        dest_url = (
+        final_landing_url = (
             # 1. link_data.link (most common for image/link ads)
             link_data.get("link")
             # 2. CTA link inside link_data
@@ -432,17 +455,20 @@ def list_meta_campaign_ads(
             or ""
         )
 
-        # Sanitize: reject non-http or bare facebook.com roots
+        # Build platform ad URL first (what users expect from "Ver anuncio")
+        story_id = ad.get("effective_object_story_id", "")
+        ad_id = ad.get("id", "")
+        if story_id and "_" in story_id:
+            page_id, post_id = story_id.split("_", 1)
+            dest_url = f"https://www.facebook.com/{page_id}/posts/{post_id}"
+        elif ad_id:
+            dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}"
+        else:
+            dest_url = ""
+
+        # If platform URL is not available, fallback to final destination/landing URL
         if not _is_useful(dest_url):
-            # 7. Facebook post URL from effective_object_story_id
-            story_id = ad.get("effective_object_story_id", "")
-            if story_id and "_" in story_id:
-                page_id, post_id = story_id.split("_", 1)
-                dest_url = f"https://www.facebook.com/{page_id}/posts/{post_id}"
-            else:
-                # 8. Last resort: Ads Library render (explicit fallback)
-                ad_id = ad.get("id", "")
-                dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}" if ad_id else ""
+            dest_url = final_landing_url if _is_useful(final_landing_url) else ""
 
         results.append({
             "id": str(ad.get("id", "")),
