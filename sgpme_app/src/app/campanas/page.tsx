@@ -1140,171 +1140,173 @@ const CampanasPage = () => {
             {!loadingCampanas && hayFiltroFecha && loadingMetricasPeriodo && (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                <p className="text-gray-600">Actualizando métricas del período...</p>
-              </div>
-            )}
-            {!loadingCampanas && !loadingMetricasPeriodo && campanasFiltradas.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-lg shadow-md">
                 <p className="text-gray-600">
-                  No hay campañas para los filtros seleccionados
-                  {marcaSeleccionada && ` en ${marcaSeleccionada}`}
+                  Actualizando métricas del período...
                 </p>
               </div>
             )}
-            {!loadingCampanas && !loadingMetricasPeriodo && campanasFiltradas.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {campanasFiltradas.map((campana) => (
-                  <div
-                    key={campana.id}
-                    className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="mb-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                          {campana.nombre}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(
-                            campana.estado,
-                          )}`}
-                        >
-                          {campana.estado}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColor(
-                            campana.plataforma,
-                          )}`}
-                        >
-                          {campana.plataforma}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-4 mb-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <ArrowTrendingUpIcon className="w-4 h-4 text-green-600" />
-                          <span className="text-sm text-gray-600">Leads</span>
-                        </div>
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatNumber(campana.leads)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <UsersIcon className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm text-gray-600">
-                            {campana.plataforma === "Meta Ads"
-                              ? "Impresiones"
-                              : "Alcance"}
-                          </span>
-                        </div>
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatNumber(campana.alcance)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <HeartIcon className="w-4 h-4 text-red-600" />
-                          <span className="text-sm text-gray-600">
-                            {campana.plataforma === "Meta Ads"
-                              ? "Clicks"
-                              : "Interacciones"}
-                          </span>
-                        </div>
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatNumber(campana.interacciones)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">CxC</span>
-                        </div>
-                        <span className="text-lg font-bold text-orange-600">
-                          {campana.cxc_porcentaje > 0
-                            ? `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(campana.cxc_porcentaje)}`
-                            : "—"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Gasto actual */}
-                    {(campana.gasto_actual || 0) > 0 && (
-                      <div className="mb-4 flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Inversión
-                        </span>
-                        <span className="text-sm font-bold text-gray-900">
-                          $
-                          {new Intl.NumberFormat("es-MX", {
-                            minimumFractionDigits: 2,
-                          }).format(campana.gasto_actual)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="text-xs text-gray-500 mb-4 p-2 bg-gray-50 rounded">
-                      <div className="flex justify-between">
-                        <span>
-                          Inicio:{" "}
-                          {campana.fecha_inicio
-                            ? campana.fecha_inicio
-                                .split("-")
-                                .reverse()
-                                .join("/")
-                            : "—"}
-                        </span>
-                        <span>
-                          Fin:{" "}
-                          {campana.fecha_fin
-                            ? campana.fecha_fin.split("-").reverse().join("/")
-                            : "—"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => handleVerAnuncios(campana)}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <EyeIcon className="w-4 h-4" />
-                        <span>Ver Anuncios</span>
-                      </button>
-
-                      {!isAuditor && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditarCampana(campana)}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+            {!loadingCampanas &&
+              !loadingMetricasPeriodo &&
+              campanasFiltradas.length === 0 && (
+                <div className="text-center py-12 bg-white rounded-lg shadow-md">
+                  <p className="text-gray-600">
+                    No hay campañas para los filtros seleccionados
+                    {marcaSeleccionada && ` en ${marcaSeleccionada}`}
+                  </p>
+                </div>
+              )}
+            {!loadingCampanas &&
+              !loadingMetricasPeriodo &&
+              campanasFiltradas.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {campanasFiltradas.map((campana) => (
+                    <div
+                      key={campana.id}
+                      className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="mb-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900 text-lg leading-tight">
+                            {campana.nombre}
+                          </h3>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(
+                              campana.estado,
+                            )}`}
                           >
-                            <PencilIcon className="w-4 h-4" />
-                            <span>Editar</span>
-                          </button>
-                          {isAdmin && (
-                            <button
-                              onClick={() =>
-                                handleEliminarCampana(
-                                  campana.id,
-                                  campana.nombre,
-                                )
-                              }
-                              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                            {campana.estado}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColor(
+                              campana.plataforma,
+                            )}`}
+                          >
+                            {campana.plataforma}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-4 mb-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <ArrowTrendingUpIcon className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-gray-600">Leads</span>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatNumber(campana.leads)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <UsersIcon className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-600">
+                              Impresiones
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatNumber(campana.alcance)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <HeartIcon className="w-4 h-4 text-red-600" />
+                            <span className="text-sm text-gray-600">
+                              Clicks
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatNumber(campana.interacciones)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">CxC</span>
+                          </div>
+                          <span className="text-lg font-bold text-orange-600">
+                            {campana.cxc_porcentaje > 0
+                              ? `$${new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(campana.cxc_porcentaje)}`
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Gasto actual */}
+                      {(campana.gasto_actual || 0) > 0 && (
+                        <div className="mb-4 flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">
+                            Inversión
+                          </span>
+                          <span className="text-sm font-bold text-gray-900">
+                            $
+                            {new Intl.NumberFormat("es-MX", {
+                              minimumFractionDigits: 2,
+                            }).format(campana.gasto_actual)}
+                          </span>
                         </div>
                       )}
+
+                      <div className="text-xs text-gray-500 mb-4 p-2 bg-gray-50 rounded">
+                        <div className="flex justify-between">
+                          <span>
+                            Inicio:{" "}
+                            {campana.fecha_inicio
+                              ? campana.fecha_inicio
+                                  .split("-")
+                                  .reverse()
+                                  .join("/")
+                              : "—"}
+                          </span>
+                          <span>
+                            Fin:{" "}
+                            {campana.fecha_fin
+                              ? campana.fecha_fin.split("-").reverse().join("/")
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => handleVerAnuncios(campana)}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <EyeIcon className="w-4 h-4" />
+                          <span>Ver Anuncios</span>
+                        </button>
+
+                        {!isAuditor && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditarCampana(campana)}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                              <span>Editar</span>
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarCampana(
+                                    campana.id,
+                                    campana.nombre,
+                                  )
+                                }
+                                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
           </div>
         </main>
       </div>
