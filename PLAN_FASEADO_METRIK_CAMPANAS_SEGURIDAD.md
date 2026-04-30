@@ -462,11 +462,11 @@ Aprobación usuario: NO (pendiente)
 Fase: F1
 Fecha: 2026-04-30
 Rama: main
-Commits: Pendiente (aún no se ha commiteado)
+Commits: fae6c5d
 Archivos: backend/routers/google_ads.py
 Pruebas ejecutadas: Sí
 Resultado: Completada (pendiente aprobación)
-Observaciones: Se aplicó fallback DB/env para refresh token y se mejoró diagnóstico de errores OAuth sin tocar otras áreas.
+Observaciones: Se aplicó fallback DB/env para refresh token y se mejoró diagnóstico de errores OAuth sin tocar otras áreas. Cambios desplegados en producción (metrik-backend).
 Aprobación usuario: NO (pendiente)
 ```
 
@@ -503,6 +503,17 @@ Aprobación usuario: NO (pendiente)
 3. Validación de errores de archivo:
 
 - Sin errores reportados en `backend/routers/google_ads.py`.
+
+4. Deploy de producción ejecutado (según SERVER_SECURITY_AND_DEPLOY.md):
+
+- `git pull` en `/home/sgpme/app`
+- `chown -R app-metrik:app-metrik /home/sgpme/app`
+- `pm2 restart metrik-backend --update-env`
+- Resultado: `METRIK_API_OK`, proceso `metrik-backend` en `online`.
+
+5. Verificación post-deploy:
+
+- `curl http://127.0.0.1:8080/` respondió `200` con mensaje de API.
 
 ### Riesgos residuales de Fase 1
 
