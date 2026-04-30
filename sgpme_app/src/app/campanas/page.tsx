@@ -183,6 +183,7 @@ const CampanasPage = () => {
       }
     >
   >({});
+  const [loadingMetricasPeriodo, setLoadingMetricasPeriodo] = useState(false);
 
   // Hook para obtener parámetros de la URL
   const searchParams = useSearchParams();
@@ -361,9 +362,11 @@ const CampanasPage = () => {
     ) {
       setMetricasPeriodo({});
       setMetricasPeriodoMeta({});
+      setLoadingMetricasPeriodo(false);
       return;
     }
     let cancelled = false;
+    setLoadingMetricasPeriodo(true);
     (async () => {
       try {
         type MetricasEntry = {
@@ -449,7 +452,14 @@ const CampanasPage = () => {
           }
         }
       } catch {
-        // silently ignore
+        if (!cancelled) {
+          setMetricasPeriodo({});
+          setMetricasPeriodoMeta({});
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMetricasPeriodo(false);
+        }
       }
     })();
     return () => {
@@ -665,6 +675,13 @@ const CampanasPage = () => {
   const hayFiltroFecha =
     hayRangoFechas || (mesesSeleccionados.length > 0 && añoSeleccionado !== 0);
   const terminoBusqueda = busquedaCampana.trim().toLowerCase();
+  const tieneMetricasDelPeriodo = (campana: CampanaDetallada) => {
+    if (campana.google_ads_id)
+      return Boolean(metricasPeriodo[campana.google_ads_id]);
+    if (campana.meta_ads_id)
+      return Boolean(metricasPeriodoMeta[campana.meta_ads_id]);
+    return false;
+  };
 
   const campanasFiltradas = campanasDb
     .filter((campana) => {
@@ -692,9 +709,13 @@ const CampanasPage = () => {
       // Sin filtro de fecha → mostrar todas
       if (!hayFiltroFecha) return cumplePlataforma;
 
-      // Campañas de plataforma (Google/Meta): siempre mostrar — las métricas
-      // del período se superponen en el .map() siguiente si están disponibles.
-      if (campana.google_ads_id || campana.meta_ads_id) return cumplePlataforma;
+      // Campañas conectadas a plataforma (Google/Meta):
+      // con filtro activo solo se muestran si tienen métricas del período.
+      if (campana.google_ads_id || campana.meta_ads_id) {
+        if (!cumplePlataforma) return false;
+        if (loadingMetricasPeriodo) return false;
+        return tieneMetricasDelPeriodo(campana);
+      }
 
       // Campañas manuales: filtrar por fecha de inicio
       if (!campana.fecha_inicio) return false;
@@ -1116,7 +1137,13 @@ const CampanasPage = () => {
                 <p className="text-gray-600">Cargando campañas...</p>
               </div>
             )}
-            {!loadingCampanas && campanasFiltradas.length === 0 && (
+            {!loadingCampanas && hayFiltroFecha && loadingMetricasPeriodo && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                <p className="text-gray-600">Actualizando métricas del período...</p>
+              </div>
+            )}
+            {!loadingCampanas && !loadingMetricasPeriodo && campanasFiltradas.length === 0 && (
               <div className="text-center py-12 bg-white rounded-lg shadow-md">
                 <p className="text-gray-600">
                   No hay campañas para los filtros seleccionados
@@ -1124,7 +1151,7 @@ const CampanasPage = () => {
                 </p>
               </div>
             )}
-            {!loadingCampanas && campanasFiltradas.length > 0 && (
+            {!loadingCampanas && !loadingMetricasPeriodo && campanasFiltradas.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {campanasFiltradas.map((campana) => (
                   <div
