@@ -388,9 +388,9 @@ GitHub sin secretos vigentes, secretos rotados y operativos en entorno seguro.
 
 ## Estado de ejecución
 
-- Fase actual: `Fase 2 completada (pendiente aprobación)`
-- Última fase aprobada: `Fase 1`
-- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 3`
+- Fase actual: `Fase 3 completada (pendiente aprobación)`
+- Última fase aprobada: `Fase 2`
+- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 4`
 
 ---
 
@@ -593,3 +593,55 @@ Aprobación usuario: NO (pendiente)
 - [x] Validación técnica sin errores en archivo modificado.
 - [x] Deploy a producción ejecutado y verificado.
 - [ ] Aprobación de usuario para continuar a Fase 3.
+
+---
+
+## Ejecución real — Fase 3 (Homologación de métricas y etiquetas)
+
+### Registro de fase
+
+```text
+Fase: F3
+Fecha: 2026-04-30
+Rama: main
+Commits: c6776b5
+Archivos: sgpme_app/src/app/campanas/page.tsx
+Pruebas ejecutadas: Sí
+Resultado: Completada (pendiente aprobación)
+Observaciones: Se eliminó la condición por plataforma. Ambas métricas muestran etiqueta uniforme en todas las tarjetas.
+Aprobación usuario: NO (pendiente)
+```
+
+### Cambios quirúrgicos aplicados (solo alcance Fase 3)
+
+1. Segunda métrica de tarjeta: eliminado ternario `Meta Ads ? "Impresiones" : "Alcance"` → etiqueta fija `Impresiones`.
+2. Tercera métrica de tarjeta: eliminado ternario `Meta Ads ? "Clicks" : "Interacciones"` → etiqueta fija `Clicks`.
+3. Campos de dato (`campana.alcance`, `campana.interacciones`) intactos — solo cambió la presentación.
+
+### Evidencia técnica de Fase 3
+
+1. Archivo modificado único:
+
+- `sgpme_app/src/app/campanas/page.tsx`
+
+2. Validación técnica:
+
+- Sin errores de diagnóstico en el archivo modificado.
+
+3. Verificación post-deploy:
+
+- `grep` en `frontend/src/app/campanas/page.tsx` del servidor live muestra solo `Impresiones` (línea 1206) y `Clicks` (línea 1218). Sin referencias a `Alcance` o `Interacciones`.
+- `metrik-frontend` en `online` tras `pm2 restart`. Resultado: `METRIK_WEB_OK`.
+
+### Riesgos residuales de Fase 3
+
+1. Ninguno en presentación.
+2. La homologación del campo `alcance` en backend (que en Meta Ads mapea a `impressions`) queda pendiente de revisión en Fase 6 si se detecta discrepancia semántica.
+
+### Checklist de salida Fase 3
+
+- [x] Cambios mínimos, solo en etiquetas visuales.
+- [x] No se afectaron tipos, bindings ni lógica.
+- [x] Validación técnica sin errores.
+- [x] Deploy a producción ejecutado y verificado.
+- [ ] Aprobación de usuario para continuar a Fase 4.
