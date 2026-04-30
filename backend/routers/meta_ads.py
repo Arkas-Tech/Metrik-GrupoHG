@@ -355,7 +355,7 @@ def list_meta_campaign_ads(
     account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
 
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url,website_url}",
+        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url}",
         "limit": "100",
     })
 
@@ -427,9 +427,8 @@ def list_meta_campaign_ads(
             or _extract_cta_link(oss.get("template_data") or {})
             # 5. photo_data
             or (oss.get("photo_data") or {}).get("url")
-            # 6. creative-level fields
+            # 6. creative-level object_url
             or creative.get("object_url")
-            or creative.get("website_url")
             or ""
         )
 
