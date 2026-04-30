@@ -418,7 +418,7 @@ def list_meta_campaign_ads(
         if not full_url:
             video_id = (oss.get("video_data") or {}).get("video_id", "")
             full_url = (
-                or creative.get("image_url")
+                creative.get("image_url")
                 or (oss.get("photo_data") or {}).get("url")
                 or video_id_to_thumb.get(video_id, "")
                 or link_data.get("picture")
