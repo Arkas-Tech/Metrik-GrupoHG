@@ -47,9 +47,9 @@ def _get_google_config(db: Session) -> dict:
         .filter(SystemSettings.key == "google_ads_refresh_token")
         .first()
     )
-    refresh_token = (db_refresh.value if db_refresh else None) or os.getenv(
-        "GOOGLE_ADS_REFRESH_TOKEN"
-    )
+    db_refresh_token = (db_refresh.value if db_refresh else None) or ""
+    env_refresh_token = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "")
+    refresh_token = db_refresh_token or env_refresh_token
 
     # customer_map: base = .env JSON, sobreescrito por DB si existe
     customer_map: dict = {}
@@ -80,13 +80,17 @@ def _get_google_config(db: Session) -> dict:
         # ID de cliente único (fallback si no hay customer_map configurado)
         "customer_id": os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").replace("-", ""),
         "refresh_token": refresh_token,
+        "db_refresh_token": db_refresh_token,
+        "env_refresh_token": env_refresh_token,
+        "refresh_token_source": "db" if db_refresh_token else ("env" if env_refresh_token else "none"),
         # Mapa marca → customer_id almacenado en DB
         "customer_map": customer_map,
     }
 
 
 def _is_configured(cfg: dict) -> bool:
-    base = all(cfg.get(k) for k in ["developer_token", "client_id", "client_secret", "refresh_token"])
+    has_refresh_token = bool(cfg.get("db_refresh_token") or cfg.get("env_refresh_token"))
+    base = all(cfg.get(k) for k in ["developer_token", "client_id", "client_secret"]) and has_refresh_token
     has_accounts = bool(cfg.get("customer_id") or cfg.get("customer_map"))
     return base and has_accounts
 
@@ -100,22 +104,62 @@ def _get_customer_id_for_marca(cfg: dict, marca: Optional[str]) -> str:
     return cfg.get("customer_id", "")
 
 
-def _get_access_token(cfg: dict) -> str:
-    """Canjea refresh_token por access_token."""
+def _parse_oauth_error(resp) -> tuple[str, str]:
+    """Extrae error y descripción de OAuth de forma segura."""
+    try:
+        data = resp.json()
+        return data.get("error", "unknown_error"), data.get("error_description", resp.text[:200])
+    except Exception:
+        return "unknown_error", resp.text[:200]
+
+
+def _request_access_token(client_id: str, client_secret: str, refresh_token: str) -> tuple[bool, str, str]:
+    """Solicita access token. Retorna (ok, access_token, error_detail)."""
     resp = http_requests.post(
         "https://oauth2.googleapis.com/token",
         json={
-            "client_id": cfg["client_id"],
-            "client_secret": cfg["client_secret"],
-            "refresh_token": cfg["refresh_token"],
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         },
         timeout=15,
     )
     if not resp.ok:
-        err = resp.json().get("error_description", resp.text[:200])
-        raise HTTPException(status_code=503, detail=f"Error obteniendo token de Google: {err}")
-    return resp.json()["access_token"]
+        err_code, err_desc = _parse_oauth_error(resp)
+        return False, "", f"{err_code}: {err_desc}"
+    try:
+        return True, resp.json()["access_token"], ""
+    except Exception:
+        return False, "", "invalid_response: Google no devolvió access_token"
+
+
+def _get_access_token(cfg: dict) -> str:
+    """Canjea refresh_token por access_token con fallback DB/env para evitar fallas por token revocado."""
+    candidates = []
+    if cfg.get("db_refresh_token"):
+        candidates.append(("db", cfg["db_refresh_token"]))
+    if cfg.get("env_refresh_token") and cfg.get("env_refresh_token") != cfg.get("db_refresh_token"):
+        candidates.append(("env", cfg["env_refresh_token"]))
+
+    if not candidates:
+        raise HTTPException(status_code=503, detail="Error obteniendo token de Google: faltan refresh tokens (db/env)")
+
+    errors = []
+    for source, token in candidates:
+        ok, access_token, error_detail = _request_access_token(
+            cfg["client_id"],
+            cfg["client_secret"],
+            token,
+        )
+        if ok:
+            return access_token
+        errors.append(f"{source}={error_detail}")
+
+    raise HTTPException(
+        status_code=503,
+        detail="Error obteniendo token de Google: " + " | ".join(errors),
+    )
 
 
 def _gaql(access_token: str, developer_token: str, customer_id: str, query: str,
@@ -151,6 +195,9 @@ async def get_status(user: user_dependency, db: db_dependency):
         "has_developer_token": bool(cfg.get("developer_token")),
         "has_credentials": bool(cfg.get("client_id") and cfg.get("client_secret")),
         "has_refresh_token": bool(cfg.get("refresh_token")),
+        "has_db_refresh_token": bool(cfg.get("db_refresh_token")),
+        "has_env_refresh_token": bool(cfg.get("env_refresh_token")),
+        "refresh_token_source": cfg.get("refresh_token_source", "none"),
         "has_manager_id": bool(cfg.get("manager_id")),
         "has_single_customer_id": bool(cfg.get("customer_id")),
         "customer_accounts": len(cfg.get("customer_map", {})),
@@ -206,8 +253,8 @@ def exchange_oauth_code(payload: dict, user: user_dependency, db: db_dependency)
         timeout=15,
     )
     if not resp.ok:
-        err = resp.json().get("error_description", resp.text[:200])
-        raise HTTPException(status_code=400, detail=f"Error de autorización: {err}")
+        err_code, err_desc = _parse_oauth_error(resp)
+        raise HTTPException(status_code=400, detail=f"Error de autorización: {err_code}: {err_desc}")
 
     refresh_token = resp.json().get("refresh_token")
     if not refresh_token:
