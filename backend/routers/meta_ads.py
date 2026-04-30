@@ -355,7 +355,7 @@ def list_meta_campaign_ads(
     account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
 
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url}",
+        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url,website_url}",
         "limit": "100",
     })
 
@@ -403,28 +403,47 @@ def list_meta_campaign_ads(
                 or ""
             )
 
-        # Destination URL (where the ad sends users)
-        dest_url = link_data.get("link") or ""
+        # Destination URL extraction — priority chain across all creative types
+        def _extract_cta_link(spec_block: dict) -> str:
+            """Extract link from a call_to_action.value.link within any spec block."""
+            cta = spec_block.get("call_to_action") or {}
+            return (cta.get("value") or {}).get("link", "")
 
-        # If the link is just facebook.com (homepage), try better sources
-        if not dest_url or dest_url.rstrip("/") in ("https://www.facebook.com", "https://facebook.com", "http://www.facebook.com"):
-            # Try effective_object_story_id → Facebook post URL
+        _fb_roots = {"https://www.facebook.com", "https://facebook.com", "http://www.facebook.com"}
+
+        def _is_useful(url: str) -> bool:
+            return bool(url) and url.startswith("http") and url.rstrip("/") not in _fb_roots
+
+        dest_url = (
+            # 1. link_data.link (most common for image/link ads)
+            link_data.get("link")
+            # 2. CTA link inside link_data
+            or _extract_cta_link(link_data)
+            # 3. video_data variants
+            or (oss.get("video_data") or {}).get("link_description")
+            or _extract_cta_link(oss.get("video_data") or {})
+            # 4. template_data (DPA / carousel)
+            or (oss.get("template_data") or {}).get("link")
+            or _extract_cta_link(oss.get("template_data") or {})
+            # 5. photo_data
+            or (oss.get("photo_data") or {}).get("url")
+            # 6. creative-level fields
+            or creative.get("object_url")
+            or creative.get("website_url")
+            or ""
+        )
+
+        # Sanitize: reject non-http or bare facebook.com roots
+        if not _is_useful(dest_url):
+            # 7. Facebook post URL from effective_object_story_id
             story_id = ad.get("effective_object_story_id", "")
             if story_id and "_" in story_id:
                 page_id, post_id = story_id.split("_", 1)
                 dest_url = f"https://www.facebook.com/{page_id}/posts/{post_id}"
-            elif creative.get("object_url", "").startswith("http"):
-                dest_url = creative["object_url"]
             else:
-                # Fallback: Facebook Ads Library preview
+                # 8. Last resort: Ads Library render (explicit fallback)
                 ad_id = ad.get("id", "")
-                if ad_id:
-                    dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}"
-                else:
-                    dest_url = ""
-
-        if dest_url and not dest_url.startswith("http"):
-            dest_url = ""
+                dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}" if ad_id else ""
 
         results.append({
             "id": str(ad.get("id", "")),
