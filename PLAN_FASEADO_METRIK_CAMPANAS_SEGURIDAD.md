@@ -388,9 +388,9 @@ GitHub sin secretos vigentes, secretos rotados y operativos en entorno seguro.
 
 ## Estado de ejecución
 
-- Fase actual: `Fase 1 completada (pendiente aprobación)`
-- Última fase aprobada: `Fase 0`
-- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 2`
+- Fase actual: `Fase 2 completada (pendiente aprobación)`
+- Última fase aprobada: `Fase 1`
+- Próxima acción sugerida: `Solicitar luz verde para iniciar Fase 3`
 
 ---
 
@@ -527,3 +527,69 @@ Aprobación usuario: NO (pendiente)
 - [x] Diagnóstico de error mejorado (`invalid_grant`, etc.).
 - [x] Validación técnica sin errores de compilación/lint reportados para archivo modificado.
 - [ ] Aprobación de usuario para continuar a Fase 2.
+
+---
+
+## Ejecución real — Fase 2 (Filtros de período correctos y consistentes)
+
+### Registro de fase
+
+```text
+Fase: F2
+Fecha: 2026-04-30
+Rama: main
+Commits: 1fe89ea
+Archivos: sgpme_app/src/app/campanas/page.tsx
+Pruebas ejecutadas: Sí
+Resultado: Completada (pendiente aprobación)
+Observaciones: Se corrigió la visibilidad de campañas API bajo filtro de período y se evitó estado engañoso durante carga de métricas. Despliegue frontend aplicado en producción.
+Aprobación usuario: NO (pendiente)
+```
+
+### Cambios quirúrgicos aplicados (solo alcance Fase 2)
+
+1. Con filtro de período activo, campañas con `google_ads_id`/`meta_ads_id` solo se muestran si tienen métricas del período cargadas.
+2. Se agregó estado `loadingMetricasPeriodo` para evitar mostrar resultados inconsistentes mientras se cargan métricas.
+3. En error de carga de métricas de período, se limpian mapas de métricas para eliminar fallback ambiguo.
+4. Se añadió indicador de carga de período y se suprimió mensaje falso de "No hay campañas" durante esa carga.
+
+### Evidencia técnica de Fase 2
+
+1. Archivo modificado único en código de producto:
+
+- `sgpme_app/src/app/campanas/page.tsx`
+
+2. Validación técnica del archivo modificado:
+
+- Sin errores de diagnóstico para `sgpme_app/src/app/campanas/page.tsx`.
+
+3. Lint global del frontend:
+
+- Existen errores/warnings preexistentes fuera de alcance de Fase 2 (no introducidos por este cambio).
+
+4. Deploy de producción (frontend) ejecutado:
+
+- `git pull origin main` en `/home/sgpme/app`
+- Sincronización puntual del archivo actualizado de `sgpme_app` a `frontend`
+- `npm run build` en `/home/sgpme/app/frontend`
+- `chown -R app-metrik:app-metrik /home/sgpme/app`
+- `pm2 restart metrik-frontend --update-env`
+- Resultado: `METRIK_WEB_OK`
+
+5. Verificación post-deploy:
+
+- Archivo live contiene cambio (`Actualizando métricas del período...`) en `frontend/src/app/campanas/page.tsx`.
+- `curl -I http://127.0.0.1:3030/campanas` respondió `HTTP/1.1 200 OK`.
+
+### Riesgos residuales de Fase 2
+
+1. Si la fuente de métricas de período de una plataforma no responde, las campañas API de esa plataforma quedarán ocultas mientras persista el fallo (comportamiento intencional para evitar datos engañosos).
+2. Queda pendiente Fase 5 para corregir formalmente la agregación ponderada de CTR/Conversión/CxC.
+
+### Checklist de salida Fase 2
+
+- [x] Cambios mínimos y acotados a filtros de período.
+- [x] No se afectaron módulos fuera de alcance.
+- [x] Validación técnica sin errores en archivo modificado.
+- [x] Deploy a producción ejecutado y verificado.
+- [ ] Aprobación de usuario para continuar a Fase 3.
