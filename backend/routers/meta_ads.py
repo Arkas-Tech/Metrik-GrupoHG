@@ -355,20 +355,43 @@ def list_meta_campaign_ads(
     account_id = _get_account_id_for_marca(cfg, marca) if marca else ""
 
     data = _meta_api(token, f"{campaign_id}/ads", {
-        "fields": "id,name,effective_status,effective_object_story_id,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url}",
+        "fields": "id,name,effective_status,creative{id,thumbnail_url,image_url,image_hash,body,title,call_to_action_type,object_story_spec,object_url}",
         "limit": "100",
     })
 
     ads = data.get("data", [])
 
-    # Batch-fetch full-res image URLs via adimages (one call for all hashes)
-    # Use 'url' (direct CDN link) — NOT permalink_url which is a webpage and breaks CORS as img src
+    # ── Batch 1: HD thumbnails (800×800) via creative IDs — covers ALL ad types including Reels.
+    # The nested creative{thumbnail_url} expansion always returns p64x64 (1 740 B).
+    # Querying creative objects directly with thumbnail_width/height gives p800x800 (74 KB+).
+    # One GET call for up to 50 IDs.
+    creative_id_to_hd_thumb: dict = {}
+    creative_ids = [ad["creative"]["id"] for ad in ads if (ad.get("creative") or {}).get("id")]
+    for chunk_start in range(0, len(creative_ids), 50):
+        chunk = creative_ids[chunk_start:chunk_start + 50]
+        try:
+            batch = _meta_api(token, "", {
+                "ids": ",".join(chunk),
+                "fields": "thumbnail_url",
+                "thumbnail_width": "800",
+                "thumbnail_height": "800",
+            })
+            for cid, obj in (batch.items() if isinstance(batch, dict) else {}.items()):
+                if isinstance(obj, dict):
+                    tu = obj.get("thumbnail_url", "")
+                    if tu:
+                        creative_id_to_hd_thumb[cid] = tu
+        except Exception:
+            pass
+
+    # ── Batch 2: Full-resolution images for image ads via adimages endpoint.
+    # Returns original uploaded resolution (960–2048 px). Only possible with image_hash.
     hash_to_full_url: dict = {}
     if account_id:
         hashes = [
             ad["creative"]["image_hash"]
             for ad in ads
-            if ad.get("creative", {}).get("image_hash")
+            if (ad.get("creative") or {}).get("image_hash")
         ]
         if hashes:
             try:
@@ -385,98 +408,50 @@ def list_meta_campaign_ads(
             except Exception:
                 pass
 
-    # Fetch best available thumbnails for video creatives
-    video_id_to_thumb: dict = {}
-    video_ids = {
-        (ad.get("creative") or {}).get("object_story_spec", {}).get("video_data", {}).get("video_id", "")
-        for ad in ads
-    }
-    video_ids = {vid for vid in video_ids if vid}
-    for video_id in video_ids:
-        try:
-            video_data = _meta_api(token, video_id, {"fields": "thumbnails"})
-            thumbs = (video_data.get("thumbnails") or {}).get("data") or []
-            if thumbs:
-                best = max(thumbs, key=lambda t: (t.get("width", 0) or 0) * (t.get("height", 0) or 0))
-                uri = best.get("uri", "")
-                if uri:
-                    video_id_to_thumb[video_id] = uri
-        except Exception:
-            pass
-
     results = []
     for ad in ads:
         creative = ad.get("creative") or {}
+        creative_id = creative.get("id", "")
         image_hash = creative.get("image_hash", "")
-        full_url = hash_to_full_url.get(image_hash, "") if image_hash else ""
 
         oss = creative.get("object_story_spec") or {}
         link_data = oss.get("link_data") or {}
+        vd = oss.get("video_data") or {}
 
-        # Fallback image chain if no hash match.
-        # IMPORTANT: prioritize creative.image_url first; link_data.picture is often a low-res preview.
+        # ── Image priority (highest → lowest quality):
+        # 1. adimages URL: original resolution (960–2048 px) — image ads only
+        full_url = hash_to_full_url.get(image_hash, "") if image_hash else ""
+
         if not full_url:
-            video_id = (oss.get("video_data") or {}).get("video_id", "")
             full_url = (
+                # 2. creative.image_url: direct CDN link when present (image ads)
                 creative.get("image_url")
+                # 3. photo_data.url: story photo ads
                 or (oss.get("photo_data") or {}).get("url")
-                or video_id_to_thumb.get(video_id, "")
+                # 4. video_data.image_url: video cover — redirects to t45.1600-4 CDN (CORS: *)
+                or vd.get("image_url")
+                # 5. HD thumbnail 800×800 from batch creative fetch — covers Reels & all others
+                or creative_id_to_hd_thumb.get(creative_id, "")
+                # 6. link_data.picture: sometimes medium quality
                 or link_data.get("picture")
+                # 7. original 64×64 thumbnail as last resort
                 or creative.get("thumbnail_url")
                 or ""
             )
 
-        # Destination URL extraction — priority chain across all creative types
-        def _extract_cta_link(spec_block: dict) -> str:
-            """Extract link from a call_to_action.value.link within any spec block."""
-            cta = spec_block.get("call_to_action") or {}
-            return (cta.get("value") or {}).get("link", "")
-
-        _fb_roots = {"https://www.facebook.com", "https://facebook.com", "http://www.facebook.com"}
-
-        def _is_useful(url: str) -> bool:
-            return bool(url) and url.startswith("http") and url.rstrip("/") not in _fb_roots
-
-        final_landing_url = (
-            # 1. link_data.link (most common for image/link ads)
-            link_data.get("link")
-            # 2. CTA link inside link_data
-            or _extract_cta_link(link_data)
-            # 3. video_data variants
-            or (oss.get("video_data") or {}).get("link_description")
-            or _extract_cta_link(oss.get("video_data") or {})
-            # 4. template_data (DPA / carousel)
-            or (oss.get("template_data") or {}).get("link")
-            or _extract_cta_link(oss.get("template_data") or {})
-            # 5. photo_data
-            or (oss.get("photo_data") or {}).get("url")
-            # 6. creative-level object_url
-            or creative.get("object_url")
-            or ""
-        )
-
-        # Build platform ad URL first (what users expect from "Ver anuncio")
-        story_id = ad.get("effective_object_story_id", "")
+        # ── "Ver anuncio" URL:
+        # Most Meta ads are dark posts (no organic story_id). The Meta Ads Library
+        # is the canonical public URL — shows the creative, page, platforms, and run dates.
         ad_id = ad.get("id", "")
-        if story_id and "_" in story_id:
-            page_id, post_id = story_id.split("_", 1)
-            dest_url = f"https://www.facebook.com/{page_id}/posts/{post_id}"
-        elif ad_id:
-            dest_url = f"https://www.facebook.com/ads/archive/render_ad/?id={ad_id}"
-        else:
-            dest_url = ""
-
-        # If platform URL is not available, fallback to final destination/landing URL
-        if not _is_useful(dest_url):
-            dest_url = final_landing_url if _is_useful(final_landing_url) else ""
+        dest_url = f"https://www.facebook.com/ads/library/?id={ad_id}" if ad_id else ""
 
         results.append({
-            "id": str(ad.get("id", "")),
+            "id": str(ad_id),
             "nombre": ad.get("name", ""),
             "estado": ad.get("effective_status", ""),
             "full_image_url": full_url,
             "image_url": creative.get("image_url", ""),
-            "thumbnail_url": creative.get("thumbnail_url", ""),
+            "thumbnail_url": creative_id_to_hd_thumb.get(creative_id, "") or creative.get("thumbnail_url", ""),
             "titulo": creative.get("title", "") or link_data.get("name", ""),
             "cuerpo": creative.get("body", "") or link_data.get("message", ""),
             "dest_url": dest_url,
